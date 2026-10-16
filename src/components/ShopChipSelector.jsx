@@ -4,7 +4,7 @@ import { createShop } from '../db/mutations'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { getLastShopId } from '../utils/lastShop'
 
-export default function ShopChipSelector({ selectedShopId, onSelect, compact = false }) {
+export default function ShopChipSelector({ selectedShopId, onSelect }) {
   const [search, setSearch] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showNewShop, setShowNewShop] = useState(false)
@@ -63,27 +63,28 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
   return (
     <div className="space-y-2">
       {recentShops.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
           {recentShops.map((shop) => (
             <button
               key={shop.id}
               type="button"
               onClick={() => onSelect(shop.id)}
-              className={chipClass(selectedShopId === shop.id, compact)}
+              className={[
+                'shrink-0 border px-3 py-2 text-[13px]',
+                selectedShopId === shop.id
+                  ? 'border-ink bg-ink font-semibold text-white'
+                  : 'border-line text-ink',
+              ].join(' ')}
             >
               <span className="font-semibold">{shop.name}</span>
-              {shop.building && <span className="ml-1 text-xs opacity-80">{shop.building}</span>}
+              {shop.building && <span className="ml-1 text-[11px] opacity-70">{shop.building}</span>}
             </button>
           ))}
         </div>
       )}
 
       {!showSearch ? (
-        <button
-          type="button"
-          onClick={() => setShowSearch(true)}
-          className="text-xs font-medium text-ink-muted"
-        >
+        <button type="button" onClick={() => setShowSearch(true)} className="text-[12px] text-ink-muted">
           + 다른 가게 검색 / 추가
         </button>
       ) : (
@@ -97,7 +98,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
             }}
             placeholder="가게 검색"
             autoFocus
-            className="w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-sm outline-none focus:border-brand focus:bg-raised focus:ring-2 focus:ring-brand/15"
+            className="w-full border border-line px-3 py-2.5 text-[13px] outline-none focus:border-ink"
           />
           <button
             type="button"
@@ -106,7 +107,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
               setSearch('')
               setShowNewShop(false)
             }}
-            className="text-xs text-ink-muted"
+            className="text-[12px] text-ink-muted"
           >
             검색 닫기
           </button>
@@ -114,7 +115,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
       )}
 
       {search && filteredShops.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {filteredShops.map((shop) => (
             <button
               key={shop.id}
@@ -124,7 +125,10 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
                 setSearch('')
                 setShowSearch(false)
               }}
-              className={chipClass(selectedShopId === shop.id, compact)}
+              className={[
+                'border px-3 py-2 text-[13px]',
+                selectedShopId === shop.id ? 'border-ink bg-ink text-white' : 'border-line text-ink',
+              ].join(' ')}
             >
               {shop.name}
             </button>
@@ -136,33 +140,33 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
         <button
           type="button"
           onClick={openNewShopForm}
-          className="w-full rounded-xl border border-dashed border-brand bg-brand-soft px-3 py-2.5 text-sm font-medium text-brand"
+          className="w-full border border-dashed border-ink px-3 py-2.5 text-[13px] font-medium text-ink"
         >
           + &quot;{search.trim()}&quot; 새 가게로 추가
         </button>
       )}
 
       {showNewShop && (
-        <div className="space-y-2 rounded-xl border border-line bg-paper p-3">
+        <div className="space-y-2 border border-line bg-wash p-3">
           <input
             type="text"
             value={newShop.name}
             onChange={(e) => setNewShop((s) => ({ ...s, name: e.target.value }))}
             placeholder="가게명 *"
-            className="w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm outline-none focus:border-brand"
+            className="w-full border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-ink"
           />
           <input
             type="text"
             value={newShop.building}
             onChange={(e) => setNewShop((s) => ({ ...s, building: e.target.value }))}
-            placeholder="상가명 (청평화, APM…)"
-            className="w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm outline-none focus:border-brand"
+            placeholder="상가명"
+            className="w-full border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-ink"
           />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setShowNewShop(false)}
-              className="flex-1 rounded-lg border border-line bg-raised py-2 text-sm text-ink-muted"
+              className="flex-1 border border-line py-2 text-[13px] text-ink-muted"
             >
               취소
             </button>
@@ -170,7 +174,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
               type="button"
               disabled={!newShop.name.trim() || isCreating}
               onClick={handleCreateShop}
-              className="flex-1 rounded-lg bg-brand py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="flex-1 bg-ink py-2 text-[13px] font-medium text-white disabled:opacity-50"
             >
               {isCreating ? '추가 중…' : '추가'}
             </button>
@@ -179,21 +183,11 @@ export default function ShopChipSelector({ selectedShopId, onSelect, compact = f
       )}
 
       {selectedShop && (
-        <p className="text-xs font-semibold text-brand">
-          선택됨 · {selectedShop.name}
+        <p className="text-[12px] font-medium text-ink">
+          선택: {selectedShop.name}
           {selectedShop.building ? ` · ${selectedShop.building}` : ''}
         </p>
       )}
     </div>
   )
-}
-
-function chipClass(active, compact) {
-  return [
-    'shrink-0 rounded-xl transition active:scale-95',
-    compact ? 'px-4 py-2.5 text-sm' : 'px-3.5 py-2 text-sm',
-    active
-      ? 'bg-brand text-white shadow-md shadow-brand/20'
-      : 'bg-paper text-ink ring-1 ring-line hover:bg-raised',
-  ].join(' ')
 }

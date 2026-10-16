@@ -1,26 +1,23 @@
-export default function PageHeader({ eyebrow, title, subtitle, children, brand }) {
+export default function PageHeader({ title, subtitle, children, brand, action }) {
   return (
-    <header className="relative overflow-hidden border-b border-line/70 px-5 pb-5 pt-6">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(15,110,106,0.12),transparent_55%)]"
-      />
-      <div className="relative animate-fade-up">
-        {brand ? (
-          <p className="font-display text-[1.65rem] font-semibold tracking-tight text-ink">
-            사입노트
-          </p>
-        ) : eyebrow ? (
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">
-            {eyebrow}
-          </p>
-        ) : null}
-        <h1 className={`${brand ? 'mt-1 text-lg font-semibold text-ink-muted' : 'font-display text-2xl font-semibold tracking-tight text-ink'}`}>
-          {title}
-        </h1>
-        {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
-        {children}
+    <header className="border-b border-line px-4 pb-4 pt-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {brand ? (
+            <>
+              <p className="text-[22px] font-bold tracking-[-0.03em] text-ink">사입노트</p>
+              <p className="mt-0.5 text-[13px] text-ink-muted">{subtitle}</p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-[20px] font-bold tracking-[-0.02em] text-ink">{title}</h1>
+              {subtitle && <p className="mt-0.5 text-[13px] text-ink-muted">{subtitle}</p>}
+            </>
+          )}
+        </div>
+        {action}
       </div>
+      {children}
     </header>
   )
 }

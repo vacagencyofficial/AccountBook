@@ -44,7 +44,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
   header.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF0F6E6A' },
+    fgColor: { argb: 'FF111111' },
   }
   header.alignment = { vertical: 'middle', horizontal: 'center' }
   header.height = 22

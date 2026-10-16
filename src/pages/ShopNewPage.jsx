@@ -21,14 +21,14 @@ export default function ShopNewPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-surface">
-      <header className="sticky top-0 z-10 border-b border-border bg-white px-4 py-4">
+    <div className="min-h-dvh bg-paper">
+      <header className="sticky top-0 z-10 border-b border-line bg-white px-4 py-4">
         <div className="mx-auto max-w-lg">
-          <Link to="/shops" className="mb-2 inline-flex items-center text-sm text-slate-500">
+          <Link to="/shops" className="mb-2 inline-flex items-center text-sm text-ink-muted">
             ← 가게 목록
           </Link>
-          <h1 className="text-xl font-bold text-slate-900">가게 추가</h1>
-          <p className="mt-0.5 text-sm text-slate-500">상가·층·호수·메모를 미리 등록해 두세요</p>
+          <h1 className="text-xl font-bold text-ink">가게 추가</h1>
+          <p className="mt-0.5 text-sm text-ink-muted">상가·층·호수·메모를 미리 등록해 두세요</p>
         </div>
       </header>
 
@@ -37,7 +37,7 @@ export default function ShopNewPage() {
           <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
         )}
 
-        <div className="rounded-2xl border border-border bg-white p-4">
+        <div className="border-y border-line py-4">
           <ShopForm
             onSubmit={handleSubmit}
             onCancel={() => navigate('/shops')}

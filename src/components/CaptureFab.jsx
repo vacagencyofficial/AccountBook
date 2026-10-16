@@ -5,9 +5,9 @@ export default function CaptureFab() {
     <Link
       to="/capture"
       aria-label="사진 촬영 후 등록"
-      className="animate-soft-pulse fixed bottom-[4.75rem] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white transition active:scale-95 active:bg-accent-dark md:right-[calc(50%-14.5rem)]"
+      className="fixed bottom-[3.75rem] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-white active:opacity-80 md:right-[calc(50%-14.5rem)]"
     >
-      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"

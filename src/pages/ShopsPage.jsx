@@ -37,36 +37,36 @@ export default function ShopsPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Shops" title="가게" subtitle="최근 방문순 · 상가별 관리">
-        <div className="mt-3 flex gap-2">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="가게명, 상가, 메모 검색"
-            className="min-w-0 flex-1 rounded-xl border border-line bg-raised px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-          />
-          <Link
-            to="/shops/new"
-            className="flex shrink-0 items-center justify-center rounded-xl bg-brand px-4 text-sm font-semibold text-white"
-          >
-            + 추가
+      <PageHeader
+        title="가게"
+        subtitle="최근 방문순"
+        action={
+          <Link to="/shops/new" className="bg-ink px-3 py-2 text-[12px] font-semibold text-white">
+            추가
           </Link>
-        </div>
+        }
+      >
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="가게명, 상가, 메모"
+          className="mt-3 w-full border border-line px-3 py-2.5 text-[13px] outline-none focus:border-ink"
+        />
       </PageHeader>
 
-      <section className="px-4 py-5">
+      <section className="px-4">
         {isLoading ? (
           <LoadingList />
         ) : filtered.length === 0 ? (
-          <EmptyState
-            title={search ? '검색 결과가 없습니다' : '등록된 가게가 없습니다'}
-            description={
-              search ? '다른 키워드로 검색해 보세요' : '빠른 등록에서 가게를 추가하면 여기에 표시됩니다'
-            }
-          />
+          <div className="py-6">
+            <EmptyState
+              title={search ? '검색 결과가 없습니다' : '등록된 가게가 없습니다'}
+              description={search ? '다른 키워드로 검색해 보세요' : '기록하면서 가게를 추가할 수 있습니다'}
+            />
+          </div>
         ) : (
-          <ul className="overflow-hidden rounded-2xl border border-line bg-raised divide-y divide-line">
+          <ul className="divide-y divide-line">
             {filtered.map((shop) => (
               <ShopRow key={shop.id} shop={shop} itemCount={itemCounts?.[shop.id] ?? 0} />
             ))}
@@ -79,9 +79,9 @@ export default function ShopsPage() {
 
 function LoadingList() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 py-4">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="skeleton h-16 rounded-2xl" />
+        <div key={i} className="skeleton h-14" />
       ))}
     </div>
   )

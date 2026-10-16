@@ -106,14 +106,14 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Settings" title="설정" subtitle="백업·복원 및 앱 환경" />
+      <PageHeader title="설정" subtitle="백업·복원 및 앱 환경" />
 
       <section className="space-y-4 px-4 py-5">
         {message && (
-          <div className="rounded-xl bg-brand-soft px-4 py-3 text-sm text-brand">{message}</div>
+          <div className="bg-wash px-4 py-3 text-[13px] text-ink">{message}</div>
         )}
         {error && (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+          <div className="bg-red-50 px-4 py-3 text-[13px] text-red-600">{error}</div>
         )}
 
         <input
@@ -182,7 +182,7 @@ export default function SettingsPage() {
           />
         </SettingsSection>
 
-        <p className="text-center text-xs text-ink-muted">사입노트 · 현장 장부 v0.2.0</p>
+        <p className="text-center text-[12px] text-ink-muted">사입노트 v0.2.1</p>
       </section>
 
       {pendingFile && (
@@ -212,12 +212,8 @@ export default function SettingsPage() {
 function SettingsSection({ title, children }) {
   return (
     <div>
-      <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
-        {title}
-      </h2>
-      <ul className="overflow-hidden rounded-2xl border border-line bg-raised divide-y divide-line">
-        {children}
-      </ul>
+      <h2 className="mb-2 text-[12px] font-bold text-ink-muted">{title}</h2>
+      <ul className="divide-y divide-line border-y border-line">{children}</ul>
     </div>
   )
 }
@@ -229,15 +225,15 @@ function SettingsButton({ label, description, onClick, disabled, danger, trailin
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="flex w-full items-center justify-between px-4 py-4 text-left transition hover:bg-paper disabled:opacity-50"
+        className="flex w-full items-center justify-between py-3.5 text-left disabled:opacity-50"
       >
         <div>
-          <p className={`text-sm font-medium ${danger ? 'text-red-600' : 'text-ink'}`}>
+          <p className={`text-[14px] font-medium ${danger ? 'text-red-600' : 'text-ink'}`}>
             {label}
           </p>
-          <p className="mt-0.5 text-xs text-ink-muted">{description}</p>
+          <p className="mt-0.5 text-[12px] text-ink-muted">{description}</p>
         </div>
-        <span className={danger ? 'text-red-300' : 'text-ink-muted'}>{trailing}</span>
+        <span className="text-ink-muted">{trailing}</span>
       </button>
     </li>
   )
@@ -245,11 +241,9 @@ function SettingsButton({ label, description, onClick, disabled, danger, trailin
 
 function SettingsRow({ label, description }) {
   return (
-    <li className="flex items-center justify-between px-4 py-4">
-      <div>
-        <p className="text-sm font-medium text-ink">{label}</p>
-        <p className="mt-0.5 text-xs text-ink-muted">{description}</p>
-      </div>
+    <li className="py-3.5">
+      <p className="text-[14px] font-medium text-ink">{label}</p>
+      <p className="mt-0.5 text-[12px] text-ink-muted">{description}</p>
     </li>
   )
 }

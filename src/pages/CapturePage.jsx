@@ -71,7 +71,7 @@ export default function CapturePage() {
         photoBlobs: photos.map((p) => p.blob),
       })
 
-      setSaveMessage('저장됨 — 다음 상품을 촬영하세요')
+      setSaveMessage('저장됨. 다음 상품을 촬영하세요.')
       resetForNextItem(keptShopId)
       clearPhotos()
       setSelectedId(null)
@@ -97,32 +97,21 @@ export default function CapturePage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-raised/95 px-4 py-3 backdrop-blur">
-        <button
-          type="button"
-          onClick={handleClose}
-          className="rounded-lg px-2 py-1 text-sm font-medium text-ink-muted"
-        >
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-paper px-4 py-3">
+        <button type="button" onClick={handleClose} className="text-[13px] font-medium text-ink-muted">
           닫기
         </button>
-        <div className="text-center">
-          <h1 className="text-base font-semibold text-ink">빠른 등록</h1>
-          <p className="text-[11px] text-ink-muted">사진 · 가게 · 금액 · 메모</p>
-        </div>
-        <span className="w-12 text-right text-xs font-medium text-ink-muted">{photos.length}장</span>
+        <h1 className="text-[15px] font-bold text-ink">기록</h1>
+        <span className="w-10 text-right text-[12px] text-ink-muted">{photos.length}장</span>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 overflow-y-auto px-4 py-4 pb-32">
-        {error && (
-          <div className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>
-        )}
+      <main className="mx-auto w-full max-w-lg flex-1 overflow-y-auto px-4 py-4 pb-28">
+        {error && <div className="mb-3 bg-red-50 px-3 py-2 text-[13px] text-red-600">{error}</div>}
 
         {saveMessage && (
           <div
-            className={`mb-3 rounded-xl px-3 py-2 text-sm ${
-              saveMessage.includes('실패')
-                ? 'bg-red-50 text-red-600'
-                : 'bg-brand-soft text-brand'
+            className={`mb-3 px-3 py-2 text-[13px] ${
+              saveMessage.includes('실패') ? 'bg-red-50 text-red-600' : 'bg-wash text-ink'
             }`}
           >
             {saveMessage}
@@ -130,23 +119,20 @@ export default function CapturePage() {
         )}
 
         {isCompressing && photos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-            <p className="text-sm text-ink-muted">사진 정리 중…</p>
-          </div>
+          <div className="py-16 text-center text-[13px] text-ink-muted">사진 정리 중…</div>
         ) : (
           <>
             {photos.length > 0 && (
-              <div className="mb-4 flex items-center gap-2">
-                <ul className="flex flex-1 gap-2 overflow-x-auto pb-1">
+              <div className="mb-4 flex items-center gap-2 border-b border-line pb-4">
+                <ul className="flex flex-1 gap-2 overflow-x-auto">
                   {photos.map((photo) => (
                     <li key={photo.id} className="relative shrink-0">
                       <button
                         type="button"
                         onClick={() => setSelectedId(photo.id)}
                         className={[
-                          'rounded-xl ring-2 ring-offset-2',
-                          selectedId === photo.id ? 'ring-brand' : 'ring-transparent',
+                          'border-2',
+                          selectedId === photo.id ? 'border-ink' : 'border-transparent',
                         ].join(' ')}
                       >
                         <PhotoThumbnail blob={photo.blob} alt="썸네일" />
@@ -155,7 +141,7 @@ export default function CapturePage() {
                         <button
                           type="button"
                           onClick={() => handleRemovePhoto(photo.id)}
-                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white"
+                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center bg-ink text-[11px] text-white"
                           aria-label="삭제"
                         >
                           ×
@@ -168,7 +154,7 @@ export default function CapturePage() {
                   type="button"
                   disabled={isCompressing}
                   onClick={() => inputRef.current?.open()}
-                  className="shrink-0 rounded-xl bg-brand-soft px-3 py-2 text-xs font-semibold text-brand"
+                  className="shrink-0 border border-line px-3 py-2 text-[12px] font-semibold text-ink"
                 >
                   + 추가
                 </button>
@@ -192,13 +178,13 @@ export default function CapturePage() {
       </main>
 
       {showForm && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-raised/95 px-4 py-3 backdrop-blur safe-bottom">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper px-4 py-3 safe-bottom">
           <div className="mx-auto max-w-lg">
             <button
               type="button"
               onClick={handleSave}
               disabled={isSaving || !isValid}
-              className="w-full rounded-2xl bg-accent py-4 text-base font-bold text-white shadow-lg shadow-accent/25 active:bg-accent-dark disabled:opacity-40"
+              className="w-full bg-ink py-3.5 text-[15px] font-bold text-white disabled:opacity-40"
             >
               {isSaving ? '저장 중…' : '저장하고 다음 촬영'}
             </button>

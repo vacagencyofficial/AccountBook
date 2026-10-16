@@ -35,21 +35,26 @@ export default function RegisterForm({
   }
 
   function handlePriceKeyDown(event) {
-    if (event.key === 'Enter' && form.shopId && form.price !== '' && (form.name.trim() || form.memo.trim())) {
+    if (
+      event.key === 'Enter' &&
+      form.shopId &&
+      form.price !== '' &&
+      (form.name.trim() || form.memo.trim())
+    ) {
       event.preventDefault()
       onSubmit()
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <section className="rounded-2xl border border-line bg-raised p-3.5">
-        <p className="mb-2 text-xs font-semibold text-ink-muted">1. 가게 / 상가</p>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <section>
+        <p className="mb-2 text-[12px] font-semibold text-ink">가게</p>
         <ShopChipSelector selectedShopId={form.shopId} onSelect={selectShop} compact />
       </section>
 
-      <section className="rounded-2xl border border-line bg-raised p-3.5 space-y-3">
-        <p className="text-xs font-semibold text-ink-muted">2. 품명 · 금액</p>
+      <section className="space-y-3 border-t border-line pt-4">
+        <p className="text-[12px] font-semibold text-ink">품명 · 금액</p>
 
         <Field label="품명" required>
           <input
@@ -61,7 +66,7 @@ export default function RegisterForm({
             placeholder="예: 오버핏 니트"
             autoComplete="off"
             enterKeyHint="next"
-            className={`${inputClass} text-base`}
+            className={inputClass}
           />
         </Field>
 
@@ -76,7 +81,7 @@ export default function RegisterForm({
               onKeyDown={handlePriceKeyDown}
               placeholder="0"
               enterKeyHint="done"
-              className={`${inputClass} text-base font-semibold tabular`}
+              className={`${inputClass} font-semibold tabular`}
             />
           </Field>
           <Field label="수량">
@@ -92,17 +97,15 @@ export default function RegisterForm({
           </Field>
         </div>
 
-        <div className="flex gap-2">
+        <div className="grid grid-cols-4 gap-1.5">
           {QTY_PRESETS.map((qty) => (
             <button
               key={qty}
               type="button"
               onClick={() => updateField('qty', qty)}
               className={[
-                'flex-1 rounded-xl py-2 text-sm font-medium transition',
-                form.qty === qty
-                  ? 'bg-brand text-white'
-                  : 'bg-paper text-ink-muted ring-1 ring-line',
+                'border py-2 text-[12px] font-medium',
+                form.qty === qty ? 'border-ink bg-ink text-white' : 'border-line text-ink-muted',
               ].join(' ')}
             >
               {qty}장
@@ -115,26 +118,26 @@ export default function RegisterForm({
             type="text"
             value={form.memo}
             onChange={(e) => updateField('memo', e.target.value)}
-            placeholder="나중에 기억하기 쉬운 한 줄"
+            placeholder="기억할 내용"
             autoComplete="off"
             className={inputClass}
           />
         </Field>
       </section>
 
-      <section className="rounded-2xl border border-line bg-raised p-3.5 space-y-3">
-        <p className="text-xs font-semibold text-ink-muted">3. 분류</p>
-        <div className="flex flex-wrap gap-2">
+      <section className="space-y-3 border-t border-line pt-4">
+        <p className="text-[12px] font-semibold text-ink">분류</p>
+        <div className="flex flex-wrap gap-1.5">
           {CATEGORIES.map((category) => (
             <button
               key={category}
               type="button"
               onClick={() => updateField('category', category)}
               className={[
-                'rounded-lg px-3 py-1.5 text-sm font-medium transition',
+                'border px-2.5 py-1.5 text-[12px] font-medium',
                 form.category === category
-                  ? 'bg-ink text-white'
-                  : 'bg-paper text-ink-muted ring-1 ring-line',
+                  ? 'border-ink bg-ink text-white'
+                  : 'border-line text-ink-muted',
               ].join(' ')}
             >
               {category}
@@ -142,21 +145,15 @@ export default function RegisterForm({
           ))}
         </div>
 
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           {STATUSES.map((status) => (
             <button
               key={status}
               type="button"
               onClick={() => updateField('status', status)}
               className={[
-                'flex-1 rounded-xl py-2 text-sm font-medium transition',
-                form.status === status
-                  ? status === '구매'
-                    ? 'bg-brand text-white'
-                    : status === '검토'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-slate-500 text-white'
-                  : 'bg-paper text-ink-muted ring-1 ring-line',
+                'border py-2 text-[12px] font-medium',
+                form.status === status ? 'border-ink bg-ink text-white' : 'border-line text-ink-muted',
               ].join(' ')}
             >
               {status}
@@ -168,13 +165,13 @@ export default function RegisterForm({
       <button
         type="button"
         onClick={() => setShowMore((v) => !v)}
-        className="text-sm font-medium text-ink-muted"
+        className="text-[12px] text-ink-muted"
       >
-        {showMore ? '추가 항목 접기' : '색상·사이즈 더 보기'}
+        {showMore ? '색상·사이즈 접기' : '색상·사이즈 입력'}
       </button>
 
       {showMore && (
-        <div className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-raised p-3.5">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="색상">
             <input
               type="text"
@@ -196,9 +193,7 @@ export default function RegisterForm({
         </div>
       )}
 
-      <p className="text-center text-[11px] text-ink-muted">
-        {isSaving ? '저장 중…' : '가게 → 품명·금액 → 저장 (연속 입력 시 가게 유지)'}
-      </p>
+      {isSaving && <p className="text-center text-[12px] text-ink-muted">저장 중…</p>}
     </form>
   )
 }
@@ -206,9 +201,9 @@ export default function RegisterForm({
 function Field({ label, required, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-ink-muted">
+      <span className="mb-1.5 block text-[12px] text-ink-muted">
         {label}
-        {required && <span className="ml-0.5 text-accent">*</span>}
+        {required && <span className="ml-0.5 text-ink">*</span>}
       </span>
       {children}
     </label>
@@ -216,4 +211,4 @@ function Field({ label, required, children }) {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-muted/50 focus:border-brand focus:bg-raised focus:ring-2 focus:ring-brand/15'
+  'w-full border border-line bg-paper px-3 py-2.5 text-[14px] text-ink outline-none placeholder:text-ink-muted/50 focus:border-ink'

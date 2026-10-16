@@ -68,7 +68,7 @@ export default function ShopDetailPage() {
     return (
       <PageShell title="가게 상세">
         <EmptyState title="가게를 찾을 수 없습니다" description="삭제되었거나 잘못된 주소입니다" />
-        <Link to="/shops" className="mt-4 block text-center text-sm font-medium text-brand">
+        <Link to="/shops" className="mt-4 block text-center text-[13px] font-medium text-ink">
           가게 목록으로
         </Link>
       </PageShell>
@@ -82,24 +82,24 @@ export default function ShopDetailPage() {
       backTo="/shops"
     >
       {error && (
-        <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="mb-4 bg-red-50 px-4 py-3 text-[13px] text-red-600">{error}</div>
       )}
 
-      <section className="mb-6 overflow-hidden rounded-2xl border border-border bg-white">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">가게 정보</h2>
+      <section className="mb-6 border-y border-line">
+        <div className="flex items-center justify-between border-b border-line py-3">
+          <h2 className="text-[14px] font-bold text-ink">가게 정보</h2>
           {!isEditing && (
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="text-sm font-medium text-brand"
+              className="text-[13px] font-medium text-ink"
             >
               수정
             </button>
           )}
         </div>
 
-        <div className="px-4 py-4">
+        <div className="py-4">
           {isEditing ? (
             <ShopForm
               initial={shopToForm(shop)}
@@ -120,23 +120,23 @@ export default function ShopDetailPage() {
 
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">사입 기록</h2>
-          <div className="text-right text-xs text-slate-500">
+          <h2 className="text-[14px] font-bold text-ink">사입 기록</h2>
+          <div className="text-right text-[12px] text-ink-muted">
             <span>{items?.length ?? 0}건</span>
             <span className="mx-1">·</span>
-            <span className="font-semibold text-brand">{formatCurrency(totalAmount)}</span>
+            <span className="font-semibold text-ink">{formatCurrency(totalAmount)}</span>
           </div>
         </div>
 
         {itemsLoading ? (
-          <div className="h-24 animate-pulse rounded-2xl bg-white" />
+          <div className="skeleton h-24" />
         ) : items.length === 0 ? (
           <EmptyState
             title="기록이 없습니다"
             description="빠른 등록에서 이 가게로 사입 기록을 추가하세요"
           />
         ) : (
-          <ul className="overflow-hidden rounded-2xl border border-border bg-white divide-y divide-border">
+          <ul className="divide-y divide-line border-t border-line">
             {items.map((item) => (
               <ItemRow key={item.id} item={{ ...item, shop }} showDate />
             ))}
@@ -149,12 +149,12 @@ export default function ShopDetailPage() {
           <button
             type="button"
             onClick={() => setShowDeleteConfirm(true)}
-            className="w-full rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-medium text-red-600"
+            className="w-full border border-red-200 bg-red-50 py-3 text-[13px] font-medium text-red-600"
           >
             가게 삭제
           </button>
           {items.length > 0 && (
-            <p className="text-center text-xs text-slate-400">
+            <p className="text-center text-[12px] text-ink-muted">
               삭제 시 이 가게의 사입 기록 {items.length}건도 함께 삭제됩니다
             </p>
           )}
@@ -182,14 +182,14 @@ export default function ShopDetailPage() {
 
 function PageShell({ title, subtitle, backTo = '/shops', children }) {
   return (
-    <div className="min-h-dvh bg-surface">
-      <header className="sticky top-0 z-10 border-b border-border bg-white px-4 py-4">
+    <div className="min-h-dvh bg-paper">
+      <header className="sticky top-0 z-10 border-b border-line bg-paper px-4 py-4">
         <div className="mx-auto max-w-lg">
-          <Link to={backTo} className="mb-2 inline-flex items-center text-sm text-slate-500">
+          <Link to={backTo} className="mb-2 inline-flex items-center text-[13px] text-ink-muted">
             ← 가게 목록
           </Link>
-          <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-          {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+          <h1 className="text-[20px] font-bold text-ink">{title}</h1>
+          {subtitle && <p className="mt-0.5 text-[13px] text-ink-muted">{subtitle}</p>}
         </div>
       </header>
       <main className="mx-auto max-w-lg px-4 py-6">{children}</main>
@@ -200,8 +200,8 @@ function PageShell({ title, subtitle, backTo = '/shops', children }) {
 function InfoRow({ label, children }) {
   return (
     <div>
-      <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="mt-0.5 whitespace-pre-wrap text-slate-800">{children}</dd>
+      <dt className="text-[12px] text-ink-muted">{label}</dt>
+      <dd className="mt-0.5 whitespace-pre-wrap text-[13px] text-ink">{children}</dd>
     </div>
   )
 }
@@ -209,15 +209,15 @@ function InfoRow({ label, children }) {
 function ConfirmDialog({ title, description, confirmLabel, onConfirm, onCancel, danger, disabled }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-        <p className="mt-2 text-sm text-slate-500">{description}</p>
+      <div className="w-full max-w-sm border border-line bg-paper p-5">
+        <h3 className="text-[16px] font-bold text-ink">{title}</h3>
+        <p className="mt-2 text-[13px] text-ink-muted">{description}</p>
         <div className="mt-5 flex gap-2">
           <button
             type="button"
             onClick={onCancel}
             disabled={disabled}
-            className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium text-slate-600"
+            className="flex-1 border border-line py-2.5 text-[13px] font-medium text-ink-muted"
           >
             취소
           </button>
@@ -225,8 +225,8 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onCancel, 
             type="button"
             onClick={onConfirm}
             disabled={disabled}
-            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
-              danger ? 'bg-red-500' : 'bg-brand'
+            className={`flex-1 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50 ${
+              danger ? 'bg-red-600' : 'bg-ink'
             }`}
           >
             {confirmLabel}
