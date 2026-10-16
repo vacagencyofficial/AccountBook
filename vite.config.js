@@ -3,6 +3,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const sharedServer = {
+  host: '0.0.0.0',
+  port: 43123,
+  strictPort: true,
+  allowedHosts: true,
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -47,8 +54,13 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: 43123,
-    host: true,
-    allowedHosts: true,
+    ...sharedServer,
+    // 다른 기기(폰/태블릿)에서 LAN으로 접속할 때 HMR도 같은 호스트를 쓰도록
+    hmr: {
+      protocol: 'ws',
+    },
+  },
+  preview: {
+    ...sharedServer,
   },
 })

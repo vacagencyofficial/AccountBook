@@ -10,7 +10,14 @@ npm install
 npm run dev
 ```
 
-`http://localhost:43123`
+- 바인딩: `0.0.0.0:43123` (LAN의 다른 기기에서 접속 가능)
+- 로컬: `http://localhost:43123`
+- 네트워크: `http://<host-ip>:43123`
+
+```bash
+npm run build
+npm start    # preview on 0.0.0.0:43123
+```
 
 ## 기술 스택
 
@@ -32,14 +39,14 @@ npm run dev
 | `/history` | 장부·필터·엑셀 |
 | `/settings` | 백업·복원·설정 |
 
-## 데이터 모델
+## 배포
 
-- `shops` — 가게/상가
-- `items` — 품명, 카테고리, 단가, 수량, 상태, 메모
-- `photos` — 상품 사진 Blob
+- Vercel / Netlify: `vercel.json`, `netlify.toml` 포함
+- Build: `npm run build` → `dist`
 
 ## 주의
 
 - 데이터는 기기별 IndexedDB에만 저장됩니다
 - iOS는 Safari에서 홈 화면에 추가 후 사용 권장
 - 사진: 장변 1280px, JPEG 압축
+- HTTP(LAN IP)에서는 PWA 설치/오프라인이 제한될 수 있습니다. 공용 사용은 HTTPS 배포를 권장합니다.
