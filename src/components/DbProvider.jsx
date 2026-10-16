@@ -27,10 +27,7 @@ export function DbProvider({ children }) {
   if (!ready) {
     return (
       <div className="flex h-dvh items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-[13px] text-ink-muted">불러오는 중…</p>
-          <p className="text-sm text-slate-500">불러오는 중…</p>
-        </div>
+        <p className="text-[13px] text-ink-muted">불러오는 중…</p>
       </div>
     )
   }
