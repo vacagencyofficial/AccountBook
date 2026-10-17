@@ -47,14 +47,14 @@ export default function RegisterForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <section>
-        <p className="mb-2 text-[12px] font-semibold text-ink">가게</p>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <section className="rounded-2xl border-2 border-good/30 bg-paper p-4">
+        <p className="mb-2 text-[15px] font-black text-good">1. 가게 고르기</p>
         <ShopChipSelector selectedShopId={form.shopId} onSelect={selectShop} compact />
       </section>
 
-      <section className="space-y-3 border-t border-line pt-4">
-        <p className="text-[12px] font-semibold text-ink">품명 · 금액</p>
+      <section className="space-y-3 rounded-2xl border-2 border-brand/30 bg-paper p-4">
+        <p className="text-[15px] font-black text-brand">2. 품명 · 금액</p>
 
         <Field label="품명" required>
           <input
@@ -71,7 +71,7 @@ export default function RegisterForm({
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="단가" required>
+          <Field label="단가(원)" required>
             <input
               ref={priceRef}
               type="text"
@@ -81,7 +81,7 @@ export default function RegisterForm({
               onKeyDown={handlePriceKeyDown}
               placeholder="0"
               enterKeyHint="done"
-              className={`${inputClass} font-semibold tabular`}
+              className={`${inputClass} text-[20px] font-black tabular`}
             />
           </Field>
           <Field label="수량">
@@ -92,20 +92,22 @@ export default function RegisterForm({
               onChange={(e) => updateField('qty', e.target.value.replace(/[^\d]/g, ''))}
               placeholder="1"
               enterKeyHint="done"
-              className={`${inputClass} tabular`}
+              className={`${inputClass} text-[20px] font-black tabular`}
             />
           </Field>
         </div>
 
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-4 gap-2">
           {QTY_PRESETS.map((qty) => (
             <button
               key={qty}
               type="button"
               onClick={() => updateField('qty', qty)}
               className={[
-                'border py-2 text-[12px] font-medium',
-                form.qty === qty ? 'border-ink bg-ink text-white' : 'border-line text-ink-muted',
+                'tap-target rounded-xl border-2 text-[15px] font-bold',
+                form.qty === qty
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-line bg-wash text-ink',
               ].join(' ')}
             >
               {qty}장
@@ -125,19 +127,19 @@ export default function RegisterForm({
         </Field>
       </section>
 
-      <section className="space-y-3 border-t border-line pt-4">
-        <p className="text-[12px] font-semibold text-ink">분류</p>
-        <div className="flex flex-wrap gap-1.5">
+      <section className="space-y-3 rounded-2xl border-2 border-ledger/30 bg-paper p-4">
+        <p className="text-[15px] font-black text-ledger">3. 분류</p>
+        <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((category) => (
             <button
               key={category}
               type="button"
               onClick={() => updateField('category', category)}
               className={[
-                'border px-2.5 py-1.5 text-[12px] font-medium',
+                'rounded-xl border-2 px-3 py-2 text-[15px] font-bold',
                 form.category === category
-                  ? 'border-ink bg-ink text-white'
-                  : 'border-line text-ink-muted',
+                  ? 'border-ledger bg-ledger text-white'
+                  : 'border-line bg-wash text-ink',
               ].join(' ')}
             >
               {category}
@@ -145,15 +147,21 @@ export default function RegisterForm({
           ))}
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-2">
           {STATUSES.map((status) => (
             <button
               key={status}
               type="button"
               onClick={() => updateField('status', status)}
               className={[
-                'border py-2 text-[12px] font-medium',
-                form.status === status ? 'border-ink bg-ink text-white' : 'border-line text-ink-muted',
+                'tap-target rounded-xl border-2 text-[15px] font-bold',
+                form.status === status
+                  ? status === '구매'
+                    ? 'border-good bg-good text-white'
+                    : status === '검토'
+                      ? 'border-warn bg-warn text-white'
+                      : 'border-ink bg-ink text-white'
+                  : 'border-line bg-wash text-ink',
               ].join(' ')}
             >
               {status}
@@ -165,13 +173,13 @@ export default function RegisterForm({
       <button
         type="button"
         onClick={() => setShowMore((v) => !v)}
-        className="text-[12px] text-ink-muted"
+        className="text-[15px] font-bold text-ink-muted"
       >
-        {showMore ? '색상·사이즈 접기' : '색상·사이즈 입력'}
+        {showMore ? '색상·사이즈 접기' : '색상·사이즈 더 입력'}
       </button>
 
       {showMore && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 rounded-2xl border-2 border-line bg-paper p-4">
           <Field label="색상">
             <input
               type="text"
@@ -193,7 +201,7 @@ export default function RegisterForm({
         </div>
       )}
 
-      {isSaving && <p className="text-center text-[12px] text-ink-muted">저장 중…</p>}
+      {isSaving && <p className="text-center text-[15px] font-medium text-ink-muted">저장 중…</p>}
     </form>
   )
 }
@@ -201,9 +209,9 @@ export default function RegisterForm({
 function Field({ label, required, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[12px] text-ink-muted">
+      <span className="mb-1.5 block text-[14px] font-bold text-ink-muted">
         {label}
-        {required && <span className="ml-0.5 text-ink">*</span>}
+        {required && <span className="ml-0.5 text-accent">*</span>}
       </span>
       {children}
     </label>
@@ -211,4 +219,4 @@ function Field({ label, required, children }) {
 }
 
 const inputClass =
-  'w-full border border-line bg-paper px-3 py-2.5 text-[14px] text-ink outline-none placeholder:text-ink-muted/50 focus:border-ink'
+  'tap-target w-full rounded-xl border-2 border-line bg-wash px-3 py-3 text-[17px] text-ink outline-none placeholder:text-ink-muted/60 focus:border-brand focus:bg-paper'

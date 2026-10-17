@@ -106,7 +106,7 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="설정" subtitle="백업·복원 및 앱 환경" />
+      <PageHeader title="설정" subtitle="백업·복원 및 앱 환경" tone="brand" />
 
       <section className="space-y-4 px-4 py-5">
         {message && (

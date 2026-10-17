@@ -21,7 +21,7 @@ export default defineConfig({
         name: '사입노트',
         short_name: '사입노트',
         description: '동대문 도매 사입 현장 기록 앱',
-        theme_color: '#111111',
+        theme_color: '#1d4ed8',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ItemRow from '../components/ItemRow'
+import { IconCamera, IconCalendar, IconMoney, IconShop } from '../components/Icons'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
@@ -36,25 +37,29 @@ export default function HomePage() {
 
   return (
     <div>
-      <PageHeader brand subtitle={formatTodayHeader()} />
-
-      <section className="border-b border-line px-4 py-4">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[12px] text-ink-muted">오늘</p>
-            <p className="mt-1 text-[28px] font-bold leading-none tracking-[-0.04em] tabular text-ink">
+      <PageHeader brand subtitle={formatTodayHeader()} tone="brand">
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border-2 border-brand/30 bg-paper p-3">
+            <p className="inline-flex items-center gap-1 text-[13px] font-bold text-brand">
+              <IconCalendar className="h-4 w-4" />
+              오늘
+            </p>
+            <p className="mt-1 text-[26px] font-black tabular leading-none text-ink">
               {formatCurrency(todaySummary.total)}
             </p>
-            <p className="mt-1.5 text-[12px] text-ink-muted">
+            <p className="mt-2 text-[14px] font-medium text-ink-muted">
               {todaySummary.count}건 · {todaySummary.qty}장
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-[12px] text-ink-muted">{formatMonthLabel()}</p>
-            <p className="mt-1 text-[18px] font-bold tabular tracking-[-0.02em] text-ink">
+          <div className="rounded-2xl border-2 border-good/30 bg-paper p-3">
+            <p className="inline-flex items-center gap-1 text-[13px] font-bold text-good">
+              <IconMoney className="h-4 w-4" />
+              {formatMonthLabel()}
+            </p>
+            <p className="mt-1 text-[22px] font-black tabular leading-none text-ink">
               {formatCurrency(monthSummary.total)}
             </p>
-            <p className="mt-1 text-[12px] text-ink-muted">
+            <p className="mt-2 text-[14px] font-medium text-ink-muted">
               {monthSummary.count}건 · {monthSummary.qty}장
             </p>
           </div>
@@ -62,28 +67,36 @@ export default function HomePage() {
 
         <Link
           to="/capture"
-          className="mt-4 flex h-11 w-full items-center justify-center bg-ink text-[14px] font-semibold text-white active:opacity-80"
+          className="tap-target mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[18px] font-black text-white shadow-md shadow-accent/25 active:bg-accent-dark"
         >
+          <IconCamera className="h-6 w-6" />
           사진 찍고 기록하기
         </Link>
-      </section>
+      </PageHeader>
 
       {shopRanks.length > 0 && (
-        <section className="border-b border-line px-4 py-4">
+        <section className="border-b-2 border-line bg-paper px-4 py-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[14px] font-bold text-ink">이번 달 가게</h2>
-            <Link to="/history" className="text-[12px] font-medium text-ink-muted">
-              장부
+            <h2 className="inline-flex items-center gap-2 text-[17px] font-black text-ink">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-good-soft text-good">
+                <IconShop className="h-5 w-5" />
+              </span>
+              이번 달 가게
+            </h2>
+            <Link to="/history" className="text-[14px] font-bold text-ledger">
+              장부 보기
             </Link>
           </div>
-          <ul className="divide-y divide-line">
+          <ul className="divide-y-2 divide-line">
             {shopRanks.map((row, index) => (
-              <li key={row.shopId} className="flex items-center justify-between py-2.5 text-[13px]">
-                <span className="min-w-0 truncate text-ink">
-                  <span className="mr-2 tabular text-ink-muted">{index + 1}</span>
+              <li key={row.shopId} className="flex items-center justify-between py-3 text-[16px]">
+                <span className="min-w-0 truncate font-semibold text-ink">
+                  <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-wash text-[14px] font-black text-ink-muted">
+                    {index + 1}
+                  </span>
                   {row.shop?.name ?? '삭제된 가게'}
                 </span>
-                <span className="shrink-0 tabular font-semibold text-ink">
+                <span className="shrink-0 tabular font-black text-ink">
                   {formatCurrency(row.total)}
                 </span>
               </li>
@@ -93,52 +106,48 @@ export default function HomePage() {
       )}
 
       {categoryRanks.length > 0 && (
-        <section className="border-b border-line px-4 py-4">
-          <h2 className="mb-3 text-[14px] font-bold text-ink">카테고리</h2>
-          <ul className="space-y-2">
+        <section className="border-b-2 border-line bg-paper px-4 py-4">
+          <h2 className="mb-3 text-[17px] font-black text-ink">카테고리</h2>
+          <div className="flex flex-wrap gap-2">
             {categoryRanks.map((row) => (
-              <li key={row.category} className="flex items-center justify-between text-[13px]">
-                <span className="text-ink-muted">{row.category}</span>
-                <span className="tabular text-ink">
-                  {row.count}건 · {formatCurrency(row.total)}
-                </span>
-              </li>
+              <span
+                key={row.category}
+                className="rounded-xl bg-brand-soft px-3 py-2 text-[14px] font-bold text-brand-dark"
+              >
+                {row.category} · {row.count}건 · {formatCurrency(row.total)}
+              </span>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
-      <section className="px-4 py-4">
+      <section className="bg-paper px-4 py-4">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[14px] font-bold text-ink">오늘 기록</h2>
-          <span className="text-[12px] text-ink-muted">{todaySummary.count}건</span>
+          <h2 className="text-[17px] font-black text-ink">오늘 기록</h2>
+          <span className="rounded-full bg-wash px-2.5 py-1 text-[13px] font-bold text-ink-muted">
+            {todaySummary.count}건
+          </span>
         </div>
 
         {isLoading ? (
-          <LoadingList />
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton h-20 rounded-2xl" />
+            ))}
+          </div>
         ) : todayItems.length === 0 ? (
           <EmptyState
             title="오늘 기록이 없습니다"
-            description="위에서 사진을 찍어 가게와 금액을 남겨 주세요"
+            description="아래 주황 카메라 버튼으로 사진을 남겨 주세요"
           />
         ) : (
-          <ul className="divide-y divide-line border-t border-line">
+          <ul className="divide-y-2 divide-line border-t-2 border-line">
             {todayItems.map((item) => (
               <ItemRow key={item.id} item={item} />
             ))}
           </ul>
         )}
       </section>
-    </div>
-  )
-}
-
-function LoadingList() {
-  return (
-    <div className="space-y-2 border-t border-line pt-2">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="skeleton h-16" />
-      ))}
     </div>
   )
 }

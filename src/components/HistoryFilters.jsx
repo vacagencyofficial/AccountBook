@@ -1,19 +1,23 @@
 import { CATEGORY_OPTIONS, PERIOD_OPTIONS, STATUS_OPTIONS } from '../hooks/useHistoryFilters'
+import { IconSearch } from './Icons'
 
 export default function HistoryFilters({ filters, shops, onChange, onReset, hasActiveFilters }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-[14px] font-bold text-ink">필터</h2>
+        <h2 className="inline-flex items-center gap-2 text-[17px] font-black text-ink">
+          <IconSearch className="h-5 w-5 text-ledger" />
+          찾기 · 필터
+        </h2>
         {hasActiveFilters && (
-          <button type="button" onClick={onReset} className="text-[12px] text-ink-muted">
+          <button type="button" onClick={onReset} className="text-[14px] font-bold text-ink-muted">
             초기화
           </button>
         )}
       </div>
 
       <label className="block">
-        <span className="mb-1.5 block text-[12px] text-ink-muted">검색</span>
+        <span className="mb-1.5 block text-[14px] font-bold text-ink-muted">검색</span>
         <input
           type="search"
           value={filters.query}
@@ -24,7 +28,7 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
       </label>
 
       <FilterGroup label="기간">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {PERIOD_OPTIONS.map(({ value, label }) => (
             <FilterChip
               key={value}
@@ -38,7 +42,7 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
         {filters.period === 'custom' && (
           <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="mb-1 block text-[12px] text-ink-muted">시작</span>
+              <span className="mb-1 block text-[13px] font-bold text-ink-muted">시작</span>
               <input
                 type="date"
                 value={filters.customStart}
@@ -47,7 +51,7 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] text-ink-muted">종료</span>
+              <span className="mb-1 block text-[13px] font-bold text-ink-muted">종료</span>
               <input
                 type="date"
                 value={filters.customEnd}
@@ -76,7 +80,7 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
       </FilterGroup>
 
       <FilterGroup label="카테고리">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {CATEGORY_OPTIONS.map(({ value, label }) => (
             <FilterChip
               key={value}
@@ -90,7 +94,7 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
       </FilterGroup>
 
       <FilterGroup label="상태">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {STATUS_OPTIONS.map(({ value, label }) => (
             <FilterChip
               key={value}
@@ -109,7 +113,7 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
 function FilterGroup({ label, children }) {
   return (
     <div>
-      <p className="mb-1.5 text-[12px] text-ink-muted">{label}</p>
+      <p className="mb-1.5 text-[14px] font-bold text-ink-muted">{label}</p>
       {children}
     </div>
   )
@@ -121,8 +125,8 @@ function FilterChip({ active, onClick, children }) {
       type="button"
       onClick={onClick}
       className={[
-        'border px-2.5 py-1.5 text-[12px] font-medium',
-        active ? 'border-ink bg-ink text-white' : 'border-line bg-paper text-ink-muted',
+        'rounded-xl border-2 px-3 py-2 text-[14px] font-bold',
+        active ? 'border-ledger bg-ledger text-white' : 'border-line bg-wash text-ink',
       ].join(' ')}
     >
       {children}
@@ -131,4 +135,4 @@ function FilterChip({ active, onClick, children }) {
 }
 
 const inputClass =
-  'w-full border border-line bg-paper px-3 py-2.5 text-[13px] text-ink outline-none focus:border-ink'
+  'tap-target w-full rounded-xl border-2 border-line bg-wash px-3 text-[16px] text-ink outline-none focus:border-ledger focus:bg-paper'

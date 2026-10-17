@@ -1,8 +1,9 @@
 import { useObjectUrl } from '../hooks/useObjectUrl'
+import { IconGallery } from './Icons'
 
 const SIZE = {
-  sm: 'h-11 w-11',
-  md: 'h-14 w-14',
+  sm: 'h-12 w-12',
+  md: 'h-16 w-16',
   lg: 'h-20 w-20',
 }
 
@@ -12,11 +13,11 @@ export default function PhotoThumbnail({ blob, alt = '', size = 'md' }) {
 
   if (!url) {
     return (
-      <div className={`flex ${box} shrink-0 items-center justify-center bg-wash text-[11px] text-ink-muted`}>
-        없음
+      <div className={`flex ${box} shrink-0 items-center justify-center rounded-xl bg-wash text-ink-muted`}>
+        <IconGallery className="h-6 w-6" />
       </div>
     )
   }
 
-  return <img src={url} alt={alt} className={`${box} shrink-0 object-cover bg-wash`} />
+  return <img src={url} alt={alt} className={`${box} shrink-0 rounded-xl object-cover bg-wash`} />
 }
