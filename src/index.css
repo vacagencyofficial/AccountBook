@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* SUIT 가변 글꼴 — 앱에 포함되어 오프라인에서도 같은 글꼴 */
+@import '@sun-typeface/suit/fonts/variable/woff2/SUIT-Variable.css';
 
 @theme {
   --color-ink: #0f172a;
@@ -33,7 +35,7 @@
   --color-surface: #ffffff;
   --color-border: #94a3b8;
 
-  --font-sans: 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-sans: 'SUIT Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 }
 
 html {
