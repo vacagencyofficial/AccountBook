@@ -55,22 +55,20 @@ export default function InstallPrompt() {
   if (!visible) return null
 
   return (
-    <div className="fixed inset-x-0 bottom-14 z-40 px-4 pb-2">
-      <div className="mx-auto max-w-lg border border-line bg-paper p-4">
+    <div className="fixed inset-x-0 bottom-16 z-40 px-4 pb-2">
+      <div className="mx-auto max-w-lg rounded-2xl border-2 border-brand/40 bg-paper p-4 shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[14px] font-semibold text-ink">홈 화면에 추가</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-ink-muted">
+            <p className="text-[16px] font-black text-brand">홈 화면에 붙여 두실래요?</p>
+            <p className="mt-1 text-[14px] font-semibold leading-relaxed text-ink-muted">
               {isIosSafari() ? (
-                <>
-                  Safari 공유 → 홈 화면에 추가하면 데이터가 더 안정적으로 유지됩니다.
-                </>
+                <>아래쪽 「공유」 버튼을 누른 뒤 「홈 화면에 추가」를 고르면, 앱처럼 편하게 열 수 있어요.</>
               ) : (
-                <>앱처럼 쓰고 오프라인에서도 기록을 보관할 수 있습니다.</>
+                <>한 번만 붙여 두면 아이콘으로 바로 열 수 있어요.</>
               )}
             </p>
           </div>
-          <button type="button" onClick={dismiss} className="text-ink-muted" aria-label="닫기">
+          <button type="button" onClick={dismiss} className="text-[22px] font-bold text-ink-muted" aria-label="닫기">
             ×
           </button>
         </div>
@@ -80,15 +78,15 @@ export default function InstallPrompt() {
             <button
               type="button"
               onClick={handleAndroidInstall}
-              className="flex-1 bg-ink py-2.5 text-[13px] font-semibold text-white"
+              className="tap-target flex-1 rounded-xl bg-brand text-[15px] font-black text-white"
             >
-              앱 설치
+              홈에 붙이기
             </button>
           )}
           <button
             type="button"
             onClick={dismiss}
-            className="flex-1 border border-line py-2.5 text-[13px] font-medium text-ink-muted"
+            className="tap-target flex-1 rounded-xl border-2 border-line text-[15px] font-bold text-ink-muted"
           >
             나중에
           </button>

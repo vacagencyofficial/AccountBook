@@ -20,6 +20,11 @@ import {
   summarizeItems,
 } from '../utils/analytics'
 
+function countLabel(count, qty) {
+  if (!count) return '아직 기록이 없어요'
+  return `기록 ${count}개 · 옷 ${qty}장`
+}
+
 export default function HomePage() {
   const today = getToday()
 
@@ -37,69 +42,71 @@ export default function HomePage() {
 
   return (
     <div>
-      <PageHeader brand subtitle={formatTodayHeader()} tone="brand">
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border-2 border-brand/30 bg-paper p-3">
-            <p className="inline-flex items-center gap-1 text-[13px] font-bold text-brand">
+      <PageHeader brand subtitle={`${formatTodayHeader()} · 오늘도 수고하세요`} tone="brand">
+        <p className="mt-3 rounded-xl bg-paper/80 px-3 py-2 text-[14px] font-bold leading-snug text-ink-muted">
+          <span className="text-accent">주황</span>은 사진 · <span className="text-good">초록</span>은 가게 ·{' '}
+          <span className="text-ledger">보라</span>는 장부입니다
+        </p>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="tone-rail-brand rounded-2xl border-2 border-brand/40 bg-paper p-3">
+            <p className="inline-flex items-center gap-1 text-[14px] font-black text-brand">
               <IconCalendar className="h-4 w-4" />
-              오늘
+              오늘 쓴 돈
             </p>
-            <p className="mt-1 text-[26px] font-black tabular leading-none text-ink">
+            <p className="mt-2 text-[26px] font-black tabular leading-none text-ink">
               {formatCurrency(todaySummary.total)}
             </p>
-            <p className="mt-2 text-[14px] font-medium text-ink-muted">
-              {todaySummary.count}건 · {todaySummary.qty}장
-            </p>
+            <p className="mt-2 text-[14px] font-bold text-ink-muted">{countLabel(todaySummary.count, todaySummary.qty)}</p>
           </div>
-          <div className="rounded-2xl border-2 border-good/30 bg-paper p-3">
-            <p className="inline-flex items-center gap-1 text-[13px] font-bold text-good">
+          <div className="tone-rail-good rounded-2xl border-2 border-good/40 bg-paper p-3">
+            <p className="inline-flex items-center gap-1 text-[14px] font-black text-good">
               <IconMoney className="h-4 w-4" />
-              {formatMonthLabel()}
+              {formatMonthLabel()} 합계
             </p>
-            <p className="mt-1 text-[22px] font-black tabular leading-none text-ink">
+            <p className="mt-2 text-[22px] font-black tabular leading-none text-ink">
               {formatCurrency(monthSummary.total)}
             </p>
-            <p className="mt-2 text-[14px] font-medium text-ink-muted">
-              {monthSummary.count}건 · {monthSummary.qty}장
-            </p>
+            <p className="mt-2 text-[14px] font-bold text-ink-muted">{countLabel(monthSummary.count, monthSummary.qty)}</p>
           </div>
         </div>
 
         <Link
           to="/capture"
-          className="tap-target mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[18px] font-black text-white shadow-md shadow-accent/25 active:bg-accent-dark"
+          className="tap-target mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[19px] font-black text-white shadow-md shadow-accent/30 active:bg-accent-dark"
         >
-          <IconCamera className="h-6 w-6" />
-          사진 찍고 기록하기
+          <IconCamera className="h-7 w-7" />
+          사진 찍고 적기
         </Link>
+        <p className="mt-2 text-center text-[13px] font-bold text-ink-muted">가장 자주 쓰는 버튼이에요</p>
       </PageHeader>
 
       {shopRanks.length > 0 && (
-        <section className="border-b-2 border-line bg-paper px-4 py-4">
+        <section className="tone-rail-good border-b-2 border-line bg-paper px-4 py-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="inline-flex items-center gap-2 text-[17px] font-black text-ink">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-good-soft text-good">
+            <h2 className="inline-flex items-center gap-2 text-[18px] font-black text-good">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-good-soft">
                 <IconShop className="h-5 w-5" />
               </span>
-              이번 달 가게
+              이번 달 많이 간 가게
             </h2>
-            <Link to="/history" className="text-[14px] font-bold text-ledger">
-              장부 보기
+            <Link to="/history" className="text-[15px] font-black text-ledger">
+              장부 보기 ›
             </Link>
           </div>
           <ul className="divide-y-2 divide-line">
             {shopRanks.map((row, index) => {
               const content = (
                 <>
-                  <span className="min-w-0 truncate font-semibold text-ink">
-                    <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-wash text-[14px] font-black text-ink-muted">
+                  <span className="min-w-0 truncate font-bold text-ink">
+                    <span className="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-good-soft text-[15px] font-black text-good">
                       {index + 1}
                     </span>
-                    {row.shop?.name ?? '삭제된 가게'}
+                    {row.shop?.name ?? '없는 가게'}
                   </span>
-                  <span className="flex shrink-0 items-center gap-1 tabular font-black text-ink">
+                  <span className="flex shrink-0 items-center gap-1 tabular text-[16px] font-black text-ink">
                     {formatCurrency(row.total)}
-                    <span className="text-[18px] font-bold text-ink-muted" aria-hidden>
+                    <span className="text-[20px] font-bold text-good" aria-hidden>
                       ›
                     </span>
                   </span>
@@ -118,7 +125,7 @@ export default function HomePage() {
                 <li key={row.shopId}>
                   <Link
                     to={`/shops/${row.shopId}`}
-                    className="tap-target flex items-center justify-between py-3 text-[16px] active:bg-wash"
+                    className="tap-target flex items-center justify-between py-3 text-[16px] active:bg-good-soft/40"
                   >
                     {content}
                   </Link>
@@ -131,14 +138,14 @@ export default function HomePage() {
 
       {categoryRanks.length > 0 && (
         <section className="border-b-2 border-line bg-paper px-4 py-4">
-          <h2 className="mb-3 text-[17px] font-black text-ink">카테고리</h2>
+          <h2 className="mb-3 text-[18px] font-black text-ink">옷 종류별</h2>
           <div className="flex flex-wrap gap-2">
             {categoryRanks.map((row) => (
               <span
                 key={row.category}
-                className="rounded-xl bg-brand-soft px-3 py-2 text-[14px] font-bold text-brand-dark"
+                className="rounded-xl border-2 border-brand/25 bg-brand-soft px-3 py-2 text-[15px] font-bold text-brand-dark"
               >
-                {row.category} · {row.count}건 · {formatCurrency(row.total)}
+                {row.category} · {row.count}개 · {formatCurrency(row.total)}
               </span>
             ))}
           </div>
@@ -146,10 +153,10 @@ export default function HomePage() {
       )}
 
       <section className="bg-paper px-4 py-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[17px] font-black text-ink">오늘 기록</h2>
-          <span className="rounded-full bg-wash px-2.5 py-1 text-[13px] font-bold text-ink-muted">
-            {todaySummary.count}건
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[18px] font-black text-ink">오늘 적으신 것</h2>
+          <span className="rounded-full bg-brand-soft px-3 py-1 text-[14px] font-black text-brand">
+            {todaySummary.count}개
           </span>
         </div>
 
@@ -161,8 +168,10 @@ export default function HomePage() {
           </div>
         ) : todayItems.length === 0 ? (
           <EmptyState
-            title="오늘 기록이 없습니다"
-            description="아래 주황 카메라 버튼으로 사진을 남겨 주세요"
+            tone="accent"
+            icon="camera"
+            title="아직 오늘 기록이 없어요"
+            description="주황 버튼을 눌러 사진을 남기면 여기에 쌓입니다. 천천히 하셔도 됩니다."
           />
         ) : (
           <ul className="divide-y-2 divide-line border-t-2 border-line">

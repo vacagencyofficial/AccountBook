@@ -1,36 +1,43 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-ink: #111827;
-  --color-ink-muted: #4b5563;
+  --color-ink: #0f172a;
+  --color-ink-muted: #334155;
   --color-paper: #ffffff;
   --color-raised: #ffffff;
-  --color-line: #d1d5db;
-  --color-wash: #f3f4f6;
+  --color-line: #94a3b8;
+  --color-wash: #eef2f6;
 
+  /* 파랑 = 홈·안내 */
   --color-brand: #1d4ed8;
   --color-brand-dark: #1e3a8a;
   --color-brand-soft: #dbeafe;
 
+  /* 주황 = 사진·바로 하기 */
   --color-accent: #ea580c;
   --color-accent-dark: #c2410c;
   --color-accent-soft: #ffedd5;
 
+  /* 초록 = 가게·안전 보관 */
   --color-good: #15803d;
   --color-good-soft: #dcfce7;
-  --color-warn: #a16207;
+
+  /* 호박 = 주의·통째 보관 */
+  --color-warn: #b45309;
   --color-warn-soft: #fef3c7;
-  --color-ledger: #7c3aed;
+
+  /* 보라 = 장부·합계 */
+  --color-ledger: #6d28d9;
   --color-ledger-soft: #ede9fe;
 
   --color-surface: #ffffff;
-  --color-border: #d1d5db;
+  --color-border: #94a3b8;
 
-  --font-sans: 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --font-sans: 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 }
 
 html {
-  font-size: 18px;
+  font-size: 19px;
 }
 
 html,
@@ -44,8 +51,18 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   color: var(--color-ink);
-  background: #f8fafc;
-  line-height: 1.45;
+  /* 차가운 단색 대신 옅은 줄무늬 — 현장 수첩 느낌 */
+  background-color: #e8edf3;
+  background-image:
+    linear-gradient(180deg, rgba(29, 78, 216, 0.06), transparent 180px),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 11px,
+      rgba(15, 23, 42, 0.03) 11px,
+      rgba(15, 23, 42, 0.03) 12px
+    );
+  line-height: 1.5;
 }
 
 button,
@@ -64,7 +81,7 @@ textarea {
 }
 
 .skeleton {
-  background: #e5e7eb;
+  background: #cbd5e1;
 }
 
 .sr-only {
@@ -80,5 +97,19 @@ textarea {
 }
 
 .tap-target {
-  min-height: 3rem;
+  min-height: 3.15rem;
+}
+
+/* 색 의미 띠 — 화면 구분용 */
+.tone-rail-brand {
+  box-shadow: inset 6px 0 0 0 var(--color-brand);
+}
+.tone-rail-good {
+  box-shadow: inset 6px 0 0 0 var(--color-good);
+}
+.tone-rail-ledger {
+  box-shadow: inset 6px 0 0 0 var(--color-ledger);
+}
+.tone-rail-accent {
+  box-shadow: inset 6px 0 0 0 var(--color-accent);
 }

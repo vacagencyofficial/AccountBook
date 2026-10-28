@@ -111,25 +111,26 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <PageHeader title="장부" subtitle="엑셀로 저장하고 불러오기" tone="ledger">
-        <div className="mt-4 flex items-end justify-between rounded-2xl border-2 border-ledger/25 bg-paper px-4 py-3">
+      <PageHeader title="장부" subtitle="모아서 보고, 엑셀로 챙겨 두세요" tone="ledger">
+        <div className="mt-4 flex items-end justify-between rounded-2xl border-2 border-ledger/40 bg-paper px-4 py-3 tone-rail-ledger">
           <div>
-            <p className="inline-flex items-center gap-1 text-[13px] font-bold text-ledger">
+            <p className="inline-flex items-center gap-1 text-[14px] font-black text-ledger">
               <IconMoney className="h-4 w-4" />
-              합계
+              지금 보이는 합계
             </p>
             <p className="mt-1 text-[26px] font-black tabular text-ink">
               {formatCurrency(summary.total)}
             </p>
           </div>
-          <p className="text-[15px] font-bold text-ink-muted">
-            {summary.count}건 · {summary.qty}장
+          <p className="text-[15px] font-black text-ink-muted">
+            {summary.count ? `기록 ${summary.count}개 · 옷 ${summary.qty}장` : '아직 없음'}
           </p>
         </div>
       </PageHeader>
 
       <section className="bg-paper">
         <div className="border-b-2 border-line px-4 py-4">
+          <p className="mb-2 text-[15px] font-black text-ink">파일로 챙기기</p>
           <label className="mb-3 flex items-center gap-3 text-[16px] font-bold text-ink">
             <input
               type="checkbox"
@@ -137,36 +138,39 @@ export default function HistoryPage() {
               onChange={(e) => setIncludePhotos(e.target.checked)}
               className="h-5 w-5 rounded border-line"
             />
-            사진도 엑셀에 넣기
+            엑셀에 사진도 같이 넣기
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <button
               type="button"
               onClick={handleExport}
               disabled={!canExport}
-              className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-ledger text-[16px] font-black text-white disabled:opacity-40"
+              className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-good text-[17px] font-black text-white disabled:opacity-40"
             >
               <IconExcel className="h-5 w-5" />
-              {isExporting ? '내보내는 중…' : '엑셀 내보내기'}
+              {isExporting ? '저장하는 중…' : '엑셀로 저장하기'}
             </button>
             <button
               type="button"
               onClick={handleImportClick}
               disabled={isImporting}
-              className="tap-target flex items-center justify-center gap-2 rounded-2xl border-2 border-ledger bg-ledger/10 text-[16px] font-black text-ledger disabled:opacity-50"
+              className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-brand text-[17px] font-black text-white disabled:opacity-50"
             >
               <IconExcel className="h-5 w-5" />
-              {isImporting ? '불러오는 중…' : '엑셀 불러오기'}
+              {isImporting ? '가져오는 중…' : '엑셀에서 가져오기'}
             </button>
             <button
               type="button"
               onClick={handleBackup}
               disabled={isBackingUp}
-              className="tap-target col-span-2 rounded-2xl border-2 border-line text-[16px] font-bold text-ink disabled:opacity-50"
+              className="tap-target rounded-2xl border-2 border-warn bg-warn-soft text-[16px] font-black text-warn disabled:opacity-50"
             >
-              {isBackingUp ? '백업 중…' : '전체 백업 (ZIP)'}
+              {isBackingUp ? '보관하는 중…' : '사진까지 통째로 보관하기'}
             </button>
           </div>
+          <p className="mt-2 text-[13px] font-bold leading-snug text-ink-muted">
+            초록=안전하게 저장 · 파랑=파일 가져오기 · 호박색=사진 포함 통째 보관
+          </p>
           <input
             ref={excelInputRef}
             type="file"
@@ -181,7 +185,7 @@ export default function HistoryPage() {
         {(shopBreakdown.length > 0 || categoryBreakdown.length > 0) && (
           <div className="grid grid-cols-2 border-b-2 border-line">
             <div className="border-r-2 border-line px-4 py-3">
-              <h3 className="text-[14px] font-black text-ink">가게 TOP</h3>
+              <h3 className="text-[15px] font-black text-good">많이 간 가게</h3>
               <ul className="mt-2 space-y-2">
                 {shopBreakdown.map((row) => (
                   <li key={row.shopId} className="flex justify-between gap-2 text-[14px] font-semibold">
@@ -192,7 +196,7 @@ export default function HistoryPage() {
               </ul>
             </div>
             <div className="px-4 py-3">
-              <h3 className="text-[14px] font-black text-ink">카테고리</h3>
+              <h3 className="text-[15px] font-black text-brand">옷 종류</h3>
               <ul className="mt-2 space-y-2">
                 {categoryBreakdown.map((row) => (
                   <li key={row.category} className="flex justify-between gap-2 text-[14px] font-semibold">
@@ -223,9 +227,17 @@ export default function HistoryPage() {
               ))}
             </div>
           ) : hasNoData ? (
-            <EmptyState title="사입 내역이 없습니다" description="기록을 추가하면 여기에 표시됩니다" />
+            <EmptyState
+              tone="ledger"
+              title="아직 장부에 기록이 없어요"
+              description="주황 버튼으로 사진을 남기면 여기 장부에 쌓입니다."
+            />
           ) : isEmpty ? (
-            <EmptyState title="조건에 맞는 내역이 없습니다" description="필터를 바꿔 보세요" />
+            <EmptyState
+              tone="ledger"
+              title="이 조건에는 없는 것 같아요"
+              description="위의 기간·가게를 바꿔 다시 찾아 보세요."
+            />
           ) : (
             <ul className="divide-y-2 divide-line">
               {filteredItems.map((item) => (
@@ -238,8 +250,8 @@ export default function HistoryPage() {
 
       {pendingExcel && (
         <ImportModeDialog
-          title="엑셀 불러오기"
-          description="덮어쓰기는 지금 장부를 지우고 엑셀로 채웁니다. 병합은 기존 기록에 엑셀 내용을 추가합니다. (사진은 엑셀에서 가져오지 않습니다)"
+          title="엑셀에서 가져오기"
+          description="「덮어쓰기」는 지금 장부를 지우고 엑셀로 채웁니다. 「합치기」는 있던 기록에 엑셀 내용을 더합니다. (사진은 이 방법으로 안 들어옵니다)"
           disabled={isImporting}
           onOverwrite={() => handleImportExcel('overwrite')}
           onMerge={() => handleImportExcel('merge')}

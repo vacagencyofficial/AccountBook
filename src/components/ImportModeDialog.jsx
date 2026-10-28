@@ -16,17 +16,17 @@ export default function ImportModeDialog({
             type="button"
             onClick={onOverwrite}
             disabled={disabled}
-            className="w-full bg-ink py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-ink py-3 text-[16px] font-black text-white disabled:opacity-50"
           >
-            덮어쓰기
+            지우고 덮어쓰기
           </button>
           <button
             type="button"
             onClick={onMerge}
             disabled={disabled}
-            className="w-full border border-line py-2.5 text-[13px] font-medium text-ink disabled:opacity-50"
+            className="w-full border-2 border-line py-3 text-[16px] font-bold text-ink disabled:opacity-50"
           >
-            병합
+            기존에 합치기
           </button>
           <button
             type="button"

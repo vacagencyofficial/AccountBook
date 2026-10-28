@@ -139,7 +139,7 @@ export default function SettingsPage() {
       setWorkspaceCode(ws.code)
       setCodeInput(ws.code)
       await syncBidirectional()
-      setMessage('클라우드에 저장을 시작했습니다. 아래 버튼으로 다른 기기를 초대하세요.')
+      setMessage('잘 저장해 두었습니다. 아래 버튼으로 다른 폰을 불러 주세요.')
     } catch (err) {
       setError(err instanceof Error ? err.message : '클라우드 연결에 실패했습니다')
     } finally {
@@ -162,7 +162,7 @@ export default function SettingsPage() {
       setWorkspaceCode(ws.code)
       setCodeInput(ws.code)
       await syncBidirectional()
-      setMessage(`클라우드 동기화 완료`)
+      setMessage('연결했어요. 이제 같은 장부를 같이 볼 수 있습니다.')
       setShowManualCode(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : '클라우드 연결에 실패했습니다')
@@ -179,9 +179,9 @@ export default function SettingsPage() {
     try {
       const { syncBidirectional } = await import('../db/cloudSync')
       await syncBidirectional()
-      setMessage('지금 기기와 클라우드를 맞춰 두었습니다.')
+      setMessage('이 폰과 인터넷 저장을 맞춰 두었습니다.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '동기화에 실패했습니다')
+      setError(err instanceof Error ? err.message : '맞추기에 실패했습니다')
     } finally {
       setIsSyncing(false)
     }
@@ -195,7 +195,7 @@ export default function SettingsPage() {
     try {
       const { pullCloudToLocal } = await import('../db/cloudSync')
       const result = await pullCloudToLocal({ replaceLocal: true })
-      setMessage(`클라우드 데이터로 가져옴 · 가게 ${result.shops} · 기록 ${result.items}`)
+      setMessage(`인터넷에서 가져왔어요 · 가게 ${result.shops}곳 · 기록 ${result.items}개`)
       await loadStorage()
     } catch (err) {
       setError(err instanceof Error ? err.message : '가져오기에 실패했습니다')
@@ -206,16 +206,16 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="설정" subtitle="클라우드 · 백업 · PWA" tone="brand" />
+      <PageHeader title="설정" subtitle="다른 폰과 함께 쓰고, 기록을 안전하게 챙기세요" tone="brand" />
 
       <section className="space-y-4 px-4 py-5">
         {message && (
-          <div className="rounded-2xl border-2 border-good/30 bg-good-soft px-4 py-3 text-[15px] font-bold text-good">
+          <div className="rounded-2xl border-2 border-good/40 bg-good-soft px-4 py-3 text-[16px] font-black text-good">
             {message}
           </div>
         )}
         {error && (
-          <div className="rounded-2xl border-2 border-red-300 bg-red-50 px-4 py-3 text-[15px] font-bold text-red-700">
+          <div className="rounded-2xl border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-black text-red-700">
             {error}
           </div>
         )}
@@ -228,38 +228,37 @@ export default function SettingsPage() {
           onChange={handleFileSelected}
         />
 
-        <SettingsSection title="클라우드 · 다른 기기와 같이 쓰기">
+        <SettingsSection title="파랑 · 다른 폰과 같이 쓰기" tone="brand">
           <li className="space-y-3 py-3.5">
             {!isCloudConfigured ? (
-              <p className="text-[15px] font-bold text-ink-muted">
-                아직 서버 키가 없습니다. 배포 담당자가 Vercel 환경 변수를 넣으면 사용할 수 있습니다.
+              <p className="text-[15px] font-bold leading-relaxed text-ink-muted">
+                아직 인터넷 저장이 준비되지 않았어요. 도와주시는 분께 「서버 키」를 넣어 달라고 해 주세요.
               </p>
             ) : !workspaceCode ? (
               <>
-                <p className="text-[16px] font-black text-ink">한 번만 눌러 시작</p>
-                <p className="text-[14px] font-medium leading-relaxed text-ink-muted">
-                  코드를 외우거나 입력할 필요 없습니다. 시작한 뒤 <strong>초대 링크</strong>만 보내면
-                  다른 폰이 자동으로 붙습니다.
+                <p className="text-[17px] font-black text-ink">처음이면 여기만 누르세요</p>
+                <p className="text-[15px] font-semibold leading-relaxed text-ink-muted">
+                  어려운 번호는 외우지 않아도 됩니다. 시작한 뒤 카톡으로 보내면 다른 폰이 따라옵니다.
                 </p>
                 <button
                   type="button"
                   onClick={handleStartCloud}
                   disabled={isSyncing}
-                  className="tap-target w-full rounded-2xl bg-brand text-[17px] font-black text-white disabled:opacity-50"
+                  className="tap-target w-full rounded-2xl bg-brand text-[18px] font-black text-white disabled:opacity-50"
                 >
-                  {isSyncing ? '준비 중…' : '이 장부 클라우드에 저장하기'}
+                  {isSyncing ? '준비 중…' : '이 장부 인터넷에 맡기기'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowManualCode((v) => !v)}
-                  className="text-[14px] font-bold text-ink-muted underline"
+                  className="text-[15px] font-bold text-ink-muted underline"
                 >
-                  {showManualCode ? '직접 입력 닫기' : '이미 초대 코드가 있나요?'}
+                  {showManualCode ? '닫기' : '누가 보낸 번호가 있나요?'}
                 </button>
               </>
             ) : (
               <>
-                <p className="text-[15px] font-bold text-good">연결됨 · 자동 맞춤 가능</p>
+                <p className="text-[16px] font-black text-good">연결되어 있어요</p>
                 <CloudInvitePanel code={workspaceCode} disabled={isSyncing} />
                 <div className="flex gap-2">
                   <button
@@ -268,7 +267,7 @@ export default function SettingsPage() {
                     disabled={isSyncing}
                     className="tap-target flex-1 rounded-xl bg-brand text-[15px] font-black text-white disabled:opacity-50"
                   >
-                    {isSyncing ? '맞추는 중…' : '지금 동기화'}
+                    {isSyncing ? '맞추는 중…' : '지금 맞추기'}
                   </button>
                   <button
                     type="button"
@@ -276,7 +275,7 @@ export default function SettingsPage() {
                     disabled={isSyncing}
                     className="tap-target flex-1 rounded-xl border-2 border-line text-[15px] font-bold text-ink disabled:opacity-50"
                   >
-                    클라우드로 덮어쓰기
+                    인터넷 내용으로 채우기
                   </button>
                 </div>
                 <button
@@ -284,14 +283,14 @@ export default function SettingsPage() {
                   onClick={() => setShowManualCode((v) => !v)}
                   className="text-[14px] font-bold text-ink-muted underline"
                 >
-                  {showManualCode ? '고급 설정 닫기' : '고급 · 코드 직접 입력'}
+                  {showManualCode ? '닫기' : '번호로 직접 연결 (거의 안 씀)'}
                 </button>
               </>
             )}
 
             {isCloudConfigured && showManualCode && (
               <div className="space-y-2 rounded-xl border-2 border-dashed border-line bg-wash p-3">
-                <p className="text-[13px] font-bold text-ink-muted">직접 코드 입력 (거의 쓸 일 없음)</p>
+                <p className="text-[14px] font-bold text-ink-muted">번호 직접 넣기</p>
                 <input
                   type="text"
                   value={codeInput}
@@ -305,46 +304,46 @@ export default function SettingsPage() {
                   disabled={isSyncing}
                   className="tap-target w-full rounded-xl border-2 border-brand text-[15px] font-bold text-brand disabled:opacity-50"
                 >
-                  이 코드로 연결
+                  이 번호로 연결
                 </button>
               </div>
             )}
           </li>
         </SettingsSection>
 
-        <SettingsSection title="PWA 설치">
+        <SettingsSection title="홈 화면에 붙여 두기">
           <SettingsRow
-            label="설치 상태"
+            label={isInstalled ? '이미 붙여 두셨어요' : '아직 홈 화면에 없어요'}
             description={
               isInstalled
-                ? '홈 화면에 추가됨 — 앱처럼 사용 중'
-                : 'Safari/Chrome에서 공유 → 홈 화면에 추가'
+                ? '아이콘을 눌러 바로 열 수 있습니다'
+                : '폰 메뉴의 「공유」→「홈 화면에 추가」를 눌러 주세요'
             }
           />
         </SettingsSection>
 
-        <SettingsSection title="백업">
+        <SettingsSection title="호박색 · 기록 통째로 챙기기" tone="warn">
           <SettingsButton
-            label="전체 백업 내보내기"
-            description="ZIP으로 저장"
+            label="모든 기록 보관하기"
+            description="사진까지 한 파일로 저장"
             onClick={handleExportBackup}
             disabled={isExporting}
             trailing={isExporting ? '…' : '›'}
           />
           <SettingsButton
-            label="백업 불러오기"
-            description="덮어쓰기 또는 병합"
+            label="보관한 파일 다시 열기"
+            description="지우고 채우거나, 합칠 수 있어요"
             onClick={handleImportClick}
             disabled={isImporting}
             trailing="›"
           />
         </SettingsSection>
 
-        <SettingsSection title="앱">
+        <SettingsSection title="사진·저장 공간">
           <div className="px-0 py-4">
-            <p className="text-[15px] font-bold text-ink">사진 압축 품질</p>
-            <p className="mt-0.5 text-[13px] text-ink-muted">
-              {Math.round(photoQuality * 100)}% · 장변 {MAX_LONG_EDGE}px
+            <p className="text-[16px] font-black text-ink">사진 선명도</p>
+            <p className="mt-0.5 text-[14px] font-semibold text-ink-muted">
+              지금 {Math.round(photoQuality * 100)}% (높을수록 용량이 커요)
             </p>
             <input
               type="range"
@@ -357,22 +356,24 @@ export default function SettingsPage() {
             />
           </div>
 
-          <SettingsRow label="저장 용량" description={storageText} />
+          <SettingsRow label="이 폰에 쓰인 공간" description={storageText} />
 
           <SettingsButton
-            label="데이터 전체 삭제"
-            description="복구할 수 없습니다"
+            label="모든 기록 지우기"
+            description="다시 되돌릴 수 없어요. 먼저 보관하세요"
             onClick={() => setShowDeleteConfirm(true)}
             danger
             trailing="›"
           />
         </SettingsSection>
 
-        <p className="text-center text-[13px] text-ink-muted">사입노트 v0.3.0 · PWA + Cloud</p>
+        <p className="text-center text-[14px] font-bold text-ink-muted">사입노트 · 천천히 쓰셔도 됩니다</p>
       </section>
 
       {pendingFile && (
         <ImportModeDialog
+          title="보관한 파일 다시 열기"
+          description="「지우고 덮어쓰기」는 지금 장부를 비우고 채웁니다. 「기존에 합치기」는 있던 기록에 더합니다."
           disabled={isImporting}
           onOverwrite={() => handleImport('overwrite')}
           onMerge={() => handleImport('merge')}
@@ -382,9 +383,9 @@ export default function SettingsPage() {
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          title="모든 데이터를 삭제할까요?"
-          description="가게, 사입 기록, 사진이 영구 삭제됩니다. 백업 파일이 있다면 먼저 내보내 두세요."
-          confirmLabel={isDeleting ? '삭제 중…' : '삭제'}
+          title="정말 모두 지울까요?"
+          description="가게, 사입 기록, 사진이 사라집니다. 보관한 파일이 있으면 먼저 받아 두세요."
+          confirmLabel={isDeleting ? '지우는 중…' : '지우기'}
           onConfirm={handleDeleteAll}
           onCancel={() => setShowDeleteConfirm(false)}
           danger
@@ -395,11 +396,13 @@ export default function SettingsPage() {
   )
 }
 
-function SettingsSection({ title, children }) {
+function SettingsSection({ title, children, tone }) {
+  const rail =
+    tone === 'brand' ? 'tone-rail-brand border-brand/35' : tone === 'warn' ? 'tone-rail-accent border-warn/40' : 'border-line'
   return (
     <div>
-      <h2 className="mb-2 text-[13px] font-black text-ink-muted">{title}</h2>
-      <ul className="divide-y-2 divide-line rounded-2xl border-2 border-line bg-paper px-4">{children}</ul>
+      <h2 className="mb-2 text-[14px] font-black text-ink">{title}</h2>
+      <ul className={`divide-y-2 divide-line rounded-2xl border-2 bg-paper px-4 ${rail}`}>{children}</ul>
     </div>
   )
 }
@@ -414,10 +417,10 @@ function SettingsButton({ label, description, onClick, disabled, danger, trailin
         className="flex w-full items-center justify-between py-3.5 text-left disabled:opacity-50"
       >
         <div>
-          <p className={`text-[15px] font-bold ${danger ? 'text-red-600' : 'text-ink'}`}>{label}</p>
-          <p className="mt-0.5 text-[13px] text-ink-muted">{description}</p>
+          <p className={`text-[16px] font-black ${danger ? 'text-red-600' : 'text-ink'}`}>{label}</p>
+          <p className="mt-0.5 text-[14px] font-semibold text-ink-muted">{description}</p>
         </div>
-        <span className="text-ink-muted">{trailing}</span>
+        <span className="text-[20px] text-ink-muted">{trailing}</span>
       </button>
     </li>
   )
@@ -426,8 +429,8 @@ function SettingsButton({ label, description, onClick, disabled, danger, trailin
 function SettingsRow({ label, description }) {
   return (
     <li className="py-3.5">
-      <p className="text-[15px] font-bold text-ink">{label}</p>
-      <p className="mt-0.5 text-[13px] text-ink-muted">{description}</p>
+      <p className="text-[16px] font-black text-ink">{label}</p>
+      <p className="mt-0.5 text-[14px] font-semibold leading-snug text-ink-muted">{description}</p>
     </li>
   )
 }

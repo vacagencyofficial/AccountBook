@@ -40,15 +40,15 @@ export default function ShopsPage() {
     <div>
       <PageHeader
         title="가게"
-        subtitle="최근 방문순"
+        subtitle="자주 가는 곳을 여기에 모아 두세요"
         tone="good"
         action={
           <Link
             to="/shops/new"
-            className="tap-target inline-flex items-center gap-1 rounded-xl bg-good px-3 text-[14px] font-black text-white"
+            className="tap-target inline-flex items-center gap-1 rounded-xl bg-good px-3 text-[15px] font-black text-white"
           >
             <IconPlus className="h-4 w-4" />
-            추가
+            새 가게
           </Link>
         }
       >
@@ -58,8 +58,8 @@ export default function ShopsPage() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="가게명, 상가, 메모"
-            className="tap-target w-full rounded-xl border-2 border-line bg-paper pl-10 pr-3 text-[16px] outline-none focus:border-good"
+            placeholder="가게 이름·상가 찾기"
+            className="tap-target w-full rounded-xl border-2 border-good/40 bg-paper pl-10 pr-3 text-[16px] font-semibold outline-none focus:border-good"
           />
         </div>
       </PageHeader>
@@ -74,8 +74,13 @@ export default function ShopsPage() {
         ) : filtered.length === 0 ? (
           <div className="py-6">
             <EmptyState
-              title={search ? '검색 결과가 없습니다' : '등록된 가게가 없습니다'}
-              description={search ? '다른 키워드로 검색해 보세요' : '기록하면서 가게를 추가할 수 있습니다'}
+              tone="good"
+              title={search ? '찾는 가게가 없어요' : '아직 가게가 없어요'}
+              description={
+                search
+                  ? '이름을 조금 다르게 쳐 보시거나, 「새 가게」로 추가해 주세요.'
+                  : '오른쪽 위 「새 가게」를 누르거나, 사진 찍을 때 만들어도 됩니다.'
+              }
             />
           </div>
         ) : (
