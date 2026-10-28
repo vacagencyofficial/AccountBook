@@ -1,31 +1,45 @@
 import { supabase, isCloudConfigured } from '../lib/supabase'
 import {
-  createLocalWorkspaceCode,
   getWorkspaceCode,
   getWorkspaceId,
+  normalizeWorkspaceCode,
   setWorkspaceLocal,
 } from '../lib/workspace'
 import { db } from './index'
+
+const NOT_FOUND_MESSAGE = '이 번호의 장부를 찾을 수 없어요. 번호를 다시 확인해 주세요.'
+
+/** 서버 함수 호출 (표 직접 접근은 secure.sql로 막혀 있음) */
+async function rpc(fn, args) {
+  const { data, error } = await supabase.rpc(fn, args)
+  if (error) {
+    if (error.message?.includes('workspace_not_found')) throw new Error(NOT_FOUND_MESSAGE)
+    if (error.code === 'PGRST202') {
+      throw new Error('클라우드 보안 설정(secure.sql)이 아직 적용되지 않았어요.')
+    }
+    throw error
+  }
+  return data
+}
 
 async function ensureWorkspace(codeInput) {
   if (!isCloudConfigured || !supabase) {
     throw new Error('클라우드가 설정되지 않았습니다')
   }
 
-  const code = (codeInput || getWorkspaceCode() || createLocalWorkspaceCode()).toUpperCase().trim()
+  const code = normalizeWorkspaceCode(codeInput || getWorkspaceCode())
 
-  const existing = await supabase.from('workspaces').select('id, code').eq('code', code).maybeSingle()
-  if (existing.error) throw existing.error
-
-  if (existing.data) {
-    setWorkspaceLocal({ code: existing.data.code, id: existing.data.id })
-    return existing.data
+  if (code) {
+    const existing = await rpc('sailp_open_workspace', { p_code: code })
+    if (!existing) throw new Error(NOT_FOUND_MESSAGE)
+    setWorkspaceLocal({ code: existing.code, id: existing.id })
+    return existing
   }
 
-  const created = await supabase.from('workspaces').insert({ code }).select('id, code').single()
-  if (created.error) throw created.error
-  setWorkspaceLocal({ code: created.data.code, id: created.data.id })
-  return created.data
+  // 번호는 서버가 만듦 (추측하기 어려운 10자리)
+  const created = await rpc('sailp_create_workspace')
+  setWorkspaceLocal({ code: created.code, id: created.id })
+  return created
 }
 
 export async function connectWorkspace(code) {
@@ -40,27 +54,24 @@ export async function getCloudStatus() {
   }
 }
 
-async function uploadPhotoBlob(workspaceId, itemCloudId, blob, index = 0) {
-  const path = `${workspaceId}/${itemCloudId}/${Date.now()}-${index}.jpg`
+async function uploadPhotoBlob(workspace, itemCloudId, blob, index = 0) {
+  const path = `${workspace.id}/${itemCloudId}/${Date.now()}-${index}.jpg`
   const { error } = await supabase.storage.from('photos').upload(path, blob, {
     contentType: 'image/jpeg',
-    upsert: true,
+    upsert: false,
   })
   if (error) throw error
 
-  const { error: insertError } = await supabase.from('photos').insert({
-    workspace_id: workspaceId,
-    item_id: itemCloudId,
-    storage_path: path,
-  })
-  if (insertError) throw insertError
+  await rpc('sailp_add_photo', { p_code: workspace.code, p_item: itemCloudId, p_path: path })
   return path
 }
 
 async function downloadPhotoBlob(storagePath) {
-  const { data, error } = await supabase.storage.from('photos').download(storagePath)
-  if (error) throw error
-  return data
+  // 목록 조회는 막혀 있으므로 공개 주소로 직접 받음
+  const { data } = supabase.storage.from('photos').getPublicUrl(storagePath)
+  const response = await fetch(data.publicUrl)
+  if (!response.ok) throw new Error(`사진을 받지 못했습니다 (${response.status})`)
+  return response.blob()
 }
 
 /** 로컬 → 클라우드 전체 푸시 */
@@ -68,14 +79,13 @@ export async function pushLocalToCloud() {
   if (!isCloudConfigured || !supabase) return { skipped: true }
 
   const workspace = await ensureWorkspace()
-  const workspaceId = workspace.id
+  const code = workspace.code
 
   const shops = await db.shops.toArray()
   const shopCloudMap = {}
 
   for (const shop of shops) {
     const payload = {
-      workspace_id: workspaceId,
       name: shop.name,
       building: shop.building || '',
       floor: shop.floor || '',
@@ -83,25 +93,20 @@ export async function pushLocalToCloud() {
       phone: shop.phone || '',
       memo: shop.memo || '',
       last_visited_at: shop.lastVisitedAt || Date.now(),
-      updated_at: new Date().toISOString(),
     }
 
-    if (shop.cloudId) {
-      const { error } = await supabase.from('shops').update(payload).eq('id', shop.cloudId)
-      if (error) throw error
-      shopCloudMap[shop.id] = shop.cloudId
-    } else {
-      const { data, error } = await supabase.from('shops').insert(payload).select('id').single()
-      if (error) throw error
-      await db.shops.update(shop.id, { cloudId: data.id })
-      shopCloudMap[shop.id] = data.id
-    }
+    const cloudId = await rpc('sailp_upsert_shop', {
+      p_code: code,
+      p_id: shop.cloudId || null,
+      p_data: payload,
+    })
+    if (cloudId !== shop.cloudId) await db.shops.update(shop.id, { cloudId })
+    shopCloudMap[shop.id] = cloudId
   }
 
   const items = await db.items.toArray()
   for (const item of items) {
     const payload = {
-      workspace_id: workspaceId,
       shop_id: shopCloudMap[item.shopId] || null,
       date: item.date,
       name: item.name || '',
@@ -113,27 +118,22 @@ export async function pushLocalToCloud() {
       memo: item.memo || '',
       status: item.status || '구매',
       created_at: item.createdAt || Date.now(),
-      updated_at: new Date().toISOString(),
     }
 
-    let itemCloudId = item.cloudId
-    if (itemCloudId) {
-      const { error } = await supabase.from('items').update(payload).eq('id', itemCloudId)
-      if (error) throw error
-    } else {
-      const { data, error } = await supabase.from('items').insert(payload).select('id').single()
-      if (error) throw error
-      itemCloudId = data.id
-      await db.items.update(item.id, { cloudId: itemCloudId })
-    }
+    const itemCloudId = await rpc('sailp_upsert_item', {
+      p_code: code,
+      p_id: item.cloudId || null,
+      p_data: payload,
+    })
+    if (itemCloudId !== item.cloudId) await db.items.update(item.id, { cloudId: itemCloudId })
 
     const photos = await db.photos.where('itemId').equals(item.id).toArray()
-    const existingCloud = await supabase.from('photos').select('id').eq('item_id', itemCloudId)
+    const cloudPhotoCount = await rpc('sailp_item_photo_count', { p_code: code, p_item: itemCloudId })
 
-    if (!existingCloud.error && (existingCloud.data?.length || 0) === 0) {
+    if (cloudPhotoCount === 0) {
       for (let i = 0; i < photos.length; i += 1) {
         if (photos[i].blob) {
-          await uploadPhotoBlob(workspaceId, itemCloudId, photos[i].blob, i)
+          await uploadPhotoBlob(workspace, itemCloudId, photos[i].blob, i)
         }
       }
     }
@@ -147,7 +147,11 @@ export async function pullCloudToLocal({ replaceLocal = false } = {}) {
   if (!isCloudConfigured || !supabase) return { skipped: true }
 
   const workspace = await ensureWorkspace()
-  const workspaceId = workspace.id
+  // 먼저 받아 두고 나서 로컬을 비움 (받기 실패 시 기존 장부 유지)
+  const remote = await rpc('sailp_pull', { p_code: workspace.code })
+  const cloudShops = remote?.shops ?? []
+  const cloudItems = remote?.items ?? []
+  const cloudPhotos = remote?.photos ?? []
 
   if (replaceLocal) {
     await db.transaction('rw', db.shops, db.items, db.photos, async () => {
@@ -157,15 +161,8 @@ export async function pullCloudToLocal({ replaceLocal = false } = {}) {
     })
   }
 
-  const { data: cloudShops, error: shopsError } = await supabase
-    .from('shops')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-    .is('deleted_at', null)
-  if (shopsError) throw shopsError
-
   const shopIdMap = {}
-  for (const row of cloudShops || []) {
+  for (const row of cloudShops) {
     const existing = await db.shops.filter((s) => s.cloudId === row.id).first()
     const fields = {
       cloudId: row.id,
@@ -186,15 +183,8 @@ export async function pullCloudToLocal({ replaceLocal = false } = {}) {
     }
   }
 
-  const { data: cloudItems, error: itemsError } = await supabase
-    .from('items')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-    .is('deleted_at', null)
-  if (itemsError) throw itemsError
-
   const itemIdMap = {}
-  for (const row of cloudItems || []) {
+  for (const row of cloudItems) {
     const localShopId = shopIdMap[row.shop_id]
     if (!localShopId) continue
 
@@ -222,13 +212,7 @@ export async function pullCloudToLocal({ replaceLocal = false } = {}) {
     }
   }
 
-  const { data: cloudPhotos, error: photosError } = await supabase
-    .from('photos')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-  if (photosError) throw photosError
-
-  for (const row of cloudPhotos || []) {
+  for (const row of cloudPhotos) {
     const localItemId = itemIdMap[row.item_id]
     if (!localItemId) continue
 
@@ -254,8 +238,8 @@ export async function pullCloudToLocal({ replaceLocal = false } = {}) {
   return {
     ok: true,
     workspace,
-    shops: cloudShops?.length || 0,
-    items: cloudItems?.length || 0,
+    shops: cloudShops.length,
+    items: cloudItems.length,
   }
 }
 

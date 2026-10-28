@@ -295,7 +295,7 @@ export default function SettingsPage() {
                   type="text"
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                  placeholder="SAILP-XXXXXX"
+                  placeholder="SAILP-XXXXXXXXXX"
                   className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] font-bold outline-none focus:border-brand"
                 />
                 <button

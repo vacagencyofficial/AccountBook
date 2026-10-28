@@ -61,36 +61,5 @@ insert into storage.buckets (id, name, public)
 values ('photos', 'photos', true)
 on conflict (id) do nothing;
 
--- 개인/소규모용: anon 키로 CRUD 허용 (프로젝트 URL을 비공개로 유지하세요)
-alter table workspaces enable row level security;
-alter table shops enable row level security;
-alter table items enable row level security;
-alter table photos enable row level security;
-
-drop policy if exists workspaces_all on workspaces;
-create policy workspaces_all on workspaces for all using (true) with check (true);
-
-drop policy if exists shops_all on shops;
-create policy shops_all on shops for all using (true) with check (true);
-
-drop policy if exists items_all on items;
-create policy items_all on items for all using (true) with check (true);
-
-drop policy if exists photos_all on photos;
-create policy photos_all on photos for all using (true) with check (true);
-
-drop policy if exists photos_storage_read on storage.objects;
-create policy photos_storage_read on storage.objects
-  for select using (bucket_id = 'photos');
-
-drop policy if exists photos_storage_write on storage.objects;
-create policy photos_storage_write on storage.objects
-  for insert with check (bucket_id = 'photos');
-
-drop policy if exists photos_storage_update on storage.objects;
-create policy photos_storage_update on storage.objects
-  for update using (bucket_id = 'photos');
-
-drop policy if exists photos_storage_delete on storage.objects;
-create policy photos_storage_delete on storage.objects
-  for delete using (bucket_id = 'photos');
+-- 접근 정책·서버 함수는 secure.sql 에 있습니다.
+-- 반드시 이 파일 다음에 supabase/secure.sql 도 실행하세요.
