@@ -44,51 +44,45 @@ export default function ShopsPage() {
     <div>
       <PageHeader
         title="가게"
-        subtitle="자주 가는 곳을 여기에 모아 두세요"
-        tone="good"
         action={
-          <Link
-            to="/shops/new"
-            className="tap-target inline-flex items-center gap-1 bg-good px-3 text-[15px] font-black text-white"
-          >
-            <IconPlus className="h-4 w-4" />
+          <Link to="/shops/new" className="btn btn-primary text-[17px]">
+            <IconPlus className="h-5 w-5" />
             새 가게
           </Link>
         }
       >
         <div className="relative mt-3">
-          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" />
+          <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-soft" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="가게 이름·상가 찾기"
-            className="tap-target w-full border-2 border-good/40 bg-paper pl-10 pr-3 text-[16px] font-semibold outline-none focus:border-good"
+            className="field pl-11"
           />
         </div>
       </PageHeader>
 
-      <section className="bg-paper px-4">
+      <section className="px-4 pt-2">
         {isLoading ? (
-          <div className="space-y-2 py-4">
+          <div className="space-y-2.5 py-2">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="skeleton h-16" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-6">
+          <div className="py-2">
             <EmptyState
-              tone="good"
               title={search ? '찾는 가게가 없어요' : '아직 가게가 없어요'}
               description={
                 search
-                  ? '이름을 조금 다르게 쳐 보시거나, 「새 가게」로 추가해 주세요.'
-                  : '오른쪽 위 「새 가게」를 누르거나, 사진 찍을 때 만들어도 됩니다.'
+                  ? '이름을 조금 다르게 적어 보거나, 「새 가게」로 추가해 주세요.'
+                  : '오른쪽 위 「새 가게」를 누르거나, 물건 적을 때 바로 만들어도 돼요.'
               }
             />
           </div>
         ) : (
-          <ul className="divide-y-2 divide-line">
+          <ul className="space-y-2.5">
             {filtered.map((shop) => (
               <ShopRow key={shop.id} shop={shop} itemCount={itemCounts?.[shop.id] ?? 0} />
             ))}
@@ -98,7 +92,7 @@ export default function ShopsPage() {
           <button
             type="button"
             onClick={() => setShowHidden((v) => !v)}
-            className="tap-target my-4 w-full border-2 border-line bg-paper text-[16px] font-bold text-ink-muted"
+            className="btn btn-outline my-4 w-full text-ink-muted"
           >
             {showHidden ? '보이는 가게로 돌아가기' : `숨긴 가게 ${hiddenCount}곳 보기`}
           </button>

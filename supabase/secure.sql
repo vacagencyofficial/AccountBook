@@ -67,6 +67,29 @@ $$;
 -- 3. 앱에서 호출하는 함수
 -- ─────────────────────────────────────────────
 
+-- 추측하기 어려운 10자리 장부 번호 만들기 (내부용)
+create or replace function sailp_new_code()
+returns text
+language plpgsql
+volatile
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  v_bytes bytea := gen_random_bytes(10);
+  v_code text := 'SAILP-';
+  i int;
+begin
+  for i in 0..9 loop
+    v_code := v_code || substr(v_alphabet, 1 + (get_byte(v_bytes, i) % 32), 1);
+  end loop;
+  return v_code;
+end;
+$$;
+
+revoke all on function sailp_new_code() from public, anon, authenticated;
+
 -- 새 장부 만들기 (번호는 서버가 10자리로 생성)
 create or replace function sailp_create_workspace()
 returns jsonb
@@ -76,21 +99,38 @@ security definer
 set search_path = public, extensions
 as $$
 declare
-  v_alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  v_bytes bytea;
   v_code text;
   v_id uuid;
-  i int;
 begin
   loop
-    v_bytes := gen_random_bytes(10);
-    v_code := 'SAILP-';
-    for i in 0..9 loop
-      v_code := v_code || substr(v_alphabet, 1 + (get_byte(v_bytes, i) % 32), 1);
-    end loop;
+    v_code := sailp_new_code();
     begin
       insert into workspaces (code) values (v_code) returning id into v_id;
       return jsonb_build_object('id', v_id, 'code', v_code);
+    exception when unique_violation then
+      -- 같은 번호가 이미 있으면 다시 생성
+    end;
+  end loop;
+end;
+$$;
+
+-- 장부 번호를 새 10자리로 바꾸기 (옛 6자리 번호 쓰던 장부용). 옛 번호는 더 이상 열리지 않음
+create or replace function sailp_rotate_code(p_code text)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_ws uuid := sailp_require_ws(p_code);
+  v_code text;
+begin
+  loop
+    v_code := sailp_new_code();
+    begin
+      update workspaces set code = v_code where id = v_ws;
+      return jsonb_build_object('id', v_ws, 'code', v_code);
     exception when unique_violation then
       -- 같은 번호가 이미 있으면 다시 생성
     end;
@@ -307,8 +347,10 @@ end;
 $$;
 
 -- 지우기 (삭제 표시만 남겨 다른 폰에도 전달)
+-- 돌려주는 값: 이제 지워도 되는 사진 파일 경로 (앱이 저장소에서 파일을 지움)
+drop function if exists sailp_delete(text, text, uuid);
 create or replace function sailp_delete(p_code text, p_kind text, p_id uuid)
-returns void
+returns text[]
 language plpgsql
 volatile
 security definer
@@ -316,6 +358,7 @@ set search_path = public
 as $$
 declare
   v_ws uuid := sailp_require_ws(p_code);
+  v_paths text[] := '{}';
 begin
   if p_kind = 'shop' then
     update shops set deleted_at = coalesce(deleted_at, now()), updated_at = now()
@@ -323,18 +366,28 @@ begin
   elsif p_kind = 'item' then
     update items set deleted_at = coalesce(deleted_at, now()), updated_at = now()
     where id = p_id and workspace_id = v_ws;
-    update photos set deleted_at = coalesce(deleted_at, now())
-    where item_id = p_id and workspace_id = v_ws;
+    with d as (
+      update photos set deleted_at = coalesce(deleted_at, now())
+      where item_id = p_id and workspace_id = v_ws
+      returning storage_path
+    )
+    select coalesce(array_agg(storage_path), '{}') into v_paths from d;
   elsif p_kind = 'photo' then
-    update photos set deleted_at = coalesce(deleted_at, now())
-    where id = p_id and workspace_id = v_ws;
+    with d as (
+      update photos set deleted_at = coalesce(deleted_at, now())
+      where id = p_id and workspace_id = v_ws
+      returning storage_path
+    )
+    select coalesce(array_agg(storage_path), '{}') into v_paths from d;
   else
     raise exception 'invalid_kind' using errcode = '22023';
   end if;
+  return v_paths;
 end;
 $$;
 
 grant execute on function
+  sailp_rotate_code(text),
   sailp_delete(text, text, uuid),
   sailp_create_workspace(),
   sailp_open_workspace(text),
@@ -353,9 +406,33 @@ to anon, authenticated;
 update storage.buckets set public = true where id = 'photos';
 
 -- 목록 조회·수정·삭제 금지 (목록이 열려 있으면 모든 장부 사진 주소가 드러남)
+-- 단, 아래 cleanup 정책으로 「지운 사진」 파일만 보이고 지울 수 있음
 drop policy if exists photos_storage_read on storage.objects;
 drop policy if exists photos_storage_update on storage.objects;
 drop policy if exists photos_storage_delete on storage.objects;
+
+-- 지운 사진의 파일만 저장소에서 지울 수 있음 (사진 기록에 삭제 표시가 있는 파일만)
+create or replace function sailp_photo_deletable(p_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from photos where storage_path = p_name and deleted_at is not null);
+$$;
+
+grant execute on function sailp_photo_deletable(text) to anon, authenticated;
+
+drop policy if exists photos_storage_cleanup_read on storage.objects;
+create policy photos_storage_cleanup_read on storage.objects
+  for select
+  using (bucket_id = 'photos' and public.sailp_photo_deletable(name));
+
+drop policy if exists photos_storage_cleanup_delete on storage.objects;
+create policy photos_storage_cleanup_delete on storage.objects
+  for delete
+  using (bucket_id = 'photos' and public.sailp_photo_deletable(name));
 
 -- 올리기는 실제 장부 id 폴더에만 허용
 drop policy if exists photos_storage_write on storage.objects;

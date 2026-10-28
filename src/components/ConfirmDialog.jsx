@@ -10,25 +10,18 @@ export default function ConfirmDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm border-2 border-line bg-paper p-5" role="dialog" aria-modal="true">
-        <h3 className="text-[19px] font-black text-ink">{title}</h3>
-        <p className="mt-2 whitespace-pre-line text-[16px] font-medium leading-relaxed text-ink-muted">{description}</p>
-        <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={disabled}
-            className="tap-target flex-1 border-2 border-line text-[17px] font-bold text-ink"
-          >
+      <div className="card w-full max-w-sm p-5" role="dialog" aria-modal="true">
+        <h3 className="text-[20px] font-extrabold text-ink">{title}</h3>
+        <p className="mt-2 whitespace-pre-line text-[17px] font-medium leading-relaxed text-ink-muted">{description}</p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button type="button" onClick={onCancel} disabled={disabled} className="btn btn-outline">
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={disabled}
-            className={`tap-target flex-1 text-[17px] font-black text-white disabled:opacity-50 ${
-              danger ? 'bg-red-600' : 'bg-ink'
-            }`}
+            className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
           >
             {confirmLabel}
           </button>

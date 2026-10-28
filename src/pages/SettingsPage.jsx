@@ -4,10 +4,12 @@ import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ImportModeDialog from '../components/ImportModeDialog'
 import CloudInvitePanel from '../components/CloudInvitePanel'
-import { getPhotoQuality, MAX_LONG_EDGE, setPhotoQuality } from '../utils/photoConfig'
+import { getPhotoQuality, setPhotoQuality } from '../utils/photoConfig'
 import { formatStorageEstimate } from '../utils/storage'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
+import { formatSyncTime, getSyncStatus } from '../lib/syncStatus'
+import { getTextSize, setTextSize, TEXT_SIZES } from '../lib/textSize'
 
 function isStandaloneApp() {
   return (
@@ -25,6 +27,8 @@ export default function SettingsPage() {
   const [isImporting, setIsImporting] = useState(false)
   const [pendingFile, setPendingFile] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false)
+  const [showRotateConfirm, setShowRotateConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
@@ -40,7 +44,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (searchParams.get('joined') === '1') {
-      setMessage('다른 기기에서 보낸 초대로 장부가 연결되었습니다.')
+      setMessage('초대받은 장부와 연결했어요')
       setWorkspaceCode(getWorkspaceCode())
       setCodeInput(getWorkspaceCode())
       const next = new URLSearchParams(searchParams)
@@ -66,7 +70,7 @@ export default function SettingsPage() {
     try {
       const { exportBackup } = await import('../utils/backup')
       await exportBackup()
-      setMessage('백업 파일을 다운로드했습니다.')
+      setMessage('백업 파일을 저장했어요')
     } catch (err) {
       setError(err instanceof Error ? err.message : '백업 내보내기에 실패했습니다')
     } finally {
@@ -92,7 +96,7 @@ export default function SettingsPage() {
     try {
       const { importBackup } = await import('../utils/backup')
       await importBackup(pendingFile, mode)
-      setMessage(mode === 'overwrite' ? '백업으로 덮어썼습니다.' : '백업을 병합했습니다.')
+      setMessage(mode === 'overwrite' ? '백업 내용으로 바꿨어요' : '백업 내용을 더했어요')
       setPendingFile(null)
       await loadStorage()
     } catch (err) {
@@ -102,8 +106,7 @@ export default function SettingsPage() {
     }
   }
 
-  function handleQualityChange(event) {
-    const value = parseInt(event.target.value, 10) / 100
+  function handleQualityChange(value) {
     setPhotoQuality(value)
     setPhotoQualityState(value)
   }
@@ -114,7 +117,9 @@ export default function SettingsPage() {
     try {
       const { deleteAllData } = await import('../utils/backup')
       await deleteAllData()
-      setMessage('모든 데이터를 삭제했습니다.')
+      setMessage(workspaceCode ? '이 폰의 기록을 모두 지우고 다른 폰과의 연결도 끊었어요' : '이 폰의 기록을 모두 지웠어요')
+      setWorkspaceCode('')
+      setCodeInput('')
       setShowDeleteConfirm(false)
       await loadStorage()
     } catch (err) {
@@ -139,7 +144,7 @@ export default function SettingsPage() {
       setWorkspaceCode(ws.code)
       setCodeInput(ws.code)
       await syncBidirectional()
-      setMessage('잘 저장해 두었습니다. 아래 버튼으로 다른 폰을 불러 주세요.')
+      setMessage('준비됐어요. 아래 버튼으로 다른 폰에 초대를 보내 주세요')
     } catch (err) {
       setError(err instanceof Error ? err.message : '클라우드 연결에 실패했습니다')
     } finally {
@@ -162,7 +167,7 @@ export default function SettingsPage() {
       setWorkspaceCode(ws.code)
       setCodeInput(ws.code)
       await syncBidirectional()
-      setMessage('연결했어요. 이제 같은 장부를 같이 볼 수 있습니다.')
+      setMessage('연결했어요. 이제 같은 장부를 같이 봐요')
       setShowManualCode(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : '클라우드 연결에 실패했습니다')
@@ -179,7 +184,7 @@ export default function SettingsPage() {
     try {
       const { syncBidirectional } = await import('../db/cloudSync')
       await syncBidirectional()
-      setMessage('이 폰과 인터넷 저장을 맞춰 두었습니다.')
+      setMessage('다른 폰과 맞췄어요')
     } catch (err) {
       setError(err instanceof Error ? err.message : '맞추기에 실패했습니다')
     } finally {
@@ -187,7 +192,26 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleRotateCode() {
+    setShowRotateConfirm(false)
+    setIsSyncing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const { rotateWorkspaceCode } = await import('../db/cloudSync')
+      const ws = await rotateWorkspaceCode()
+      setWorkspaceCode(ws.code)
+      setCodeInput(ws.code)
+      setMessage('새 번호로 바꿨어요. 아래 「카톡·문자로 보내기」로 다른 폰에 새 초대를 보내 주세요')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '번호를 바꾸지 못했어요')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   async function handlePullReplace() {
+    setShowReplaceConfirm(false)
     if (!isCloudConfigured) return
     setIsSyncing(true)
     setError(null)
@@ -195,7 +219,7 @@ export default function SettingsPage() {
     try {
       const { pullCloudToLocal } = await import('../db/cloudSync')
       const result = await pullCloudToLocal({ replaceLocal: true })
-      setMessage(`인터넷에서 가져왔어요 · 가게 ${result.shops}곳 · 기록 ${result.items}개`)
+      setMessage(`다른 폰 기록으로 바꿨어요 · 가게 ${result.shops}곳 · 기록 ${result.items}건`)
       await loadStorage()
     } catch (err) {
       setError(err instanceof Error ? err.message : '가져오기에 실패했습니다')
@@ -204,18 +228,20 @@ export default function SettingsPage() {
     }
   }
 
+  const sharpPhotos = photoQuality >= 0.85
+
   return (
     <div>
-      <PageHeader title="설정" subtitle="다른 폰과 함께 쓰고, 기록을 안전하게 챙기세요" tone="brand" />
+      <PageHeader title="설정" />
 
-      <section className="space-y-4 px-4 py-5">
+      <section className="space-y-5 px-4 pb-6 pt-2">
         {message && (
-          <div className=" border-2 border-good/40 bg-good-soft px-4 py-3 text-[16px] font-black text-good">
-            {message}
+          <div className="rounded-[10px] bg-good-soft px-4 py-3 text-[17px] font-bold text-good" aria-live="polite">
+            ✓ {message}
           </div>
         )}
         {error && (
-          <div className=" border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-black text-red-700">
+          <div className="rounded-[10px] bg-red-50 px-4 py-3 text-[17px] font-bold text-red-700" role="alert">
             {error}
           </div>
         )}
@@ -228,86 +254,100 @@ export default function SettingsPage() {
           onChange={handleFileSelected}
         />
 
-        <SettingsSection title="다른 폰과 같이 쓰기" tone="brand">
-          <li className="space-y-3 py-3.5">
+        <SettingsSection title="글씨 크기">
+          <TextSizePicker />
+        </SettingsSection>
+
+        <SettingsSection title="다른 폰과 같이 쓰기">
+          <div className="space-y-3 p-4">
             {!isCloudConfigured ? (
-              <p className="text-[15px] font-bold leading-relaxed text-ink-muted">
-                아직 인터넷 저장이 준비되지 않았어요. 도와주시는 분께 「서버 키」를 넣어 달라고 해 주세요.
+              <p className="text-[17px] font-semibold leading-relaxed text-ink-muted">
+                지금은 이 폰에만 저장되고 있어요. 다른 폰과 같이 쓰려면 도와주시는 분께 말씀해 주세요.
               </p>
             ) : !workspaceCode ? (
               <>
-                <p className="text-[17px] font-black text-ink">처음이면 여기만 누르세요</p>
-                <p className="text-[15px] font-semibold leading-relaxed text-ink-muted">
-                  어려운 번호는 외우지 않아도 됩니다. 시작한 뒤 카톡으로 보내면 다른 폰이 따라옵니다.
+                <p className="text-[18px] font-extrabold text-ink">처음이면 여기만 누르세요</p>
+                <p className="text-[16px] font-semibold leading-relaxed text-ink-muted">
+                  번호는 외우지 않아도 돼요. 시작한 뒤 카톡으로 보내면 다른 폰이 따라와요.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleStartCloud}
-                  disabled={isSyncing}
-                  className="tap-target w-full bg-brand text-[18px] font-black text-white disabled:opacity-50"
-                >
-                  {isSyncing ? '준비 중…' : '이 장부 인터넷에 맡기기'}
+                <button type="button" onClick={handleStartCloud} disabled={isSyncing} className="btn btn-primary w-full">
+                  {isSyncing ? '준비 중…' : '다른 폰과 같이 쓰기 시작'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowManualCode((v) => !v)}
-                  className="text-[15px] font-bold text-ink-muted underline"
+                  className="btn w-full text-[17px] font-bold text-brand"
                 >
-                  {showManualCode ? '닫기' : '누가 보낸 번호가 있나요?'}
+                  {showManualCode ? '닫기' : '받은 초대 번호가 있어요'}
                 </button>
               </>
             ) : (
               <>
-                <p className="text-[16px] font-black text-good">연결되어 있어요</p>
+                <p className="text-[18px] font-extrabold text-good">✓ 다른 폰과 같이 쓰는 중</p>
+                <SyncStatusLine />
+                {/^SAILP-[A-Z0-9]{6}$/.test(workspaceCode) && (
+                  <div className="space-y-2 rounded-[12px] bg-warn-soft p-3">
+                    <p className="text-[16px] font-bold leading-snug text-warn">
+                      지금 장부 번호는 짧아서 남이 짐작하기 쉬워요. 더 안전한 새 번호로 바꾸는 걸 추천해요.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowRotateConfirm(true)}
+                      disabled={isSyncing}
+                      className="btn btn-outline w-full"
+                    >
+                      새 번호로 바꾸기
+                    </button>
+                  </div>
+                )}
                 <CloudInvitePanel code={workspaceCode} disabled={isSyncing} />
-                <div className="flex gap-2">
+                <button type="button" onClick={handleSyncNow} disabled={isSyncing} className="btn btn-primary w-full">
+                  {isSyncing ? '맞추는 중…' : '지금 맞추기'}
+                </button>
+                <p className="text-[16px] font-semibold text-ink-soft">다른 폰과 최신 기록을 맞춰요. 평소에는 자동으로 맞춰져요.</p>
+                <div className="flex flex-wrap gap-x-4">
                   <button
                     type="button"
-                    onClick={handleSyncNow}
+                    onClick={() => setShowReplaceConfirm(true)}
                     disabled={isSyncing}
-                    className="tap-target flex-1 bg-brand text-[15px] font-black text-white disabled:opacity-50"
+                    className="min-h-[3rem] text-[16px] font-bold text-ink-muted underline"
                   >
-                    {isSyncing ? '맞추는 중…' : '지금 맞추기'}
+                    다른 폰 기록으로 바꾸기
                   </button>
                   <button
                     type="button"
-                    onClick={handlePullReplace}
-                    disabled={isSyncing}
-                    className="tap-target flex-1 border-2 border-line text-[15px] font-bold text-ink disabled:opacity-50"
+                    onClick={() => setShowManualCode((v) => !v)}
+                    className="min-h-[3rem] text-[16px] font-bold text-ink-muted underline"
                   >
-                    인터넷 내용으로 채우기
+                    {showManualCode ? '닫기' : '초대 번호 직접 넣기'}
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowManualCode((v) => !v)}
-                  className="text-[14px] font-bold text-ink-muted underline"
-                >
-                  {showManualCode ? '닫기' : '번호로 직접 연결 (거의 안 씀)'}
-                </button>
               </>
             )}
 
             {isCloudConfigured && showManualCode && (
-              <div className="space-y-2 border-2 border-dashed border-line bg-wash p-3">
-                <p className="text-[14px] font-bold text-ink-muted">번호 직접 넣기</p>
+              <div className="space-y-2.5 rounded-[12px] bg-wash p-3">
+                <label className="label" htmlFor="workspace-code">
+                  초대 번호
+                </label>
                 <input
+                  id="workspace-code"
                   type="text"
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                   placeholder="SAILP-XXXXXXXXXX"
-                  className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] font-bold outline-none focus:border-brand"
+                  className="field"
                 />
                 {workspaceCode && normalizeWorkspaceCode(codeInput) !== workspaceCode ? (
                   <>
-                    <p className="text-[15px] font-bold leading-snug text-ink-muted">
+                    <p className="text-[16px] font-bold leading-snug text-ink-muted">
                       다른 장부로 바꿔요. 이 폰 기록은 어떻게 할까요?
                     </p>
                     <button
                       type="button"
                       onClick={() => handleConnectCloud('keep')}
                       disabled={isSyncing}
-                      className="tap-target w-full bg-brand text-[16px] font-black text-white disabled:opacity-50"
+                      className="btn btn-primary w-full"
                     >
                       이 폰 기록도 함께 옮기기
                     </button>
@@ -315,7 +355,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => handleConnectCloud('discard')}
                       disabled={isSyncing}
-                      className="tap-target w-full border-2 border-line text-[16px] font-bold text-ink disabled:opacity-50"
+                      className="btn btn-outline w-full"
                     >
                       이 폰 기록은 지우고 그 장부만 보기
                     </button>
@@ -325,79 +365,86 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => handleConnectCloud('keep')}
                     disabled={isSyncing}
-                    className="tap-target w-full border-2 border-brand text-[15px] font-bold text-brand disabled:opacity-50"
+                    className="btn btn-primary w-full"
                   >
                     이 번호로 연결
                   </button>
                 )}
               </div>
             )}
-          </li>
+          </div>
         </SettingsSection>
 
-        <SettingsSection title="홈 화면에 붙여 두기">
-          <SettingsRow
-            label={isInstalled ? '이미 붙여 두셨어요' : '아직 홈 화면에 없어요'}
-            description={
-              isInstalled
-                ? '아이콘을 눌러 바로 열 수 있습니다'
-                : '폰 메뉴의 「공유」→「홈 화면에 추가」를 눌러 주세요'
-            }
-          />
-        </SettingsSection>
-
-        <SettingsSection title="기록 통째로 챙기기" tone="warn">
+        <SettingsSection title="기록 챙기기">
           <SettingsButton
-            label="모든 기록 보관하기"
-            description="사진까지 한 파일로 저장"
+            label="사진 포함 백업하기"
+            description="모든 기록을 사진까지 한 파일로 저장해요"
             onClick={handleExportBackup}
             disabled={isExporting}
             trailing={isExporting ? '…' : '›'}
           />
           <SettingsButton
-            label="보관한 파일 다시 열기"
-            description="지우고 채우거나, 합칠 수 있어요"
+            label="백업에서 되살리기"
+            description="저장해 둔 백업 파일로 기록을 되살려요"
             onClick={handleImportClick}
             disabled={isImporting}
             trailing="›"
           />
         </SettingsSection>
 
+        <SettingsSection title="홈 화면에 붙여 두기">
+          <SettingsRow
+            label={isInstalled ? '✓ 이미 붙여 두셨어요' : '아직 홈 화면에 없어요'}
+            description={
+              isInstalled
+                ? '아이콘을 눌러 바로 열 수 있어요'
+                : '아이폰: 아래 「공유」 → 「홈 화면에 추가」\n갤럭시: 오른쪽 위 ⋮ → 「홈 화면에 추가」'
+            }
+          />
+        </SettingsSection>
+
         <SettingsSection title="사진·저장 공간">
-          <div className="px-0 py-4">
-            <p className="text-[16px] font-black text-ink">사진 선명도</p>
-            <p className="mt-0.5 text-[14px] font-semibold text-ink-muted">
-              지금 {Math.round(photoQuality * 100)}% (높을수록 용량이 커요)
-            </p>
-            <input
-              type="range"
-              min={50}
-              max={95}
-              step={1}
-              value={Math.round(photoQuality * 100)}
-              onChange={handleQualityChange}
-              className="mt-3 w-full accent-brand"
-            />
+          <div className="p-4">
+            <p className="label">사진 선명도</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQualityChange(0.72)}
+                className={`chip ${!sharpPhotos ? 'chip-on' : ''}`}
+                aria-pressed={!sharpPhotos}
+              >
+                보통
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQualityChange(0.9)}
+                className={`chip ${sharpPhotos ? 'chip-on' : ''}`}
+                aria-pressed={sharpPhotos}
+              >
+                선명하게
+              </button>
+            </div>
+            <p className="mt-2 text-[16px] font-semibold text-ink-soft">선명하게 하면 사진이 공간을 더 차지해요</p>
           </div>
 
           <SettingsRow label="이 폰에 쓰인 공간" description={storageText} />
 
           <SettingsButton
-            label="모든 기록 지우기"
-            description="다시 되돌릴 수 없어요. 먼저 보관하세요"
+            label="이 폰의 모든 기록 지우기"
+            description="되돌릴 수 없어요. 먼저 백업해 두세요"
             onClick={() => setShowDeleteConfirm(true)}
             danger
             trailing="›"
           />
         </SettingsSection>
 
-        <p className="text-center text-[14px] font-bold text-ink-muted">사입노트 · 천천히 쓰셔도 됩니다</p>
+        <p className="text-center text-[16px] font-semibold text-ink-soft">사입노트</p>
       </section>
 
       {pendingFile && (
         <ImportModeDialog
-          title="보관한 파일 다시 열기"
-          description="「지우고 덮어쓰기」는 지금 장부를 비우고 채웁니다. 「기존에 합치기」는 있던 기록에 더합니다."
+          title="백업에서 되살리기"
+          description="「지금 기록에 더하기」는 있던 기록에 백업 내용을 더해요. 「지금 기록 지우고 바꾸기」는 장부를 비우고 백업 내용으로 채워요."
           disabled={isImporting}
           onOverwrite={() => handleImport('overwrite')}
           onMerge={() => handleImport('merge')}
@@ -405,11 +452,39 @@ export default function SettingsPage() {
         />
       )}
 
+      {showRotateConfirm && (
+        <ConfirmDialog
+          title="장부 번호를 바꿀까요?"
+          description={'바꾸면 같이 쓰던 다른 폰은 연결이 끊겨요.\n바꾼 뒤 새 초대 주소를 다시 보내 주세요. 기록은 그대로예요.'}
+          cancelLabel="그대로 두기"
+          confirmLabel="바꾸기"
+          onConfirm={handleRotateCode}
+          onCancel={() => setShowRotateConfirm(false)}
+        />
+      )}
+
+      {showReplaceConfirm && (
+        <ConfirmDialog
+          title="다른 폰 기록으로 바꿀까요?"
+          description={'이 폰의 기록을 지우고, 인터넷에 맞춰 둔 기록으로 채워요.\n이 폰에서만 적고 아직 안 맞춘 기록은 사라질 수 있어요.'}
+          cancelLabel="그대로 두기"
+          confirmLabel="바꾸기"
+          onConfirm={handlePullReplace}
+          onCancel={() => setShowReplaceConfirm(false)}
+          danger
+        />
+      )}
+
       {showDeleteConfirm && (
         <ConfirmDialog
           title="정말 모두 지울까요?"
-          description="가게, 사입 기록, 사진이 사라집니다. 보관한 파일이 있으면 먼저 받아 두세요."
-          confirmLabel={isDeleting ? '지우는 중…' : '지우기'}
+          description={
+            workspaceCode
+              ? '이 폰의 가게, 사입 기록, 사진이 모두 사라지고 다른 폰과의 연결도 끊겨요.\n다른 폰의 기록은 그대로예요. 백업 파일이 있으면 먼저 받아 두세요.'
+              : '이 폰의 가게, 사입 기록, 사진이 모두 사라져요. 백업 파일이 있으면 먼저 받아 두세요.'
+          }
+          cancelLabel="그대로 두기"
+          confirmLabel={isDeleting ? '지우는 중…' : '모두 지우기'}
           onConfirm={handleDeleteAll}
           onCancel={() => setShowDeleteConfirm(false)}
           danger
@@ -420,41 +495,77 @@ export default function SettingsPage() {
   )
 }
 
-function SettingsSection({ title, children, tone }) {
-  const rail =
-    tone === 'brand' ? 'tone-rail-brand border-brand/35' : tone === 'warn' ? 'tone-rail-accent border-warn/40' : 'border-line'
+function TextSizePicker() {
+  const [size, setSize] = useState(getTextSize)
+  return (
+    <div className="p-4">
+      <div className="grid grid-cols-3 gap-2">
+        {TEXT_SIZES.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => {
+              setTextSize(item.value)
+              setSize(item.value)
+            }}
+            className={`chip ${size === item.value ? 'chip-on' : ''}`}
+            aria-pressed={size === item.value}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[16px] font-semibold text-ink-soft">모든 화면의 글씨와 버튼이 함께 커져요</p>
+    </div>
+  )
+}
+
+function SyncStatusLine() {
+  const { lastSyncedAt, failed } = getSyncStatus()
+  if (failed) {
+    return (
+      <p className="rounded-[10px] bg-warn-soft px-3 py-2 text-[16px] font-bold leading-snug text-warn">
+        최근에 맞추지 못했어요. 기록은 이 폰에 잘 있고, 인터넷이 되면 「지금 맞추기」를 눌러 주세요.
+      </p>
+    )
+  }
+  if (!lastSyncedAt) return null
+  return <p className="text-[16px] font-semibold text-ink-soft">마지막으로 맞춘 때: {formatSyncTime(lastSyncedAt)}</p>
+}
+
+function SettingsSection({ title, children }) {
   return (
     <div>
-      <h2 className="mb-2 text-[14px] font-black text-ink">{title}</h2>
-      <ul className={`divide-y-2 divide-line border-2 bg-paper px-4 ${rail}`}>{children}</ul>
+      <h2 className="mb-2 px-0.5 text-[18px] font-extrabold text-ink">{title}</h2>
+      <div className="card divide-y divide-line-soft overflow-hidden">{children}</div>
     </div>
   )
 }
 
 function SettingsButton({ label, description, onClick, disabled, danger, trailing }) {
   return (
-    <li>
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className="flex w-full items-center justify-between py-3.5 text-left disabled:opacity-50"
-      >
-        <div>
-          <p className={`text-[16px] font-black ${danger ? 'text-red-600' : 'text-ink'}`}>{label}</p>
-          <p className="mt-0.5 text-[14px] font-semibold text-ink-muted">{description}</p>
-        </div>
-        <span className="text-[20px] text-ink-muted">{trailing}</span>
-      </button>
-    </li>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex min-h-[4rem] w-full items-center justify-between gap-3 px-4 py-3 text-left disabled:opacity-50"
+    >
+      <div>
+        <p className={`text-[18px] font-bold ${danger ? 'text-red-700' : 'text-ink'}`}>{label}</p>
+        <p className="mt-0.5 text-[16px] font-semibold text-ink-soft">{description}</p>
+      </div>
+      <span className="text-[24px] text-ink-soft" aria-hidden>
+        {trailing}
+      </span>
+    </button>
   )
 }
 
 function SettingsRow({ label, description }) {
   return (
-    <li className="py-3.5">
-      <p className="text-[16px] font-black text-ink">{label}</p>
-      <p className="mt-0.5 text-[14px] font-semibold leading-snug text-ink-muted">{description}</p>
-    </li>
+    <div className="px-4 py-3">
+      <p className="text-[18px] font-bold text-ink">{label}</p>
+      <p className="mt-0.5 whitespace-pre-line text-[16px] font-semibold leading-snug text-ink-soft">{description}</p>
+    </div>
   )
 }

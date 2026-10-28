@@ -2,40 +2,67 @@ import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ItemRow from '../components/ItemRow'
-import { IconCamera, IconCalendar, IconMoney, IconShop } from '../components/Icons'
+import { IconCamera } from '../components/Icons'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
-import {
-  formatCurrency,
-  formatMonthLabel,
-  formatTodayHeader,
-  getToday,
-} from '../utils/format'
-import {
-  groupByCategory,
-  groupByShop,
-  itemsForMonth,
-  itemsForToday,
-  summarizeItems,
-} from '../utils/analytics'
+import { useToday } from '../hooks/useToday'
+import { formatCurrency, itemTotal } from '../utils/format'
+import { formatDateString } from '../utils/dateRange'
+import { isPurchased, itemsForMonth, itemsForToday, summarizeItems } from '../utils/analytics'
+import { formatManwon } from '../utils/labels'
 
-function countLabel(count, qty) {
-  if (!count) return '아직 산 것이 없어요'
-  return `기록 ${count}개 · 옷 ${qty}장`
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+function formatHomeDate(date = new Date()) {
+  return `${date.getMonth() + 1}월 ${date.getDate()}일 ${WEEKDAYS[date.getDay()]}요일`
 }
 
-function PendingNote({ summary }) {
-  if (!summary.pendingCount) return null
+/** 이번 주(일~토) 날짜별 산 금액과, 지난주 같은 요일까지의 합계 */
+function weekStats(items) {
+  const now = new Date()
+  const todayIndex = now.getDay()
+  const byDate = {}
+  for (const item of items) {
+    if (!isPurchased(item)) continue
+    byDate[item.date] = (byDate[item.date] ?? 0) + itemTotal(item)
+  }
+  const days = []
+  let thisWeek = 0
+  let lastWeek = 0
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date(now)
+    d.setDate(now.getDate() - todayIndex + i)
+    const total = byDate[formatDateString(d)] ?? 0
+    days.push({ label: WEEKDAYS[i], total, isToday: i === todayIndex, isFuture: i > todayIndex })
+    if (i <= todayIndex) {
+      thisWeek += total
+      const prev = new Date(d)
+      prev.setDate(d.getDate() - 7)
+      lastWeek += byDate[formatDateString(prev)] ?? 0
+    }
+  }
+  return { days, thisWeek, lastWeek, max: Math.max(...days.map((d) => d.total), 1) }
+}
+
+function WeekCompare({ thisWeek, lastWeek }) {
+  if (!lastWeek && !thisWeek) return <span>이번 주 기록이 아직 없어요</span>
+  if (!lastWeek) return <span>지난주 같은 때는 기록이 없었어요</span>
+  const diff = thisWeek - lastWeek
+  if (diff === 0) return <span>지난주와 똑같이 썼어요</span>
   return (
-    <p className="mt-2 break-keep bg-warn-soft px-2 py-1 text-[15px] font-bold leading-snug text-warn">
-      고민 중·보류 {summary.pendingCount}건 {formatCurrency(summary.pendingTotal)}은 뺐어요
-    </p>
+    <span>
+      지난주보다{' '}
+      <b className={diff < 0 ? 'text-good' : 'text-accent-dark'}>
+        {formatManwon(Math.abs(diff))} {diff < 0 ? '덜' : '더'}
+      </b>{' '}
+      썼어요
+    </span>
   )
 }
 
 export default function HomePage() {
-  const today = getToday()
+  const today = useToday()
 
   const { data: items, isLoading } = useLiveQuery(async () => {
     const rows = await db.items.orderBy('createdAt').reverse().toArray()
@@ -43,151 +70,96 @@ export default function HomePage() {
   }, [])
 
   const todayItems = itemsForToday(items ?? [], today)
-  const monthItems = itemsForMonth(items ?? [])
   const todaySummary = summarizeItems(todayItems)
-  const monthSummary = summarizeItems(monthItems)
-  const shopRanks = groupByShop(monthItems).slice(0, 5)
-  const categoryRanks = groupByCategory(monthItems)
+  const monthSummary = summarizeItems(itemsForMonth(items ?? []))
+  const week = weekStats(items ?? [])
+  const monthNumber = new Date().getMonth() + 1
 
   return (
     <div>
-      <PageHeader brand subtitle={`${formatTodayHeader()} · 오늘도 수고하세요`} tone="brand">
-        <div className="mt-3 grid grid-cols-2 items-start gap-3">
-          <div className="tone-rail-brand border-2 border-brand/40 bg-paper p-3">
-            <p className="inline-flex items-center gap-1 text-[14px] font-black text-brand">
-              <IconCalendar className="h-4 w-4" />
-              오늘 쓴 돈
-            </p>
-            <p className="mt-2 text-[26px] font-black tabular leading-none text-ink">
-              {isLoading ? '…' : formatCurrency(todaySummary.total)}
-            </p>
-            {!isLoading && (
-              <>
-                <p className="mt-2 text-[14px] font-bold text-ink-muted">{countLabel(todaySummary.count, todaySummary.qty)}</p>
-                <PendingNote summary={todaySummary} />
-              </>
-            )}
-          </div>
-          <div className="tone-rail-good border-2 border-good/40 bg-paper p-3">
-            <p className="inline-flex items-center gap-1 text-[14px] font-black text-good">
-              <IconMoney className="h-4 w-4" />
-              {formatMonthLabel()} 합계
-            </p>
-            <p className="mt-2 text-[22px] font-black tabular leading-none text-ink">
-              {isLoading ? '…' : formatCurrency(monthSummary.total)}
-            </p>
-            {!isLoading && (
-              <>
-                <p className="mt-2 text-[14px] font-bold text-ink-muted">{countLabel(monthSummary.count, monthSummary.qty)}</p>
-                <PendingNote summary={monthSummary} />
-              </>
-            )}
-          </div>
+      <PageHeader brand subtitle={formatHomeDate()} />
+
+      <section className="px-4 pt-2">
+        <div className="hero receipt px-5 pb-4 pt-4">
+          <div className="hero-deco" aria-hidden />
+          <p className="text-[18px] font-semibold opacity-85">오늘 쓴 돈</p>
+          <p className="mt-0.5 text-[clamp(30px,10vw,40px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
+            {isLoading ? '…' : formatCurrency(todaySummary.total)}
+          </p>
+          {!isLoading && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="hero-pill">
+                {todaySummary.count ? `${todaySummary.count}건 · ${todaySummary.qty}개 샀어요` : '아직 산 것이 없어요'}
+              </span>
+              {todaySummary.pendingCount > 0 && (
+                <span className="hero-pill hero-pill-warn">고민 중 {todaySummary.pendingCount}건은 뺐어요</span>
+              )}
+            </div>
+          )}
+          <Link
+            to="/history"
+            className="mt-4 flex items-center justify-between border-t border-dashed border-white/30 pt-3 text-[17px]"
+          >
+            <span>{monthNumber}월 전체</span>
+            <b className="text-[21px] font-extrabold tabular">
+              {isLoading ? '…' : formatCurrency(monthSummary.total)} ›
+            </b>
+          </Link>
         </div>
 
-        <Link
-          to="/capture"
-          className="tap-target mt-4 flex w-full items-center justify-center gap-2 bg-accent py-4 text-[19px] font-black text-white shadow-md shadow-accent/30 active:bg-accent-dark"
-        >
+        <Link to="/capture" className="btn btn-accent mt-4 w-full text-[21px]" style={{ minHeight: '4rem' }}>
           <IconCamera className="h-7 w-7" />
-          사진 찍고 적기
+          물건 적기
         </Link>
-      </PageHeader>
 
-      {shopRanks.length > 0 && (
-        <section className="tone-rail-good border-b-2 border-line bg-paper px-4 py-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="inline-flex items-center gap-2 text-[18px] font-black text-good">
-              <span className="flex h-9 w-9 items-center justify-center bg-good-soft">
-                <IconShop className="h-5 w-5" />
-              </span>
-              이번 달 많이 산 가게
-            </h2>
-            <Link to="/history" className="text-[15px] font-black text-ledger">
-              장부 보기 ›
-            </Link>
+        <div className="card mt-4 px-4 pb-3 pt-3.5">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
+            <h2 className="text-[19px] font-extrabold">이번 주</h2>
+            <p className="text-[16px] font-semibold text-ink-soft">
+              <WeekCompare thisWeek={week.thisWeek} lastWeek={week.lastWeek} />
+            </p>
           </div>
-          <ul className="divide-y-2 divide-line">
-            {shopRanks.map((row, index) => {
-              const content = (
-                <>
-                  <span className="min-w-0 truncate font-bold text-ink">
-                    <span className="mr-2 inline-flex h-8 w-8 items-center justify-center bg-good-soft text-[15px] font-black text-good">
-                      {index + 1}
-                    </span>
-                    {row.shop?.name ?? '없는 가게'}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1 tabular text-[16px] font-black text-ink">
-                    {formatCurrency(row.total)}
-                    <span className="text-[20px] font-bold text-good" aria-hidden>
-                      ›
-                    </span>
-                  </span>
-                </>
-              )
-
-              if (!row.shopId) {
-                return (
-                  <li key={`gone-${index}`} className="flex items-center justify-between py-3 text-[16px]">
-                    {content}
-                  </li>
-                )
-              }
-
-              return (
-                <li key={row.shopId}>
-                  <Link
-                    to={`/shops/${row.shopId}`}
-                    className="tap-target flex items-center justify-between py-3 text-[16px] active:bg-good-soft/40"
-                  >
-                    {content}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      )}
-
-      {categoryRanks.length > 0 && (
-        <section className="border-b-2 border-line bg-paper px-4 py-4">
-          <h2 className="mb-3 text-[18px] font-black text-ink">옷 종류별</h2>
-          <div className="flex flex-wrap gap-2">
-            {categoryRanks.map((row) => (
+          <div className="grid h-16 grid-cols-7 items-end gap-2" aria-hidden>
+            {week.days.map((day) => (
               <span
-                key={row.category}
-                className=" border-2 border-brand/25 bg-brand-soft px-3 py-2 text-[15px] font-bold text-brand-dark"
-              >
-                {row.category} · {row.count}개 · {formatCurrency(row.total)}
+                key={day.label}
+                className={`block rounded-t-[4px] ${day.isToday ? 'bg-accent' : 'bg-line'}`}
+                style={{ height: `${Math.max(4, (day.total / week.max) * 100)}%`, opacity: day.isFuture ? 0.5 : 1 }}
+              />
+            ))}
+          </div>
+          <div className="mt-1.5 grid grid-cols-7 gap-2 text-center text-[16px] font-semibold text-ink-soft">
+            {week.days.map((day) => (
+              <span key={day.label} className={day.isToday ? 'font-extrabold text-accent-dark' : ''}>
+                {day.label}
               </span>
             ))}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      <section className="bg-paper px-4 py-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[18px] font-black text-ink">오늘 적으신 것</h2>
-          <span className=" bg-brand-soft px-3 py-1 text-[14px] font-black text-brand">
-            {todayItems.length}개
-          </span>
+      <section className="px-4 pt-5">
+        <div className="mb-3 flex items-baseline justify-between px-0.5">
+          <h2 className="text-[20px] font-extrabold">오늘 적은 것 {todayItems.length}건</h2>
+          <Link to="/history" className="text-[17px] font-bold text-brand">
+            모두 보기 ›
+          </Link>
         </div>
 
         {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
+          <div className="space-y-2.5">
+            {[1, 2].map((i) => (
               <div key={i} className="skeleton h-20" />
             ))}
           </div>
         ) : todayItems.length === 0 ? (
           <EmptyState
-            tone="accent"
             icon="camera"
             title="아직 오늘 기록이 없어요"
-            description="「사진 찍고 적기」를 눌러 기록하면 여기에 쌓여요."
+            description="「물건 적기」를 눌러 적으면 여기에 쌓여요."
           />
         ) : (
-          <ul className="divide-y-2 divide-line border-t-2 border-line">
+          <ul className="space-y-2.5">
             {todayItems.map((item) => (
               <ItemRow key={item.id} item={item} />
             ))}

@@ -25,7 +25,7 @@ export default function JoinPage() {
         setDetail('클라우드에서 불러오는 중…')
         await syncBidirectional()
         setStatus('done')
-        setDetail('연결되었습니다. 같은 장부를 이 기기에서도 쓸 수 있습니다.')
+        setDetail('연결했어요. 같은 장부를 이 폰에서도 쓸 수 있어요.')
         window.setTimeout(() => navigate('/settings?joined=1', { replace: true }), 1200)
       } catch (err) {
         setStatus('error')
@@ -41,13 +41,13 @@ export default function JoinPage() {
     async function start() {
       if (!code) {
         setStatus('error')
-        setDetail('초대 링크가 올바르지 않습니다.')
+        setDetail('초대 주소가 올바르지 않아요. 보내 준 분께 다시 받아 주세요.')
         return
       }
 
       if (!isCloudConfigured) {
         setStatus('error')
-        setDetail('이 앱에 클라우드가 아직 연결되지 않았습니다. 관리자에게 문의해 주세요.')
+        setDetail('아직 다른 폰과 같이 쓸 준비가 안 됐어요. 도와주시는 분께 말씀해 주세요.')
         return
       }
 
@@ -77,9 +77,9 @@ export default function JoinPage() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-wash px-6 text-center">
-      <div className="w-full max-w-sm border-2 border-line bg-paper p-6">
-        <p className="text-[15px] font-black text-brand">사입노트</p>
-        <h1 className="mt-2 text-[22px] font-black text-ink">
+      <div className="card w-full max-w-sm p-6">
+        <p className="text-[17px] font-extrabold text-brand">사입노트</p>
+        <h1 className="mt-2 text-[23px] font-extrabold text-ink">
           {status === 'done'
             ? '연결 완료'
             : status === 'choose'
@@ -99,14 +99,14 @@ export default function JoinPage() {
             <button
               type="button"
               onClick={() => connect('keep')}
-              className="tap-target w-full bg-brand px-3 text-[17px] font-black text-white"
+              className="btn btn-primary w-full whitespace-normal"
             >
               이 폰 기록도 함께 옮기기
             </button>
             <button
               type="button"
               onClick={() => connect('discard')}
-              className="tap-target w-full border-2 border-line px-3 text-[17px] font-bold text-ink"
+              className="btn btn-outline w-full whitespace-normal py-2"
             >
               이 폰 기록은 지우고 초대받은 장부만 보기
             </button>
@@ -116,28 +116,28 @@ export default function JoinPage() {
                 setStatus('cancelled')
                 setDetail('연결하지 않았어요. 이 폰 기록은 그대로예요.')
               }}
-              className="tap-target w-full text-[16px] font-bold text-ink-muted"
+              className="btn w-full text-ink-muted"
             >
               취소
             </button>
           </div>
         ) : (
-          <p className="mt-3 text-[16px] font-medium leading-relaxed text-ink-muted">{detail}</p>
+          <p className="mt-3 text-[17px] font-medium leading-relaxed text-ink-muted">{detail}</p>
         )}
 
         {joinedCode && status === 'done' && (
-          <p className="mt-3 bg-good-soft px-3 py-2 text-[15px] font-bold text-good">{joinedCode}</p>
+          <p className="mt-3 rounded-[10px] bg-good-soft px-3 py-2 text-[16px] font-bold text-good">{joinedCode}</p>
         )}
         {(status === 'error' || status === 'cancelled' || status === 'done') && (
           <Link
             to={status === 'done' ? '/' : '/settings'}
-            className="tap-target mt-6 flex w-full items-center justify-center bg-brand text-[16px] font-black text-white"
+            className="btn btn-primary mt-6 w-full"
           >
             {status === 'done' ? '홈으로' : '설정으로 이동'}
           </Link>
         )}
         {status === 'connecting' && (
-          <p className="mt-6 text-[14px] font-bold text-ink-muted">잠시만 기다려 주세요…</p>
+          <p className="mt-6 text-[16px] font-bold text-ink-soft">잠시만 기다려 주세요…</p>
         )}
       </div>
     </div>

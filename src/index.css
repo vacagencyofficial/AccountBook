@@ -2,40 +2,48 @@
 /* SUIT 가변 글꼴 — 앱에 포함되어 오프라인에서도 같은 글꼴 */
 @import '@sun-typeface/suit/fonts/variable/woff2/SUIT-Variable.css';
 
+/*
+ * 2차 시안(B안) 색 체계
+ * - 남색(brand): 정보·합계·선택된 것
+ * - 주황(accent): 적기·저장 같은 행동
+ * - 초록(good)=샀어요·완료, 호박(warn)=고민 중, 빨강=지우기·오류
+ */
 @theme {
   --color-ink: #0f172a;
-  --color-ink-muted: #334155;
+  --color-ink-muted: #475569;
+  --color-ink-soft: #64748b;
   --color-paper: #ffffff;
   --color-raised: #ffffff;
-  --color-line: #94a3b8;
-  --color-wash: #eef2f6;
+  --color-line: #cbd5e1;
+  --color-line-soft: #e2e8f0;
+  --color-wash: #f1f4f9;
 
-  /* 파랑 = 홈·안내 */
-  --color-brand: #1d4ed8;
-  --color-brand-dark: #1e3a8a;
-  --color-brand-soft: #dbeafe;
+  --color-brand: #1e3a8a;
+  --color-brand-dark: #172554;
+  --color-brand-soft: #e8eefc;
 
-  /* 주황 = 사진·바로 하기 */
   --color-accent: #ea580c;
   --color-accent-dark: #c2410c;
-  --color-accent-soft: #ffedd5;
+  --color-accent-soft: #fff1e6;
 
-  /* 초록 = 가게·안전 보관 */
   --color-good: #15803d;
-  --color-good-soft: #dcfce7;
+  --color-good-soft: #e3f6ea;
 
-  /* 호박 = 주의·통째 보관 */
   --color-warn: #b45309;
-  --color-warn-soft: #fef3c7;
+  --color-warn-soft: #fdf1dc;
 
-  /* 보라 = 장부·합계 */
-  --color-ledger: #6d28d9;
-  --color-ledger-soft: #ede9fe;
+  /* 예전 보라(장부) 자리는 남색으로 통일 */
+  --color-ledger: #1e3a8a;
+  --color-ledger-soft: #e8eefc;
 
   --color-surface: #ffffff;
-  --color-border: #94a3b8;
+  --color-border: #cbd5e1;
 
   --font-sans: 'SUIT Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+
+  --radius-card: 16px;
+  --radius-ctl: 10px;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.07);
 }
 
 html {
@@ -48,30 +56,31 @@ body,
   height: 100%;
 }
 
+/* 설정 → 글씨 크기 (보통 1 / 크게 1.1 / 아주 크게 1.2) */
+#root {
+  zoom: var(--app-zoom, 1);
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   color: var(--color-ink);
-  /* 차가운 단색 대신 옅은 줄무늬 — 현장 수첩 느낌 */
-  background-color: #e8edf3;
-  background-image:
-    linear-gradient(180deg, rgba(29, 78, 216, 0.06), transparent 180px),
-    repeating-linear-gradient(
-      -12deg,
-      transparent,
-      transparent 11px,
-      rgba(15, 23, 42, 0.03) 11px,
-      rgba(15, 23, 42, 0.03) 12px
-    );
+  background: var(--color-wash);
   line-height: 1.5;
+  word-break: keep-all;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* 기본값은 base 층에 둬야 버튼·입력칸의 글씨 크기 클래스(text-[..])가 적용됨 */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 .tabular {
@@ -83,7 +92,8 @@ textarea {
 }
 
 .skeleton {
-  background: #cbd5e1;
+  background: var(--color-line-soft);
+  border-radius: var(--radius-ctl);
 }
 
 .sr-only {
@@ -102,23 +112,188 @@ textarea {
   min-height: 3.15rem;
 }
 
-/* 요청: 둥근 모서리(radius) 사용하지 않음 — 각진 UI */
-*,
-*::before,
-*::after {
-  border-radius: 0 !important;
-}
+/* ───────── 공통 모양 (화면마다 같은 버튼·카드·입력칸) ───────── */
+@layer components {
+  .card {
+    background: var(--color-paper);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
 
-/* 색 의미 띠 — 화면 구분용 */
-.tone-rail-brand {
-  box-shadow: inset 6px 0 0 0 var(--color-brand);
-}
-.tone-rail-good {
-  box-shadow: inset 6px 0 0 0 var(--color-good);
-}
-.tone-rail-ledger {
-  box-shadow: inset 6px 0 0 0 var(--color-ledger);
-}
-.tone-rail-accent {
-  box-shadow: inset 6px 0 0 0 var(--color-accent);
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 3.15rem;
+    padding: 0 1rem;
+    border-radius: var(--radius-ctl);
+    font-weight: 800;
+    font-size: 18px;
+    white-space: nowrap;
+    transition: transform 0.05s;
+  }
+  .btn:active {
+    transform: scale(0.98);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    transform: none;
+  }
+  /* 적기·저장 */
+  .btn-accent {
+    color: #fff;
+    background: linear-gradient(135deg, #f97316, var(--color-accent-dark));
+    box-shadow: 0 6px 16px rgb(234 88 12 / 0.28);
+  }
+  /* 일반 주 동작 */
+  .btn-primary {
+    color: #fff;
+    background: var(--color-brand);
+    box-shadow: 0 6px 14px rgb(30 58 138 / 0.22);
+  }
+  /* 보조 동작 */
+  .btn-soft {
+    color: var(--color-brand);
+    background: var(--color-brand-soft);
+  }
+  .btn-outline {
+    color: var(--color-ink);
+    background: var(--color-paper);
+    box-shadow: inset 0 0 0 2px var(--color-line);
+  }
+  .btn-danger {
+    color: #fff;
+    background: #b91c1c;
+  }
+  .btn-text-danger {
+    color: #b91c1c;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .field {
+    width: 100%;
+    min-height: 3.15rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--radius-ctl);
+    background: var(--color-paper);
+    border: 2px solid var(--color-line);
+    color: var(--color-ink);
+    font-size: 18px;
+    font-weight: 600;
+    outline: none;
+  }
+  .field:focus {
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px rgb(30 58 138 / 0.15);
+  }
+  .field::placeholder {
+    color: var(--color-ink-soft);
+    font-weight: 500;
+  }
+  select.field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23475569' stroke-width='2.5' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2.5rem;
+  }
+
+  .label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--color-ink);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 3rem;
+    padding: 0 1rem;
+    border-radius: var(--radius-ctl);
+    background: var(--color-paper);
+    box-shadow: inset 0 0 0 2px var(--color-line-soft), var(--shadow-card);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+  .chip-on {
+    background: var(--color-brand);
+    color: #fff;
+    box-shadow: 0 6px 14px rgb(30 58 138 / 0.25);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0 0.6rem;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* 영수증처럼 아래가 톱니 모양인 카드 */
+  .receipt {
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .receipt::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -10px;
+    height: 10px;
+    background:
+      linear-gradient(-45deg, transparent 7px, var(--receipt-color) 0) 0 0 / 14px 10px,
+      linear-gradient(45deg, transparent 7px, var(--receipt-color) 0) 0 0 / 14px 10px;
+    transform: rotate(180deg);
+  }
+
+  .hero {
+    --receipt-color: #172554;
+    color: #fff;
+    background: linear-gradient(140deg, #24479f 0%, #1e3a8a 45%, #172554 100%);
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    position: relative;
+  }
+  .hero-deco {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .hero-deco::before {
+    content: '';
+    position: absolute;
+    right: -40px;
+    top: -50px;
+    width: 170px;
+    height: 170px;
+    border: 28px solid rgb(255 255 255 / 0.06);
+    border-radius: 9999px;
+  }
+  .hero-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 0.65rem;
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.14);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .hero-pill-warn {
+    background: rgb(251 191 36 / 0.22);
+    color: #fde68a;
+  }
 }
