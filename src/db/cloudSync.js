@@ -22,28 +22,93 @@ async function rpc(fn, args) {
   return data
 }
 
-async function ensureWorkspace(codeInput) {
+/** 동기화 작업은 한 번에 하나씩 (동시에 돌면 같은 기록이 두 번 올라갈 수 있음) */
+let queue = Promise.resolve()
+function serialized(task) {
+  const run = queue.then(task, task)
+  queue = run.catch(() => {})
+  return run
+}
+
+function assertConfigured() {
   if (!isCloudConfigured || !supabase) {
     throw new Error('클라우드가 설정되지 않았습니다')
   }
+}
 
+async function openOrCreateWorkspace(codeInput) {
+  assertConfigured()
   const code = normalizeWorkspaceCode(codeInput || getWorkspaceCode())
 
   if (code) {
     const existing = await rpc('sailp_open_workspace', { p_code: code })
     if (!existing) throw new Error(NOT_FOUND_MESSAGE)
-    setWorkspaceLocal({ code: existing.code, id: existing.id })
     return existing
   }
 
   // 번호는 서버가 만듦 (추측하기 어려운 10자리)
-  const created = await rpc('sailp_create_workspace')
-  setWorkspaceLocal({ code: created.code, id: created.id })
-  return created
+  return rpc('sailp_create_workspace')
 }
 
-export async function connectWorkspace(code) {
-  return ensureWorkspace(code)
+async function ensureWorkspace() {
+  const workspace = await openOrCreateWorkspace()
+  setWorkspaceLocal({ code: workspace.code, id: workspace.id })
+  return workspace
+}
+
+/** 다른 장부로 옮길 때: 이 폰 기록을 새 장부에 새로 올리도록 클라우드 연결 표시를 지움 */
+async function resetCloudLinks() {
+  const now = Date.now()
+  await db.transaction('rw', db.shops, db.items, db.photos, db.deletions, async () => {
+    await db.shops.toCollection().modify((shop) => {
+      delete shop.cloudId
+      shop.dirty = 1
+      shop.updatedAt = now
+    })
+    await db.items.toCollection().modify((item) => {
+      delete item.cloudId
+      item.dirty = 1
+      item.updatedAt = now
+    })
+    await db.photos.toCollection().modify((photo) => {
+      delete photo.cloudId
+      delete photo.storagePath
+      delete photo.legacy
+    })
+    await db.deletions.clear()
+  })
+}
+
+async function clearLocal() {
+  await db.transaction('rw', db.shops, db.items, db.photos, db.deletions, async () => {
+    await db.photos.clear()
+    await db.items.clear()
+    await db.shops.clear()
+    await db.deletions.clear()
+  })
+}
+
+export async function hasLocalRecords() {
+  return (await db.items.count()) > 0 || (await db.shops.count()) > 0
+}
+
+/**
+ * 장부 번호로 연결 (번호가 없으면 새 장부)
+ * @param {'keep' | 'discard'} options.localMode 다른 장부로 옮길 때 이 폰 기록을 가져갈지(keep) 지울지(discard)
+ */
+export function connectWorkspace(code, { localMode = 'keep' } = {}) {
+  return serialized(async () => {
+    const previous = getWorkspaceCode()
+    const workspace = await openOrCreateWorkspace(code)
+
+    if (workspace.code !== previous) {
+      if (localMode === 'discard') await clearLocal()
+      else if (previous) await resetCloudLinks()
+    }
+
+    setWorkspaceLocal({ code: workspace.code, id: workspace.id })
+    return workspace
+  })
 }
 
 export async function getCloudStatus() {
@@ -54,16 +119,20 @@ export async function getCloudStatus() {
   }
 }
 
-async function uploadPhotoBlob(workspace, itemCloudId, blob, index = 0) {
-  const path = `${workspace.id}/${itemCloudId}/${Date.now()}-${index}.jpg`
-  const { error } = await supabase.storage.from('photos').upload(path, blob, {
+async function uploadPhoto(workspace, itemCloudId, photo) {
+  const path = `${workspace.id}/${itemCloudId}/${Date.now()}-${photo.id}.jpg`
+  const { error } = await supabase.storage.from('photos').upload(path, photo.blob, {
     contentType: 'image/jpeg',
     upsert: false,
   })
   if (error) throw error
 
-  await rpc('sailp_add_photo', { p_code: workspace.code, p_item: itemCloudId, p_path: path })
-  return path
+  const cloudId = await rpc('sailp_add_photo', {
+    p_code: workspace.code,
+    p_item: itemCloudId,
+    p_path: path,
+  })
+  await db.photos.update(photo.id, { cloudId, storagePath: path })
 }
 
 async function downloadPhotoBlob(storagePath) {
@@ -74,158 +143,198 @@ async function downloadPhotoBlob(storagePath) {
   return response.blob()
 }
 
-/** 로컬 → 클라우드 전체 푸시 */
-export async function pushLocalToCloud() {
-  if (!isCloudConfigured || !supabase) return { skipped: true }
+/** 올린 뒤, 그 사이에 또 고치지 않았으면 「올림」 표시 */
+async function markPushed(table, local, cloudId) {
+  await table
+    .where(':id')
+    .equals(local.id)
+    .modify((row) => {
+      row.cloudId = cloudId
+      if ((row.updatedAt || 0) === (local.updatedAt || 0)) row.dirty = 0
+    })
+}
 
-  const workspace = await ensureWorkspace()
+/** 이 폰에서 지운 것을 클라우드에 알림 */
+async function pushDeletions(workspace) {
+  const deletions = await db.deletions.toArray()
+  for (const entry of deletions) {
+    await rpc('sailp_delete', { p_code: workspace.code, p_kind: entry.kind, p_id: entry.cloudId })
+    await db.deletions.delete(entry.id)
+  }
+}
+
+/** 이 폰에서 새로 만들거나 고친 것만 올림 */
+async function pushChanges(workspace) {
   const code = workspace.code
 
-  const shops = await db.shops.toArray()
-  const shopCloudMap = {}
-
+  const shops = await db.shops.filter((shop) => !shop.cloudId || shop.dirty === 1).toArray()
   for (const shop of shops) {
-    const payload = {
-      name: shop.name,
-      building: shop.building || '',
-      floor: shop.floor || '',
-      unit: shop.unit || '',
-      phone: shop.phone || '',
-      memo: shop.memo || '',
-      last_visited_at: shop.lastVisitedAt || Date.now(),
-    }
-
     const cloudId = await rpc('sailp_upsert_shop', {
       p_code: code,
       p_id: shop.cloudId || null,
-      p_data: payload,
+      p_data: {
+        name: shop.name,
+        building: shop.building || '',
+        floor: shop.floor || '',
+        unit: shop.unit || '',
+        phone: shop.phone || '',
+        memo: shop.memo || '',
+        last_visited_at: shop.lastVisitedAt || Date.now(),
+        hidden: Boolean(shop.hidden),
+        client_updated_at: shop.updatedAt || 0,
+      },
     })
-    if (cloudId !== shop.cloudId) await db.shops.update(shop.id, { cloudId })
-    shopCloudMap[shop.id] = cloudId
+    await markPushed(db.shops, shop, cloudId)
   }
 
-  const items = await db.items.toArray()
-  for (const item of items) {
-    const payload = {
-      shop_id: shopCloudMap[item.shopId] || null,
-      date: item.date,
-      name: item.name || '',
-      category: item.category || '기타',
-      color: item.color || '',
-      size: item.size || '',
-      price: item.price || 0,
-      qty: item.qty || 1,
-      memo: item.memo || '',
-      status: item.status || '구매',
-      created_at: item.createdAt || Date.now(),
-    }
+  const shopCloudMap = {}
+  for (const shop of await db.shops.toArray()) shopCloudMap[shop.id] = shop.cloudId
 
-    const itemCloudId = await rpc('sailp_upsert_item', {
+  const items = await db.items.filter((item) => !item.cloudId || item.dirty === 1).toArray()
+  for (const item of items) {
+    const cloudId = await rpc('sailp_upsert_item', {
       p_code: code,
       p_id: item.cloudId || null,
-      p_data: payload,
+      p_data: {
+        shop_id: shopCloudMap[item.shopId] || null,
+        date: item.date,
+        name: item.name || '',
+        category: item.category || '기타',
+        color: item.color || '',
+        size: item.size || '',
+        price: item.price || 0,
+        qty: item.qty || 1,
+        memo: item.memo || '',
+        status: item.status || '구매',
+        created_at: item.createdAt || Date.now(),
+        client_updated_at: item.updatedAt || 0,
+      },
     })
-    if (itemCloudId !== item.cloudId) await db.items.update(item.id, { cloudId: itemCloudId })
-
-    const photos = await db.photos.where('itemId').equals(item.id).toArray()
-    const cloudPhotoCount = await rpc('sailp_item_photo_count', { p_code: code, p_item: itemCloudId })
-
-    if (cloudPhotoCount === 0) {
-      for (let i = 0; i < photos.length; i += 1) {
-        if (photos[i].blob) {
-          await uploadPhotoBlob(workspace, itemCloudId, photos[i].blob, i)
-        }
-      }
-    }
+    await markPushed(db.items, item, cloudId)
   }
 
-  return { ok: true, workspace }
+  await pushPhotos(workspace)
 }
 
-/** 클라우드 → 로컬 풀 */
-export async function pullCloudToLocal({ replaceLocal = false } = {}) {
-  if (!isCloudConfigured || !supabase) return { skipped: true }
+/** 아직 안 올라간 사진만 올림 (사진마다 확인하므로 여러 장도 모두 올라감) */
+async function pushPhotos(workspace) {
+  const photos = await db.photos.filter((photo) => !photo.cloudId && !photo.legacy && photo.blob).toArray()
+  for (const photo of photos) {
+    const item = await db.items.get(photo.itemId)
+    if (!item?.cloudId) continue
+    await uploadPhoto(workspace, item.cloudId, photo)
+  }
+}
 
-  const workspace = await ensureWorkspace()
-  // 먼저 받아 두고 나서 로컬을 비움 (받기 실패 시 기존 장부 유지)
-  const remote = await rpc('sailp_pull', { p_code: workspace.code })
-  const cloudShops = remote?.shops ?? []
-  const cloudItems = remote?.items ?? []
-  const cloudPhotos = remote?.photos ?? []
+/**
+ * 예전 방식으로 올라간 사진 짝짓기: 클라우드에 같은 기록의 사진이 있으면 순서대로 연결하고,
+ * 남는 이 폰 사진은 새로 올리도록 표시
+ */
+async function linkLegacyPhotos(remote) {
+  const legacy = await db.photos.filter((photo) => photo.legacy === 1 && !photo.cloudId).toArray()
+  if (legacy.length === 0) return
 
-  if (replaceLocal) {
-    await db.transaction('rw', db.shops, db.items, db.photos, async () => {
-      await db.photos.clear()
-      await db.items.clear()
-      await db.shops.clear()
-    })
+  const linked = new Set((await db.photos.toArray()).map((photo) => photo.cloudId).filter(Boolean))
+  const remoteByItem = {}
+  for (const row of remote.photos ?? []) {
+    if (linked.has(row.id)) continue
+    ;(remoteByItem[row.item_id] ??= []).push(row)
   }
 
-  const shopIdMap = {}
-  for (const row of cloudShops) {
-    const existing = await db.shops.filter((s) => s.cloudId === row.id).first()
-    const fields = {
-      cloudId: row.id,
-      name: row.name,
-      building: row.building || '',
-      floor: row.floor || '',
-      unit: row.unit || '',
-      phone: row.phone || '',
-      memo: row.memo || '',
-      lastVisitedAt: Number(row.last_visited_at) || Date.now(),
-    }
-    if (existing) {
-      await db.shops.update(existing.id, fields)
-      shopIdMap[row.id] = existing.id
+  for (const photo of legacy) {
+    const item = await db.items.get(photo.itemId)
+    const candidates = (item?.cloudId && remoteByItem[item.cloudId]) || []
+    const match = candidates.shift()
+    if (match) {
+      await db.photos.update(photo.id, { cloudId: match.id, storagePath: match.storage_path, legacy: 0 })
     } else {
-      const localId = await db.shops.add(fields)
-      shopIdMap[row.id] = localId
+      await db.photos.update(photo.id, { legacy: 0 })
     }
   }
+}
 
-  const itemIdMap = {}
-  for (const row of cloudItems) {
-    const localShopId = shopIdMap[row.shop_id]
-    if (!localShopId) continue
+/** 클라우드 내용을 이 폰에 반영 (더 최근에 고친 쪽이 이김, 다른 폰에서 지운 것은 지움) */
+async function applyRemote(remote) {
+  const deleted = remote.deleted ?? {}
+  const pendingDeletes = new Set((await db.deletions.toArray()).map((entry) => entry.cloudId))
 
-    const existing = await db.items.filter((i) => i.cloudId === row.id).first()
-    const fields = {
-      cloudId: row.id,
-      shopId: localShopId,
-      date: row.date,
-      name: row.name || '',
-      category: row.category || '기타',
-      color: row.color || '',
-      size: row.size || '',
-      price: Number(row.price) || 0,
-      qty: Number(row.qty) || 1,
-      memo: row.memo || '',
-      status: row.status || '구매',
-      createdAt: Number(row.created_at) || Date.now(),
+  await db.transaction('rw', db.shops, db.items, db.photos, async () => {
+    for (const cloudId of deleted.photos ?? []) {
+      await db.photos.where('cloudId').equals(cloudId).delete()
     }
-    if (existing) {
-      await db.items.update(existing.id, fields)
-      itemIdMap[row.id] = existing.id
-    } else {
-      const localId = await db.items.add(fields)
-      itemIdMap[row.id] = localId
+    for (const cloudId of deleted.items ?? []) {
+      const local = await db.items.where('cloudId').equals(cloudId).first()
+      if (!local) continue
+      await db.photos.where('itemId').equals(local.id).delete()
+      await db.items.delete(local.id)
     }
-  }
+    for (const cloudId of deleted.shops ?? []) {
+      await db.shops.where('cloudId').equals(cloudId).delete()
+    }
 
-  for (const row of cloudPhotos) {
-    const localItemId = itemIdMap[row.item_id]
-    if (!localItemId) continue
+    for (const row of remote.shops ?? []) {
+      if (pendingDeletes.has(row.id)) continue
+      const remoteTs = Number(row.client_updated_at) || 0
+      const fields = {
+        cloudId: row.id,
+        name: row.name,
+        building: row.building || '',
+        floor: row.floor || '',
+        unit: row.unit || '',
+        phone: row.phone || '',
+        memo: row.memo || '',
+        lastVisitedAt: Number(row.last_visited_at) || Date.now(),
+        hidden: row.hidden ? 1 : 0,
+        dirty: 0,
+        updatedAt: remoteTs,
+      }
+      const local = await db.shops.where('cloudId').equals(row.id).first()
+      if (!local) await db.shops.add(fields)
+      else if (remoteTs > (local.updatedAt || 0)) await db.shops.update(local.id, fields)
+    }
 
-    const already = await db.photos.filter((p) => p.cloudId === row.id).first()
-    if (already) continue
+    const shopIdMap = {}
+    for (const shop of await db.shops.toArray()) {
+      if (shop.cloudId) shopIdMap[shop.cloudId] = shop.id
+    }
 
-    const count = await db.photos.where('itemId').equals(localItemId).count()
-    if (count > 0 && !replaceLocal) continue
+    for (const row of remote.items ?? []) {
+      if (pendingDeletes.has(row.id)) continue
+      const localShopId = shopIdMap[row.shop_id]
+      if (!localShopId) continue
+      const remoteTs = Number(row.client_updated_at) || 0
+      const fields = {
+        cloudId: row.id,
+        shopId: localShopId,
+        date: row.date,
+        name: row.name || '',
+        category: row.category || '기타',
+        color: row.color || '',
+        size: row.size || '',
+        price: Number(row.price) || 0,
+        qty: Number(row.qty) || 1,
+        memo: row.memo || '',
+        status: row.status || '구매',
+        createdAt: Number(row.created_at) || Date.now(),
+        dirty: 0,
+        updatedAt: remoteTs,
+      }
+      const local = await db.items.where('cloudId').equals(row.id).first()
+      if (!local) await db.items.add(fields)
+      else if (remoteTs > (local.updatedAt || 0)) await db.items.update(local.id, fields)
+    }
+  })
 
+  // 사진은 받는 데 시간이 걸려 따로 처리 (사진마다 확인 → 여러 장도 모두 받음)
+  for (const row of remote.photos ?? []) {
+    if (pendingDeletes.has(row.id)) continue
+    if (await db.photos.where('cloudId').equals(row.id).first()) continue
+    const localItem = await db.items.where('cloudId').equals(row.item_id).first()
+    if (!localItem) continue
     try {
       const blob = await downloadPhotoBlob(row.storage_path)
       await db.photos.add({
-        itemId: localItemId,
+        itemId: localItem.id,
         blob,
         cloudId: row.id,
         storagePath: row.storage_path,
@@ -234,20 +343,49 @@ export async function pullCloudToLocal({ replaceLocal = false } = {}) {
       // skip broken photos
     }
   }
-
-  return {
-    ok: true,
-    workspace,
-    shops: cloudShops.length,
-    items: cloudItems.length,
-  }
 }
 
-export async function syncBidirectional() {
-  if (!isCloudConfigured) return { skipped: true, reason: 'not_configured' }
-  const push = await pushLocalToCloud()
-  const pull = await pullCloudToLocal({ replaceLocal: false })
-  return { ok: true, push, pull }
+/** 이 폰 → 클라우드 (바뀐 것만) */
+export function pushLocalToCloud() {
+  if (!isCloudConfigured || !supabase) return Promise.resolve({ skipped: true })
+  return serialized(async () => {
+    const workspace = await ensureWorkspace()
+    await pushDeletions(workspace)
+    await pushChanges(workspace)
+    return { ok: true, workspace }
+  })
+}
+
+/** 클라우드 → 이 폰. replaceLocal이면 받기에 성공한 뒤 이 폰 기록을 클라우드 내용으로 바꿈 */
+export function pullCloudToLocal({ replaceLocal = false } = {}) {
+  if (!isCloudConfigured || !supabase) return Promise.resolve({ skipped: true })
+  return serialized(async () => {
+    const workspace = await ensureWorkspace()
+    const remote = await rpc('sailp_pull', { p_code: workspace.code })
+    if (replaceLocal) await clearLocal()
+    await applyRemote(remote)
+    return {
+      ok: true,
+      workspace,
+      shops: remote.shops?.length ?? 0,
+      items: remote.items?.length ?? 0,
+    }
+  })
+}
+
+/** 양쪽 맞추기: 지운 것·바꾼 것 올리기 → 최신 내용 받기 */
+export function syncBidirectional() {
+  if (!isCloudConfigured) return Promise.resolve({ skipped: true, reason: 'not_configured' })
+  return serialized(async () => {
+    const workspace = await ensureWorkspace()
+    await pushDeletions(workspace)
+    await pushChanges(workspace)
+    const remote = await rpc('sailp_pull', { p_code: workspace.code })
+    await linkLegacyPhotos(remote)
+    await pushPhotos(workspace)
+    await applyRemote(remote)
+    return { ok: true, workspace }
+  })
 }
 
 /** 저장 직후 백그라운드 동기화 (실패해도 로컬은 유지) */

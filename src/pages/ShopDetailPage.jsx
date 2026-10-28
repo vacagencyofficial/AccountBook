@@ -6,7 +6,7 @@ import EmptyState from '../components/EmptyState'
 import ItemRow from '../components/ItemRow'
 import ShopForm, { shopToForm } from '../components/ShopForm'
 import { db } from '../db'
-import { deleteShop, updateShop } from '../db/mutations'
+import { deleteShop, setShopHidden, updateShop } from '../db/mutations'
 import { getItemsByShop } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { formatCurrency, itemTotal, shopLocation } from '../utils/format'
@@ -85,6 +85,20 @@ export default function ShopDetailPage() {
     >
       {error && (
         <div className="mb-4 bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700">{error}</div>
+      )}
+
+      {Boolean(shop.hidden) && (
+        <div className="mb-4 border-2 border-warn/40 bg-warn-soft px-4 py-3">
+          <p className="text-[17px] font-black text-warn">숨긴 가게예요</p>
+          <p className="mt-1 text-[15px] font-semibold text-ink-muted">가게 목록과 고르기에서 보이지 않아요. 기록은 그대로예요.</p>
+          <button
+            type="button"
+            onClick={() => setShopHidden(id, false)}
+            className="tap-target mt-3 w-full border-2 border-warn bg-paper text-[17px] font-black text-warn"
+          >
+            다시 보이게 하기
+          </button>
+        </div>
       )}
 
       {!isEditing && (
@@ -168,31 +182,44 @@ export default function ShopDetailPage() {
       </section>
 
       {!isEditing && (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {!shop.hidden && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShopHidden(id, true)
+                  navigate('/shops', { replace: true })
+                }}
+                className="tap-target w-full border-2 border-line bg-paper text-[17px] font-bold text-ink"
+              >
+                가게 숨기기
+              </button>
+              <p className="text-center text-[15px] font-semibold text-ink-muted">
+                더 안 가는 가게는 숨겨 두세요. 기록은 장부에 남아요.
+              </p>
+            </>
+          )}
           <button
             type="button"
             onClick={() => setShowDeleteConfirm(true)}
-            className="tap-target w-full border-2 border-red-200 bg-red-50 text-[17px] font-bold text-red-700"
+            className="tap-target w-full text-[16px] font-bold text-red-700 underline"
           >
-            가게 삭제
+            가게와 기록 모두 지우기
           </button>
-          {(items?.length ?? 0) > 0 && (
-            <p className="text-center text-[15px] font-semibold text-ink-muted">
-              삭제 시 이 가게의 사입 기록 {items.length}건도 함께 삭제됩니다
-            </p>
-          )}
         </div>
       )}
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          title="가게를 삭제할까요?"
+          title="가게와 기록을 모두 지울까요?"
           description={
             (items?.length ?? 0) > 0
-              ? `"${shop.name}"와 사입 기록 ${items.length}건이 모두 삭제됩니다.`
-              : `"${shop.name}"를 삭제합니다.`
+              ? `"${shop.name}"와 사입 기록 ${items.length}건(${formatCurrency(totalAmount)})이 모두 지워져요.\n되돌릴 수 없어요. 기록을 남기려면 「가게 숨기기」를 쓰세요.`
+              : `"${shop.name}"를 지워요.`
           }
-          confirmLabel={isDeleting ? '삭제 중…' : '삭제'}
+          cancelLabel="그대로 두기"
+          confirmLabel={isDeleting ? '지우는 중…' : '모두 지우기'}
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
           danger

@@ -8,6 +8,12 @@
 
 create extension if not exists "pgcrypto";
 
+-- 동기화용 열 (마지막 수정 시각·가게 숨김·사진 삭제 표시)
+alter table shops add column if not exists client_updated_at bigint not null default 0;
+alter table shops add column if not exists hidden boolean not null default false;
+alter table items add column if not exists client_updated_at bigint not null default 0;
+alter table photos add column if not exists deleted_at timestamptz;
+
 -- ─────────────────────────────────────────────
 -- 1. 표 직접 접근 차단
 -- ─────────────────────────────────────────────
@@ -105,7 +111,8 @@ as $$
   where code = upper(trim(coalesce(p_code, '')));
 $$;
 
--- 가게 저장 (p_id가 이 장부의 가게면 수정, 아니면 새로 추가) → 클라우드 id 반환
+-- 가게 저장 → 클라우드 id 반환
+-- p_id가 이 장부의 가게면 수정. 단, 클라우드 쪽이 더 최근에 고쳐졌거나 지워졌으면 그대로 둠
 create or replace function sailp_upsert_shop(p_code text, p_id uuid, p_data jsonb)
 returns uuid
 language plpgsql
@@ -115,6 +122,7 @@ set search_path = public
 as $$
 declare
   v_ws uuid := sailp_require_ws(p_code);
+  v_ts bigint := coalesce((p_data->>'client_updated_at')::bigint, 0);
   v_id uuid;
 begin
   if p_id is not null then
@@ -126,15 +134,22 @@ begin
       phone = coalesce(p_data->>'phone', ''),
       memo = coalesce(p_data->>'memo', ''),
       last_visited_at = coalesce((p_data->>'last_visited_at')::bigint, 0),
+      hidden = coalesce((p_data->>'hidden')::boolean, false),
+      client_updated_at = v_ts,
       updated_at = now()
-    where id = p_id and workspace_id = v_ws
+    where id = p_id and workspace_id = v_ws and deleted_at is null and client_updated_at <= v_ts
     returning id into v_id;
+    if v_id is not null then
+      return v_id;
+    end if;
+    -- 이 장부에 이미 있는 가게(더 최근 수정·삭제됨)면 바꾸지 않고 id만 돌려줌
+    select id into v_id from shops where id = p_id and workspace_id = v_ws;
     if v_id is not null then
       return v_id;
     end if;
   end if;
 
-  insert into shops (workspace_id, name, building, floor, unit, phone, memo, last_visited_at)
+  insert into shops (workspace_id, name, building, floor, unit, phone, memo, last_visited_at, hidden, client_updated_at)
   values (
     v_ws,
     coalesce(p_data->>'name', ''),
@@ -143,14 +158,16 @@ begin
     coalesce(p_data->>'unit', ''),
     coalesce(p_data->>'phone', ''),
     coalesce(p_data->>'memo', ''),
-    coalesce((p_data->>'last_visited_at')::bigint, 0)
+    coalesce((p_data->>'last_visited_at')::bigint, 0),
+    coalesce((p_data->>'hidden')::boolean, false),
+    v_ts
   )
   returning id into v_id;
   return v_id;
 end;
 $$;
 
--- 기록 저장 (p_id가 이 장부의 기록이면 수정, 아니면 새로 추가) → 클라우드 id 반환
+-- 기록 저장 → 클라우드 id 반환 (가게와 같은 규칙: 더 최근 것이 이김, 지운 것은 되살리지 않음)
 create or replace function sailp_upsert_item(p_code text, p_id uuid, p_data jsonb)
 returns uuid
 language plpgsql
@@ -160,6 +177,7 @@ set search_path = public
 as $$
 declare
   v_ws uuid := sailp_require_ws(p_code);
+  v_ts bigint := coalesce((p_data->>'client_updated_at')::bigint, 0);
   v_shop uuid;
   v_id uuid;
 begin
@@ -181,15 +199,20 @@ begin
       memo = coalesce(p_data->>'memo', ''),
       status = coalesce(nullif(p_data->>'status', ''), '구매'),
       created_at = coalesce((p_data->>'created_at')::bigint, created_at),
+      client_updated_at = v_ts,
       updated_at = now()
-    where id = p_id and workspace_id = v_ws
+    where id = p_id and workspace_id = v_ws and deleted_at is null and client_updated_at <= v_ts
     returning id into v_id;
+    if v_id is not null then
+      return v_id;
+    end if;
+    select id into v_id from items where id = p_id and workspace_id = v_ws;
     if v_id is not null then
       return v_id;
     end if;
   end if;
 
-  insert into items (workspace_id, shop_id, date, name, category, color, size, price, qty, memo, status, created_at)
+  insert into items (workspace_id, shop_id, date, name, category, color, size, price, qty, memo, status, created_at, client_updated_at)
   values (
     v_ws,
     v_shop,
@@ -202,7 +225,8 @@ begin
     coalesce((p_data->>'qty')::integer, 1),
     coalesce(p_data->>'memo', ''),
     coalesce(nullif(p_data->>'status', ''), '구매'),
-    coalesce((p_data->>'created_at')::bigint, (extract(epoch from now()) * 1000)::bigint)
+    coalesce((p_data->>'created_at')::bigint, (extract(epoch from now()) * 1000)::bigint),
+    v_ts
   )
   returning id into v_id;
   return v_id;
@@ -219,7 +243,7 @@ set search_path = public
 as $$
   select count(*)::integer
   from photos
-  where item_id = p_item and workspace_id = sailp_require_ws(p_code);
+  where item_id = p_item and workspace_id = sailp_require_ws(p_code) and deleted_at is null;
 $$;
 
 -- 사진 기록 추가 (저장 경로는 반드시 이 장부 id 폴더)
@@ -270,13 +294,48 @@ begin
     ), '[]'::jsonb),
     'photos', coalesce((
       select jsonb_agg(to_jsonb(p) order by p.created_at) from photos p
-      where p.workspace_id = v_ws
-    ), '[]'::jsonb)
+      where p.workspace_id = v_ws and p.deleted_at is null
+    ), '[]'::jsonb),
+    -- 다른 폰에서 지운 것: 이 폰에서도 지우도록 id만 전달
+    'deleted', jsonb_build_object(
+      'shops', coalesce((select jsonb_agg(id) from shops where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb),
+      'items', coalesce((select jsonb_agg(id) from items where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb),
+      'photos', coalesce((select jsonb_agg(id) from photos where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb)
+    )
   );
 end;
 $$;
 
+-- 지우기 (삭제 표시만 남겨 다른 폰에도 전달)
+create or replace function sailp_delete(p_code text, p_kind text, p_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_ws uuid := sailp_require_ws(p_code);
+begin
+  if p_kind = 'shop' then
+    update shops set deleted_at = coalesce(deleted_at, now()), updated_at = now()
+    where id = p_id and workspace_id = v_ws;
+  elsif p_kind = 'item' then
+    update items set deleted_at = coalesce(deleted_at, now()), updated_at = now()
+    where id = p_id and workspace_id = v_ws;
+    update photos set deleted_at = coalesce(deleted_at, now())
+    where item_id = p_id and workspace_id = v_ws;
+  elsif p_kind = 'photo' then
+    update photos set deleted_at = coalesce(deleted_at, now())
+    where id = p_id and workspace_id = v_ws;
+  else
+    raise exception 'invalid_kind' using errcode = '22023';
+  end if;
+end;
+$$;
+
 grant execute on function
+  sailp_delete(text, text, uuid),
   sailp_create_workspace(),
   sailp_open_workspace(text),
   sailp_upsert_shop(text, uuid, jsonb),

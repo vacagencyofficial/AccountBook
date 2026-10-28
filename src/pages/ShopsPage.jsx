@@ -9,6 +9,7 @@ import { useLiveQuery } from '../hooks/useLiveQuery'
 
 export default function ShopsPage() {
   const [search, setSearch] = useState('')
+  const [showHidden, setShowHidden] = useState(false)
 
   const { data: shops, isLoading } = useLiveQuery(
     () => db.shops.orderBy('lastVisitedAt').reverse().toArray(),
@@ -24,17 +25,20 @@ export default function ShopsPage() {
     return counts
   }, [])
 
+  const hiddenCount = (shops ?? []).filter((shop) => shop.hidden).length
+
   const filtered = useMemo(() => {
     if (!shops) return []
+    const visible = shops.filter((shop) => Boolean(shop.hidden) === showHidden)
     const q = search.trim().toLowerCase()
-    if (!q) return shops
-    return shops.filter(
+    if (!q) return visible
+    return visible.filter(
       (shop) =>
         shop.name.toLowerCase().includes(q) ||
         shop.building?.toLowerCase().includes(q) ||
         shop.memo?.toLowerCase().includes(q),
     )
-  }, [shops, search])
+  }, [shops, search, showHidden])
 
   return (
     <div>
@@ -89,6 +93,15 @@ export default function ShopsPage() {
               <ShopRow key={shop.id} shop={shop} itemCount={itemCounts?.[shop.id] ?? 0} />
             ))}
           </ul>
+        )}
+        {(hiddenCount > 0 || showHidden) && (
+          <button
+            type="button"
+            onClick={() => setShowHidden((v) => !v)}
+            className="tap-target my-4 w-full border-2 border-line bg-paper text-[16px] font-bold text-ink-muted"
+          >
+            {showHidden ? '보이는 가게로 돌아가기' : `숨긴 가게 ${hiddenCount}곳 보기`}
+          </button>
         )}
       </section>
     </div>

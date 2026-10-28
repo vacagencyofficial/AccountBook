@@ -23,6 +23,8 @@ export async function exportBackup() {
       id: photo.id,
       itemId: photo.itemId,
       file: filename,
+      cloudId: photo.cloudId,
+      storagePath: photo.storagePath,
     })
   }
 
@@ -67,10 +69,11 @@ export async function importBackup(file, mode) {
 }
 
 async function importOverwrite(zip, data) {
-  await db.transaction('rw', [db.shops, db.items, db.photos], async () => {
+  await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
     await db.shops.clear()
     await db.items.clear()
     await db.photos.clear()
+    await db.deletions.clear()
 
     if (data.shops.length) await db.shops.bulkPut(data.shops)
     if (data.items.length) await db.items.bulkPut(data.items)
@@ -78,7 +81,12 @@ async function importOverwrite(zip, data) {
     for (const entry of data.photos) {
       const blob = await readPhotoBlob(zip, entry)
       if (blob) {
-        await db.photos.put({ id: entry.id, itemId: entry.itemId, blob })
+        await db.photos.put({
+          id: entry.id,
+          itemId: entry.itemId,
+          blob,
+          ...(entry.cloudId ? { cloudId: entry.cloudId, storagePath: entry.storagePath } : { legacy: 1 }),
+        })
       }
     }
   })
@@ -87,11 +95,14 @@ async function importOverwrite(zip, data) {
 async function importMerge(zip, data) {
   const shopIdMap = {}
   const itemIdMap = {}
+  // 합치기: 백업 속 기록은 새 기록으로 취급 (클라우드 연결 표시를 떼고 새로 올림)
+  const now = Date.now()
+  const asNew = ({ cloudId: _cloudId, dirty: _dirty, ...rest }) => ({ ...rest, dirty: 1, updatedAt: now })
 
   await db.transaction('rw', [db.shops, db.items, db.photos], async () => {
     for (const shop of data.shops) {
       const { id: oldId, ...shopData } = shop
-      const newId = await db.shops.add(shopData)
+      const newId = await db.shops.add(asNew(shopData))
       shopIdMap[oldId] = newId
     }
 
@@ -99,7 +110,7 @@ async function importMerge(zip, data) {
       const { id: oldId, shopId, ...itemData } = item
       const mappedShopId = shopIdMap[shopId]
       if (!mappedShopId) continue
-      const newId = await db.items.add({ ...itemData, shopId: mappedShopId })
+      const newId = await db.items.add(asNew({ ...itemData, shopId: mappedShopId }))
       itemIdMap[oldId] = newId
     }
 
@@ -122,10 +133,11 @@ async function readPhotoBlob(zip, entry) {
 }
 
 export async function deleteAllData() {
-  await db.transaction('rw', [db.shops, db.items, db.photos], async () => {
+  await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
     await db.photos.clear()
     await db.items.clear()
     await db.shops.clear()
+    await db.deletions.clear()
   })
 }
 
