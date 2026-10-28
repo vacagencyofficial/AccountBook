@@ -68,11 +68,14 @@ body {
   word-break: keep-all;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* 기본값은 base 층에 둬야 버튼·입력칸의 글씨 크기 클래스(text-[..])가 적용됨 */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 .tabular {

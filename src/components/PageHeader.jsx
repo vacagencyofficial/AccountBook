@@ -1,6 +1,6 @@
 export default function PageHeader({ title, subtitle, children, brand, action }) {
   return (
-    <header className="px-4 pb-2 pt-5">
+    <header className="px-4 pb-2 pt-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           {brand ? (

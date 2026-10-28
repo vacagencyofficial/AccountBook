@@ -211,7 +211,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title="설정" />
 
-      <section className="space-y-6 px-4 pb-6 pt-2">
+      <section className="space-y-5 px-4 pb-6 pt-2">
         {message && (
           <div className="rounded-[10px] bg-good-soft px-4 py-3 text-[17px] font-bold text-good" aria-live="polite">
             ✓ {message}

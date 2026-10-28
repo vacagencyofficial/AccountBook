@@ -11,6 +11,20 @@ import { useRegisterForm } from '../hooks/useRegisterForm'
 import { setLastShopId } from '../utils/lastShop'
 import { formatCurrency, formatDateLabel, getToday } from '../utils/format'
 
+const MODE_KEY = 'sailp-capture-mode'
+
+/** 「한 질문씩」(기본) / 「한 화면에」 중 마지막에 고른 방식 */
+function loadMode() {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'all' ? 'all' : 'steps'
+  } catch {
+    return 'steps'
+  }
+}
+
+const STEP_SECTIONS = [['date', 'shop'], ['price'], ['name', 'more']]
+const STEP_TITLES = ['어느 가게예요?', '얼마예요?', '무엇을 샀어요?']
+
 /** 저장 버튼 아래에 보여 줄, 가장 먼저 채워야 할 칸 */
 function firstMissing(form) {
   if (!form.shopId) return '가게를 골라 주세요'
@@ -30,9 +44,33 @@ export default function CapturePage() {
   const [saved, setSaved] = useState(null)
   const [focusName, setFocusName] = useState(false)
   const [showLeave, setShowLeave] = useState(false)
-
-  // 가게 상세의 「이 가게 물건 적기」로 들어온 경우 그 가게를 골라 둠
+  const [mode, setMode] = useState(loadMode)
+  // 가게 상세의 「이 가게 물건 적기」로 들어온 경우 그 가게를 골라 두고 가격부터
   const presetShopId = location.state?.shopId
+  const [step, setStep] = useState(presetShopId ? 1 : 0)
+  const stepMode = mode === 'steps'
+
+  function changeMode(next) {
+    setMode(next)
+    try {
+      localStorage.setItem(MODE_KEY, next)
+    } catch {
+      // 저장 못 해도 이번에는 그대로 씀
+    }
+  }
+
+  function handleSelectShop(shopId) {
+    selectShop(shopId)
+    // 한 질문씩 적기: 가게를 누르면 바로 다음 질문으로
+    if (stepMode && step === 0) setStep(1)
+  }
+
+  function nextMoreSaved() {
+    setSaved(null)
+    // 같은 가게에서 이어 적는 경우가 많아 가게는 그대로, 가격부터
+    setStep(form.shopId ? 1 : 0)
+  }
+
   useEffect(() => {
     if (presetShopId) selectShop(presetShopId)
   }, [presetShopId, selectShop])
@@ -91,8 +129,7 @@ export default function CapturePage() {
     }
   }
 
-  const hasContent =
-    photos.length > 0 || Boolean(form.name.trim() || form.memo.trim() || form.price !== '')
+  const hasContent = photos.length > 0 || Boolean(form.name.trim() || form.memo.trim() || form.price !== '')
 
   function handleClose() {
     if (hasContent) {
@@ -118,7 +155,18 @@ export default function CapturePage() {
     { label: '가격', done: form.price !== '' },
     { label: '이름', done: Boolean(form.name.trim() || form.memo.trim()) },
   ]
-  const currentStep = steps.findIndex((step) => !step.done)
+  const currentStep = stepMode ? step : steps.findIndex((item) => !item.done)
+  const stepReady = step === 0 ? Boolean(form.shopId) : step === 1 ? form.price !== '' : isValid
+  // 버튼 아래 안내: 한 질문씩이면 지금 질문에서 빠진 것만
+  const hint = !stepMode
+    ? missing
+    : stepReady
+      ? null
+      : step === 0
+        ? '가게를 골라 주세요'
+        : step === 1
+          ? '한 개 가격을 적어 주세요'
+          : missing
 
   return (
     <div className="flex min-h-dvh flex-col bg-wash">
@@ -137,19 +185,23 @@ export default function CapturePage() {
         </div>
         {!saved && (
           <ol className="mx-auto flex max-w-lg gap-1.5 px-4 pb-0" aria-label="채울 칸">
-            {steps.map((step, index) => (
-              <li
-                key={step.label}
-                className={[
-                  'flex-1 border-b-4 pb-2 text-center text-[16px] font-bold',
-                  step.done
-                    ? 'border-brand text-brand'
-                    : index === currentStep
+            {steps.map((item, index) => (
+              <li key={item.label} className="flex-1">
+                <button
+                  type="button"
+                  onClick={() => stepMode && setStep(index)}
+                  aria-current={index === currentStep ? 'step' : undefined}
+                  className={[
+                    'w-full border-b-4 pb-2 text-center text-[16px] font-bold',
+                    index === currentStep
                       ? 'border-accent text-accent-dark'
-                      : 'border-line-soft text-ink-soft',
-                ].join(' ')}
-              >
-                {step.done ? `✓ ${step.label}` : step.label}
+                      : item.done
+                        ? 'border-brand text-brand'
+                        : 'border-line-soft text-ink-soft',
+                  ].join(' ')}
+                >
+                  {item.done ? `✓ ${item.label}` : item.label}
+                </button>
               </li>
             ))}
           </ol>
@@ -158,7 +210,10 @@ export default function CapturePage() {
 
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-44">
         {error && (
-          <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700" role="alert">
+          <div
+            className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700"
+            role="alert"
+          >
             {error}
           </div>
         )}
@@ -169,7 +224,9 @@ export default function CapturePage() {
               <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-good-soft text-[34px] font-black text-good">
                 ✓
               </div>
-              <p className="text-[24px] font-extrabold text-ink">{formatCurrency(saved.total)}을 저장했어요</p>
+              <p className="text-[24px] font-extrabold text-ink">
+                {formatCurrency(saved.total)}을 저장했어요
+              </p>
               <p className="mt-2 text-[17px] font-bold leading-snug text-ink-muted">
                 {[saved.shopName, saved.name && `${saved.name} ${saved.qty}개`].filter(Boolean).join(' · ')}
               </p>
@@ -178,7 +235,12 @@ export default function CapturePage() {
                 {saved.photoCount ? ` · 사진 ${saved.photoCount}장` : ''}
               </p>
             </div>
-            <button type="button" onClick={() => setSaved(null)} className="btn btn-accent w-full text-[20px]" style={{ minHeight: '3.75rem' }}>
+            <button
+              type="button"
+              onClick={nextMoreSaved}
+              className="btn btn-accent w-full text-[20px]"
+              style={{ minHeight: '3.75rem' }}
+            >
               다음 물건 적기
             </button>
             <button type="button" onClick={() => navigate('/history')} className="btn btn-outline w-full">
@@ -190,62 +252,77 @@ export default function CapturePage() {
           </section>
         ) : (
           <>
-            <section className="card mb-6 p-3">
-              <div className="flex items-center gap-3">
-                {photos.length === 0 ? (
-                  <p className="flex-1 pl-1 text-[17px] font-bold text-ink-muted">
-                    사진 <span className="font-semibold text-ink-soft">(없어도 돼요)</span>
-                  </p>
-                ) : (
-                  <ul className="flex flex-1 gap-3 overflow-x-auto pb-1 pt-2">
-                    {photos.map((photo, index) => (
-                      <li key={photo.id} className="relative shrink-0">
-                        <PhotoThumbnail blob={photo.blob} alt={`사진 ${index + 1}`} size="lg" />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(photo.id)}
-                          className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white"
-                          aria-label={`사진 ${index + 1} 빼기`}
-                        >
-                          <IconClose className="h-5 w-5" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+            {stepMode && (
+              <h2 className="mb-3 text-[23px] font-extrabold text-brand-dark">{STEP_TITLES[step]}</h2>
+            )}
+            {(!stepMode || step === 2) && (
+              <section className="card mb-5 p-3">
+                <div className="flex items-center gap-3">
+                  {photos.length === 0 ? (
+                    <p className="flex-1 pl-1 text-[17px] font-bold text-ink-muted">
+                      사진 <span className="font-semibold text-ink-soft">(없어도 돼요)</span>
+                    </p>
+                  ) : (
+                    <ul className="flex flex-1 gap-3 overflow-x-auto pb-1 pt-2">
+                      {photos.map((photo, index) => (
+                        <li key={photo.id} className="relative shrink-0">
+                          <PhotoThumbnail blob={photo.blob} alt={`사진 ${index + 1}`} size="lg" />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(photo.id)}
+                            className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white"
+                            aria-label={`사진 ${index + 1} 빼기`}
+                          >
+                            <IconClose className="h-5 w-5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => inputRef.current?.openCamera()}
+                    className="btn btn-soft"
+                  >
+                    <IconCamera className="h-6 w-6" />
+                    사진 찍기
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => inputRef.current?.openGallery()}
+                    className="btn btn-soft"
+                  >
+                    <IconGallery className="h-6 w-6" />
+                    사진 고르기
+                  </button>
+                </div>
+                {isCompressing && (
+                  <p className="mt-3 text-center text-[16px] font-bold text-ink-muted">사진 넣는 중이에요…</p>
                 )}
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => inputRef.current?.openCamera()}
-                  className="btn btn-soft"
-                >
-                  <IconCamera className="h-6 w-6" />
-                  사진 찍기
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => inputRef.current?.openGallery()}
-                  className="btn btn-soft"
-                >
-                  <IconGallery className="h-6 w-6" />
-                  사진 고르기
-                </button>
-              </div>
-              {isCompressing && (
-                <p className="mt-3 text-center text-[16px] font-bold text-ink-muted">사진 넣는 중이에요…</p>
-              )}
-            </section>
+              </section>
+            )}
 
             <RegisterForm
               form={form}
               updateField={updateField}
-              selectShop={selectShop}
-              onSubmit={handleSave}
+              selectShop={handleSelectShop}
+              onSubmit={stepMode && step < 2 ? () => stepReady && setStep(step + 1) : handleSave}
               autoFocusName={focusName}
+              autoFocusPrice={stepMode && step === 1}
+              sections={stepMode ? STEP_SECTIONS[step] : undefined}
             />
+
+            <button
+              type="button"
+              onClick={() => changeMode(stepMode ? 'all' : 'steps')}
+              className="mt-5 min-h-[3rem] w-full text-center text-[16px] font-bold text-ink-soft underline underline-offset-4"
+            >
+              {stepMode ? '한 화면에 다 보면서 적기' : '한 질문씩 넘기며 적기'}
+            </button>
           </>
         )}
 
@@ -260,17 +337,53 @@ export default function CapturePage() {
                 {saveError}
               </p>
             )}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={busy || !isValid}
-              className="btn btn-accent w-full text-[21px]"
-              style={{ minHeight: '3.75rem' }}
-            >
-              {isSaving ? '저장하는 중…' : isValid ? `${formatCurrency(total)} 저장하기` : '저장하기'}
-            </button>
-            {missing && (
-              <p className="mt-2 text-center text-[17px] font-bold leading-snug text-accent-dark">{missing}</p>
+            {stepMode && step < 2 ? (
+              <div className="flex gap-2">
+                {step > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(step - 1)}
+                    className="btn btn-outline shrink-0"
+                    style={{ minHeight: '3.75rem' }}
+                  >
+                    ← 이전
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setStep(step + 1)}
+                  disabled={!stepReady}
+                  className="btn btn-primary flex-1 text-[21px]"
+                  style={{ minHeight: '3.75rem' }}
+                >
+                  다음
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                {stepMode && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="btn btn-outline shrink-0"
+                    style={{ minHeight: '3.75rem' }}
+                  >
+                    ← 이전
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={busy || !isValid}
+                  className="btn btn-accent flex-1 text-[21px]"
+                  style={{ minHeight: '3.75rem' }}
+                >
+                  {isSaving ? '저장하는 중…' : isValid ? `${formatCurrency(total)} 저장하기` : '저장하기'}
+                </button>
+              </div>
+            )}
+            {hint && (
+              <p className="mt-2 text-center text-[17px] font-bold leading-snug text-accent-dark">{hint}</p>
             )}
           </div>
         </div>

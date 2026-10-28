@@ -79,7 +79,7 @@ export default function HomePage() {
       <PageHeader brand subtitle={formatHomeDate()} />
 
       <section className="px-4 pt-2">
-        <div className="hero receipt px-5 pb-4 pt-5">
+        <div className="hero receipt px-5 pb-4 pt-4">
           <div className="hero-deco" aria-hidden />
           <p className="text-[18px] font-semibold opacity-85">오늘 쓴 돈</p>
           <p className="mt-0.5 text-[40px] font-extrabold leading-tight tracking-[-0.03em] tabular">
@@ -106,19 +106,19 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <Link to="/capture" className="btn btn-accent mt-5 w-full text-[21px]" style={{ minHeight: '4rem' }}>
+        <Link to="/capture" className="btn btn-accent mt-4 w-full text-[21px]" style={{ minHeight: '4rem' }}>
           <IconCamera className="h-7 w-7" />
           물건 적기
         </Link>
 
-        <div className="card mt-5 px-4 pb-3 pt-4">
+        <div className="card mt-4 px-4 pb-3 pt-3.5">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
             <h2 className="text-[19px] font-extrabold">이번 주</h2>
             <p className="text-[16px] font-semibold text-ink-soft">
               <WeekCompare thisWeek={week.thisWeek} lastWeek={week.lastWeek} />
             </p>
           </div>
-          <div className="grid h-20 grid-cols-7 items-end gap-2" aria-hidden>
+          <div className="grid h-16 grid-cols-7 items-end gap-2" aria-hidden>
             {week.days.map((day) => (
               <span
                 key={day.label}
@@ -137,7 +137,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="px-4 pt-6">
+      <section className="px-4 pt-5">
         <div className="mb-3 flex items-baseline justify-between px-0.5">
           <h2 className="text-[20px] font-extrabold">오늘 적은 것 {todayItems.length}건</h2>
           <Link to="/history" className="text-[17px] font-bold text-brand">
