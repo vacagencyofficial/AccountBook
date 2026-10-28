@@ -116,7 +116,7 @@ export default function HistoryPage() {
           <div>
             <p className="inline-flex items-center gap-1 text-[14px] font-black text-ledger">
               <IconMoney className="h-4 w-4" />
-              지금 보이는 합계
+              산 것 합계
             </p>
             <p className="mt-1 text-[26px] font-black tabular text-ink">
               {formatCurrency(summary.total)}
@@ -126,6 +126,11 @@ export default function HistoryPage() {
             {summary.count ? `기록 ${summary.count}개 · 옷 ${summary.qty}장` : '아직 없음'}
           </p>
         </div>
+        {summary.pendingCount > 0 && (
+          <p className="mt-2 break-keep bg-warn-soft px-3 py-2 text-[15px] font-bold leading-snug text-warn">
+            고민 중·보류 {summary.pendingCount}건({formatCurrency(summary.pendingTotal)})은 합계에서 뺐어요
+          </p>
+        )}
       </PageHeader>
 
       <section className="bg-paper">
@@ -169,7 +174,7 @@ export default function HistoryPage() {
             </button>
           </div>
           <p className="mt-2 text-[13px] font-bold leading-snug text-ink-muted">
-            초록=안전하게 저장 · 파랑=파일 가져오기 · 호박색=사진 포함 통째 보관
+            엑셀은 표로 보는 파일, 통째로 보관은 사진까지 담은 백업 파일이에요
           </p>
           <input
             ref={excelInputRef}
@@ -230,7 +235,7 @@ export default function HistoryPage() {
             <EmptyState
               tone="ledger"
               title="아직 장부에 기록이 없어요"
-              description="주황 버튼으로 사진을 남기면 여기 장부에 쌓입니다."
+              description="「사진 찍고 적기」로 기록하면 여기 장부에 쌓여요."
             />
           ) : isEmpty ? (
             <EmptyState

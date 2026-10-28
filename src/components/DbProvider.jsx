@@ -15,7 +15,10 @@ export function DbProvider({ children }) {
 
     async function boot() {
       try {
-        await seedIfEmpty()
+        // 예시 장부는 개발/체험용 배포에서만 (실사용 장부에 가짜 기록이 생기지 않게)
+        if (import.meta.env.DEV || import.meta.env.VITE_DEMO_SEED === 'true') {
+          await seedIfEmpty()
+        }
 
         if (isCloudConfigured && getWorkspaceCode()) {
           try {

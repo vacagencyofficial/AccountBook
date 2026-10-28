@@ -73,11 +73,10 @@ export function filterHistoryItems(items, filters, dateRange) {
   const q = filters.query.trim().toLowerCase()
 
   return items.filter((item) => {
-    if (filters.period !== 'all') {
-      if (!dateRange.start && !dateRange.end) return true
-      const inRange =
-        (!dateRange.start || item.date >= dateRange.start) &&
-        (!dateRange.end || item.date <= dateRange.end)
+    if (filters.period !== 'all' && (dateRange.start || dateRange.end)) {
+      let { start, end } = dateRange
+      if (start && end && start > end) [start, end] = [end, start]
+      const inRange = (!start || item.date >= start) && (!end || item.date <= end)
       if (!inRange) return false
     }
 

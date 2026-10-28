@@ -55,8 +55,8 @@ export default function InstallPrompt() {
   if (!visible) return null
 
   return (
-    <div className="fixed inset-x-0 bottom-16 z-40 px-4 pb-2">
-      <div className="mx-auto max-w-lg border-2 border-brand/40 bg-paper p-4 shadow-lg">
+    <div className="px-4 pt-3">
+      <div className="border-2 border-brand/40 bg-paper p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[16px] font-black text-brand">홈 화면에 붙여 두실래요?</p>

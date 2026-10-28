@@ -19,7 +19,7 @@ export default function ShopRow({ shop, itemCount }) {
             )}
           </div>
           <p className="truncate text-[14px] font-medium text-ink-muted">
-            {[shop.building, shopLocation(shop)].filter(Boolean).join(' · ')}
+            {shopLocation(shop)}
           </p>
           {shop.memo && <p className="mt-0.5 truncate text-[13px] text-ink-muted">{shop.memo}</p>}
         </div>

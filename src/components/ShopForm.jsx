@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 const emptyShop = {
   name: '',
@@ -10,11 +10,7 @@ const emptyShop = {
 }
 
 export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '저장', isSubmitting = false }) {
-  const [form, setForm] = useState(initial ?? emptyShop)
-
-  useEffect(() => {
-    setForm(initial ?? emptyShop)
-  }, [initial])
+  const [form, setForm] = useState(() => initial ?? emptyShop)
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
