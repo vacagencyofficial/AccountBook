@@ -4,6 +4,8 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import ImportModeDialog from '../components/ImportModeDialog'
 import { getPhotoQuality, MAX_LONG_EDGE, setPhotoQuality } from '../utils/photoConfig'
 import { formatStorageEstimate } from '../utils/storage'
+import { isCloudConfigured } from '../lib/supabase'
+import { getWorkspaceCode } from '../lib/workspace'
 
 function isStandaloneApp() {
   return (
@@ -24,6 +26,9 @@ export default function SettingsPage() {
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [isInstalled] = useState(isStandaloneApp)
+  const [workspaceCode, setWorkspaceCode] = useState(getWorkspaceCode())
+  const [codeInput, setCodeInput] = useState(getWorkspaceCode())
+  const [isSyncing, setIsSyncing] = useState(false)
 
   useEffect(() => {
     loadStorage()
@@ -104,16 +109,63 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleConnectCloud() {
+    if (!isCloudConfigured) {
+      setError('클라우드 키가 아직 앱에 연결되어 있지 않습니다. 배포 환경 변수를 설정해 주세요.')
+      return
+    }
+    setIsSyncing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const { connectWorkspace, syncBidirectional } = await import('../db/cloudSync')
+      const ws = await connectWorkspace(codeInput || undefined)
+      setWorkspaceCode(ws.code)
+      setCodeInput(ws.code)
+      const result = await syncBidirectional()
+      setMessage(
+        result.skipped
+          ? `워크스페이스 ${ws.code} 연결됨 (동기화 대기)`
+          : `클라우드 동기화 완료 · 코드 ${ws.code}`,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '클라우드 연결에 실패했습니다')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  async function handlePullReplace() {
+    if (!isCloudConfigured) return
+    setIsSyncing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const { pullCloudToLocal } = await import('../db/cloudSync')
+      const result = await pullCloudToLocal({ replaceLocal: true })
+      setMessage(`클라우드 데이터로 가져옴 · 가게 ${result.shops} · 기록 ${result.items}`)
+      await loadStorage()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '가져오기에 실패했습니다')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   return (
     <div>
-      <PageHeader title="설정" subtitle="백업·복원 및 앱 환경" tone="brand" />
+      <PageHeader title="설정" subtitle="클라우드 · 백업 · PWA" tone="brand" />
 
       <section className="space-y-4 px-4 py-5">
         {message && (
-          <div className="bg-wash px-4 py-3 text-[13px] text-ink">{message}</div>
+          <div className="rounded-2xl border-2 border-good/30 bg-good-soft px-4 py-3 text-[15px] font-bold text-good">
+            {message}
+          </div>
         )}
         {error && (
-          <div className="bg-red-50 px-4 py-3 text-[13px] text-red-600">{error}</div>
+          <div className="rounded-2xl border-2 border-red-300 bg-red-50 px-4 py-3 text-[15px] font-bold text-red-700">
+            {error}
+          </div>
         )}
 
         <input
@@ -124,10 +176,62 @@ export default function SettingsPage() {
           onChange={handleFileSelected}
         />
 
+        <SettingsSection title="클라우드 (Supabase 무료)">
+          <li className="space-y-3 py-3.5">
+            <p className="text-[15px] font-bold text-ink">
+              상태:{' '}
+              {isCloudConfigured
+                ? workspaceCode
+                  ? `연결됨 · ${workspaceCode}`
+                  : '키 있음 · 코드 연결 필요'
+                : '아직 미연결 (환경 변수 필요)'}
+            </p>
+            <p className="text-[13px] font-medium text-ink-muted">
+              같은 코드를 다른 폰/PC에 입력하면 데이터가 같이 보입니다.
+            </p>
+            <input
+              type="text"
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+              placeholder="SAILP-XXXXXX (비우면 새로 생성)"
+              className="tap-target w-full rounded-xl border-2 border-line bg-wash px-3 text-[16px] font-bold outline-none focus:border-brand focus:bg-paper"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleConnectCloud}
+                disabled={isSyncing}
+                className="tap-target flex-1 rounded-xl bg-brand text-[15px] font-black text-white disabled:opacity-50"
+              >
+                {isSyncing ? '동기화 중…' : '연결 · 동기화'}
+              </button>
+              <button
+                type="button"
+                onClick={handlePullReplace}
+                disabled={isSyncing || !isCloudConfigured}
+                className="tap-target flex-1 rounded-xl border-2 border-line text-[15px] font-bold text-ink disabled:opacity-50"
+              >
+                클라우드에서 가져오기
+              </button>
+            </div>
+          </li>
+        </SettingsSection>
+
+        <SettingsSection title="PWA 설치">
+          <SettingsRow
+            label="설치 상태"
+            description={
+              isInstalled
+                ? '홈 화면에 추가됨 — 앱처럼 사용 중'
+                : 'Safari/Chrome에서 공유 → 홈 화면에 추가'
+            }
+          />
+        </SettingsSection>
+
         <SettingsSection title="백업">
           <SettingsButton
             label="전체 백업 내보내기"
-            description="data.json + photos/ 를 ZIP으로 저장"
+            description="ZIP으로 저장"
             onClick={handleExportBackup}
             disabled={isExporting}
             trailing={isExporting ? '…' : '›'}
@@ -142,18 +246,9 @@ export default function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection title="앱">
-          <SettingsRow
-            label="PWA 설치 상태"
-            description={
-              isInstalled
-                ? '홈 화면에 추가됨 — 데이터가 안정적으로 유지됩니다'
-                : '브라우저 탭에서 실행 중 — iOS는 홈 화면 추가를 권장합니다'
-            }
-          />
-
-          <div className="px-4 py-4">
-            <p className="text-sm font-medium text-ink">사진 압축 품질</p>
-            <p className="mt-0.5 text-xs text-ink-muted">
+          <div className="px-0 py-4">
+            <p className="text-[15px] font-bold text-ink">사진 압축 품질</p>
+            <p className="mt-0.5 text-[13px] text-ink-muted">
               {Math.round(photoQuality * 100)}% · 장변 {MAX_LONG_EDGE}px
             </p>
             <input
@@ -165,10 +260,6 @@ export default function SettingsPage() {
               onChange={handleQualityChange}
               className="mt-3 w-full accent-brand"
             />
-            <div className="mt-1 flex justify-between text-xs text-ink-muted">
-              <span>50%</span>
-              <span>95%</span>
-            </div>
           </div>
 
           <SettingsRow label="저장 용량" description={storageText} />
@@ -182,7 +273,7 @@ export default function SettingsPage() {
           />
         </SettingsSection>
 
-        <p className="text-center text-[12px] text-ink-muted">사입노트 v0.2.1</p>
+        <p className="text-center text-[13px] text-ink-muted">사입노트 v0.3.0 · PWA + Cloud</p>
       </section>
 
       {pendingFile && (
@@ -212,8 +303,8 @@ export default function SettingsPage() {
 function SettingsSection({ title, children }) {
   return (
     <div>
-      <h2 className="mb-2 text-[12px] font-bold text-ink-muted">{title}</h2>
-      <ul className="divide-y divide-line border-y border-line">{children}</ul>
+      <h2 className="mb-2 text-[13px] font-black text-ink-muted">{title}</h2>
+      <ul className="divide-y-2 divide-line rounded-2xl border-2 border-line bg-paper px-4">{children}</ul>
     </div>
   )
 }
@@ -228,10 +319,8 @@ function SettingsButton({ label, description, onClick, disabled, danger, trailin
         className="flex w-full items-center justify-between py-3.5 text-left disabled:opacity-50"
       >
         <div>
-          <p className={`text-[14px] font-medium ${danger ? 'text-red-600' : 'text-ink'}`}>
-            {label}
-          </p>
-          <p className="mt-0.5 text-[12px] text-ink-muted">{description}</p>
+          <p className={`text-[15px] font-bold ${danger ? 'text-red-600' : 'text-ink'}`}>{label}</p>
+          <p className="mt-0.5 text-[13px] text-ink-muted">{description}</p>
         </div>
         <span className="text-ink-muted">{trailing}</span>
       </button>
@@ -242,8 +331,8 @@ function SettingsButton({ label, description, onClick, disabled, danger, trailin
 function SettingsRow({ label, description }) {
   return (
     <li className="py-3.5">
-      <p className="text-[14px] font-medium text-ink">{label}</p>
-      <p className="mt-0.5 text-[12px] text-ink-muted">{description}</p>
+      <p className="text-[15px] font-bold text-ink">{label}</p>
+      <p className="mt-0.5 text-[13px] text-ink-muted">{description}</p>
     </li>
   )
 }

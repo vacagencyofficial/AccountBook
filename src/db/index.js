@@ -24,5 +24,11 @@ db.version(2)
       })
   })
 
+db.version(3).stores({
+  shops: '++id, name, building, lastVisitedAt, cloudId',
+  items: '++id, shopId, date, name, category, status, createdAt, cloudId',
+  photos: '++id, itemId, cloudId',
+})
+
 export const CATEGORIES = ['상의', '하의', '아우터', '원피스', '잡화', '기타']
 export const STATUSES = ['구매', '검토', '보류']

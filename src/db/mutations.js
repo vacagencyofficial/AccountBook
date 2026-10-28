@@ -1,4 +1,5 @@
 import { db } from './index'
+import { syncAfterWrite } from './cloudSync'
 
 function normalizeShopData(data) {
   return {
@@ -13,14 +14,17 @@ function normalizeShopData(data) {
 
 export async function createShop(data) {
   const now = Date.now()
-  return db.shops.add({
+  const id = await db.shops.add({
     ...normalizeShopData(data),
     lastVisitedAt: now,
   })
+  void syncAfterWrite()
+  return id
 }
 
 export async function updateShop(shopId, data) {
   await db.shops.update(shopId, normalizeShopData(data))
+  void syncAfterWrite()
 }
 
 export async function deleteShop(shopId) {
@@ -33,6 +37,7 @@ export async function deleteShop(shopId) {
   }
 
   await db.shops.delete(shopId)
+  void syncAfterWrite()
 }
 
 export async function getShop(shopId) {
@@ -78,6 +83,7 @@ export async function saveItemWithPhotos({
     await db.photos.bulkAdd(photoBlobs.map((blob) => ({ itemId, blob })))
   }
 
+  void syncAfterWrite()
   return itemId
 }
 
@@ -93,9 +99,11 @@ export async function updateItem(itemId, data) {
   if (data.status != null) patch.status = data.status
   if (data.date != null) patch.date = data.date
   await db.items.update(itemId, patch)
+  void syncAfterWrite()
 }
 
 export async function deleteItem(itemId) {
   await db.photos.where('itemId').equals(itemId).delete()
   await db.items.delete(itemId)
+  void syncAfterWrite()
 }
