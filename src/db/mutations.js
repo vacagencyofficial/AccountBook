@@ -89,6 +89,7 @@ export async function saveItemWithPhotos({
 
 export async function updateItem(itemId, data) {
   const patch = {}
+  if (data.shopId != null) patch.shopId = data.shopId
   if (data.name != null) patch.name = data.name.trim()
   if (data.category != null) patch.category = data.category
   if (data.color != null) patch.color = data.color.trim()
@@ -99,6 +100,17 @@ export async function updateItem(itemId, data) {
   if (data.status != null) patch.status = data.status
   if (data.date != null) patch.date = data.date
   await db.items.update(itemId, patch)
+  void syncAfterWrite()
+}
+
+export async function addItemPhotos(itemId, blobs) {
+  if (!blobs?.length) return
+  await db.photos.bulkAdd(blobs.map((blob) => ({ itemId, blob })))
+  void syncAfterWrite()
+}
+
+export async function deletePhoto(photoId) {
+  await db.photos.delete(photoId)
   void syncAfterWrite()
 }
 

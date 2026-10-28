@@ -91,7 +91,7 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 border border-line py-3 text-[13px] font-medium text-ink-muted"
+            className="tap-target flex-1 border-2 border-line text-[17px] font-bold text-ink"
           >
             취소
           </button>
@@ -99,7 +99,7 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
         <button
           type="submit"
           disabled={!form.name.trim() || isSubmitting}
-          className="flex-1 bg-ink py-3 text-[13px] font-semibold text-white disabled:opacity-40"
+          className="tap-target flex-1 bg-good text-[17px] font-black text-white disabled:opacity-40"
         >
           {isSubmitting ? '저장 중…' : submitLabel}
         </button>
@@ -111,9 +111,9 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="mb-1.5 block text-[13px] font-medium text-ink">
+      <label className="mb-1.5 block text-[16px] font-black text-ink">
         {label}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
+        {required && <span className="ml-1 text-accent">필수</span>}
       </label>
       {children}
     </div>
@@ -121,7 +121,7 @@ function Field({ label, required, children }) {
 }
 
 const inputClass =
-  'w-full border border-line bg-paper px-3 py-2.5 text-[13px] outline-none focus:border-ink'
+  'tap-target w-full border-2 border-line bg-paper px-3 py-2.5 text-[17px] font-semibold outline-none focus:border-brand'
 
 export function shopToForm(shop) {
   if (!shop) return { ...emptyShop }

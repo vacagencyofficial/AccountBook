@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getLastShopId, setLastShopId } from '../utils/lastShop'
+import { getToday } from '../utils/format'
 
 const DRAFT_KEY = 'sailp-register-draft'
 
@@ -13,19 +14,21 @@ const defaultForm = {
   size: '',
   memo: '',
   status: '구매',
+  date: '',
 }
 
 function loadDraft() {
   try {
     const raw = sessionStorage.getItem(DRAFT_KEY)
     const parsed = raw ? { ...defaultForm, ...JSON.parse(raw) } : { ...defaultForm }
+    if (!parsed.date) parsed.date = getToday()
     if (parsed.shopId == null) {
       const lastShop = getLastShopId()
       if (lastShop) parsed.shopId = lastShop
     }
     return parsed
   } catch {
-    const fallback = { ...defaultForm }
+    const fallback = { ...defaultForm, date: getToday() }
     const lastShop = getLastShopId()
     if (lastShop) fallback.shopId = lastShop
     return fallback
@@ -48,18 +51,17 @@ export function useRegisterForm() {
     setLastShopId(shopId)
   }, [])
 
+  // 다음 물건도 같은 날·같은 가게일 때가 많아 날짜와 가게는 그대로 둠
   const resetForNextItem = useCallback((keptShopId) => {
-    setForm({
+    setForm((prev) => ({
       ...defaultForm,
       shopId: keptShopId,
-      status: '구매',
-      category: '기타',
-      qty: '1',
-    })
+      date: prev.date || getToday(),
+    }))
   }, [])
 
   const clearDraft = useCallback(() => {
-    setForm({ ...defaultForm })
+    setForm({ ...defaultForm, date: getToday() })
     sessionStorage.removeItem(DRAFT_KEY)
   }, [])
 
