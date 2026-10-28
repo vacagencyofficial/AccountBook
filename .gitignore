@@ -27,3 +27,4 @@ dist-ssr
 *.sw?
 .public-url
 .vercel
+.env.production
