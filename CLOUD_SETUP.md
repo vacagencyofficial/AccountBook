@@ -6,7 +6,7 @@
 ## 1) Supabase (무료)
 
 1. https://supabase.com 가입 후 **New project**
-2. SQL Editor에서 `supabase/schema.sql` 전체 실행
+2. SQL Editor에서 `supabase/schema.sql` 전체 실행 → 이어서 `supabase/secure.sql` 전체 실행 (보안 설정, 필수)
 3. Storage에 `photos` 버킷이 생겼는지 확인 (스크립트가 생성)
 4. **Project Settings → API**
    - Project URL → `VITE_SUPABASE_URL`
