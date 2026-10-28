@@ -1,10 +1,19 @@
 import { itemTotal, getMonthPrefix, getToday } from './format'
 
+/** 「구매」만 실제로 쓴 돈. 검토·보류는 후보라 합계에서 뺌 */
+export function isPurchased(item) {
+  return (item.status || '구매') === '구매'
+}
+
 export function summarizeItems(items = []) {
-  const count = items.length
-  const total = items.reduce((sum, item) => sum + itemTotal(item), 0)
-  const qty = items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
-  return { count, total, qty }
+  const bought = items.filter(isPurchased)
+  const pending = items.filter((item) => !isPurchased(item))
+  const count = bought.length
+  const total = bought.reduce((sum, item) => sum + itemTotal(item), 0)
+  const qty = bought.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+  const pendingCount = pending.length
+  const pendingTotal = pending.reduce((sum, item) => sum + itemTotal(item), 0)
+  return { count, total, qty, pendingCount, pendingTotal }
 }
 
 export function itemsForToday(items = [], today = getToday()) {
@@ -17,7 +26,7 @@ export function itemsForMonth(items = [], monthPrefix = getMonthPrefix()) {
 
 export function groupByShop(items = []) {
   const map = new Map()
-  for (const item of items) {
+  for (const item of items.filter(isPurchased)) {
     const key = item.shopId
     const prev = map.get(key) || {
       shopId: key,
@@ -36,7 +45,7 @@ export function groupByShop(items = []) {
 
 export function groupByCategory(items = []) {
   const map = new Map()
-  for (const item of items) {
+  for (const item of items.filter(isPurchased)) {
     const key = item.category || '기타'
     const prev = map.get(key) || { category: key, count: 0, total: 0 }
     prev.count += 1

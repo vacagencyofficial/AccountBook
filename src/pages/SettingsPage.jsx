@@ -228,7 +228,7 @@ export default function SettingsPage() {
           onChange={handleFileSelected}
         />
 
-        <SettingsSection title="파랑 · 다른 폰과 같이 쓰기" tone="brand">
+        <SettingsSection title="다른 폰과 같이 쓰기" tone="brand">
           <li className="space-y-3 py-3.5">
             {!isCloudConfigured ? (
               <p className="text-[15px] font-bold leading-relaxed text-ink-muted">
@@ -322,7 +322,7 @@ export default function SettingsPage() {
           />
         </SettingsSection>
 
-        <SettingsSection title="호박색 · 기록 통째로 챙기기" tone="warn">
+        <SettingsSection title="기록 통째로 챙기기" tone="warn">
           <SettingsButton
             label="모든 기록 보관하기"
             description="사진까지 한 파일로 저장"

@@ -116,7 +116,7 @@ export default function RegisterForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <section className=" border-2 border-good/40 bg-paper p-4 tone-rail-good">
         <p className="mb-1 text-[16px] font-black text-good">1. 어느 가게인가요?</p>
-        <p className="mb-3 text-[14px] font-semibold text-ink-muted">초록 버튼을 눌러 고르세요</p>
+        <p className="mb-3 text-[14px] font-semibold text-ink-muted">아래에서 가게 이름을 눌러 고르세요</p>
         <ShopChipSelector selectedShopId={form.shopId} onSelect={selectShop} />
       </section>
 

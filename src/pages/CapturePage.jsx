@@ -132,7 +132,7 @@ export default function CapturePage() {
             <div className=" border-2 border-accent/40 bg-accent-soft px-4 py-4">
               <p className="text-[19px] font-black text-accent-dark">먼저 사진을 넣어 주세요</p>
               <p className="mt-1 text-[15px] font-semibold leading-relaxed text-ink-muted">
-                주황은 카메라, 파랑은 갤러리입니다. 편한 쪽을 누르세요.
+                지금 찍거나, 휴대폰에 있는 사진을 골라 주세요.
               </p>
             </div>
 
@@ -177,14 +177,14 @@ export default function CapturePage() {
         {showForm && (
           <>
             <div className="mb-4 border-2 border-line bg-paper p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-[15px] font-black text-ink">이 사진으로 적을게요</p>
-                <div className="flex gap-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="min-w-0 text-[15px] font-black text-ink">이 사진으로 적을게요</p>
+                <div className="flex shrink-0 gap-2">
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => inputRef.current?.openCamera()}
-                    className="inline-flex items-center gap-1 bg-accent px-3 py-2 text-[14px] font-bold text-white disabled:opacity-50"
+                    className="inline-flex items-center gap-1 whitespace-nowrap bg-accent px-3 py-2 text-[15px] font-bold text-white disabled:opacity-50"
                   >
                     <IconCamera className="h-4 w-4" />
                     촬영
@@ -193,7 +193,7 @@ export default function CapturePage() {
                     type="button"
                     disabled={busy}
                     onClick={() => inputRef.current?.openGallery()}
-                    className="inline-flex items-center gap-1 bg-brand px-3 py-2 text-[14px] font-bold text-white disabled:opacity-50"
+                    className="inline-flex items-center gap-1 whitespace-nowrap bg-brand px-3 py-2 text-[15px] font-bold text-white disabled:opacity-50"
                   >
                     <IconPlus className="h-4 w-4" />
                     갤러리
