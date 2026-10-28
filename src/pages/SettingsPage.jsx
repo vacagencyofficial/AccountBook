@@ -147,7 +147,7 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleConnectCloud() {
+  async function handleConnectCloud(localMode = 'keep') {
     if (!isCloudConfigured) {
       setError('클라우드 키가 아직 앱에 연결되어 있지 않습니다. 배포 환경 변수를 설정해 주세요.')
       return
@@ -158,7 +158,7 @@ export default function SettingsPage() {
     setMessage(null)
     try {
       const { connectWorkspace, syncBidirectional } = await import('../db/cloudSync')
-      const ws = await connectWorkspace(typed || undefined)
+      const ws = await connectWorkspace(typed || undefined, { localMode })
       setWorkspaceCode(ws.code)
       setCodeInput(ws.code)
       await syncBidirectional()
@@ -298,14 +298,38 @@ export default function SettingsPage() {
                   placeholder="SAILP-XXXXXXXXXX"
                   className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] font-bold outline-none focus:border-brand"
                 />
-                <button
-                  type="button"
-                  onClick={handleConnectCloud}
-                  disabled={isSyncing}
-                  className="tap-target w-full border-2 border-brand text-[15px] font-bold text-brand disabled:opacity-50"
-                >
-                  이 번호로 연결
-                </button>
+                {workspaceCode && normalizeWorkspaceCode(codeInput) !== workspaceCode ? (
+                  <>
+                    <p className="text-[15px] font-bold leading-snug text-ink-muted">
+                      다른 장부로 바꿔요. 이 폰 기록은 어떻게 할까요?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleConnectCloud('keep')}
+                      disabled={isSyncing}
+                      className="tap-target w-full bg-brand text-[16px] font-black text-white disabled:opacity-50"
+                    >
+                      이 폰 기록도 함께 옮기기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleConnectCloud('discard')}
+                      disabled={isSyncing}
+                      className="tap-target w-full border-2 border-line text-[16px] font-bold text-ink disabled:opacity-50"
+                    >
+                      이 폰 기록은 지우고 그 장부만 보기
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleConnectCloud('keep')}
+                    disabled={isSyncing}
+                    className="tap-target w-full border-2 border-brand text-[15px] font-bold text-brand disabled:opacity-50"
+                  >
+                    이 번호로 연결
+                  </button>
+                )}
               </div>
             )}
           </li>

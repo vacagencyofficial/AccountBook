@@ -17,25 +17,30 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
     [],
   )
 
+  // 숨긴 가게는 고르기에서 뺌 (지금 골라 둔 가게는 예외)
+  const visibleShops = useMemo(
+    () => (shops ?? []).filter((shop) => !shop.hidden || shop.id === selectedShopId),
+    [shops, selectedShopId],
+  )
+
   const recentShops = useMemo(() => {
-    const list = shops ?? []
+    const list = visibleShops
     const lastId = getLastShopId()
     if (!lastId) return list.slice(0, 6)
     const last = list.find((s) => s.id === lastId)
     const rest = list.filter((s) => s.id !== lastId)
     return last ? [last, ...rest].slice(0, 6) : list.slice(0, 6)
-  }, [shops])
+  }, [visibleShops])
 
   const filteredShops = useMemo(() => {
-    if (!shops) return []
     const q = search.trim().toLowerCase()
     if (!q) return []
-    return shops.filter(
+    return visibleShops.filter(
       (shop) =>
         shop.name.toLowerCase().includes(q) ||
         shop.building?.toLowerCase().includes(q),
     )
-  }, [shops, search])
+  }, [visibleShops, search])
 
   const showAddNew = search.trim().length > 0 && filteredShops.length === 0 && !showNewShop
 
