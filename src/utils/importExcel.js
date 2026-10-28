@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import { db, CATEGORIES, STATUSES } from '../db'
+import { rememberReplacedRecords } from '../db/mutations'
 import { getToday } from './format'
 
 const HEADER_ALIASES = {
@@ -62,8 +63,9 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
   let shopCount = 0
   let itemCount = 0
 
-  await db.transaction('rw', [db.shops, db.items, db.photos], async () => {
+  await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
     if (mode === 'overwrite') {
+      await rememberReplacedRecords()
       await db.photos.clear()
       await db.items.clear()
       await db.shops.clear()

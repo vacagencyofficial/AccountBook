@@ -30,6 +30,11 @@ const COLOR_OPTIONS = [
 
 const SIZE_OPTIONS = ['FREE', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '26', '27', '28', '29', '30', '32']
 
+// 한 개 가격은 1억 원 미만, 수량은 9,999개까지 (화면이 넘치거나 클라우드 숫자 범위를 넘지 않게)
+const MAX_PRICE = 99_999_999
+const MAX_QTY = 9999
+const onlyDigits = (value, maxLength) => value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '').slice(0, maxLength)
+
 const PRICE_STEPS = [
   { value: 1000, label: '+1천' },
   { value: 5000, label: '+5천' },
@@ -108,11 +113,11 @@ export default function RegisterForm({
   const priceNumber = parseInt(form.price, 10) || 0
 
   function changeQty(diff) {
-    updateField('qty', String(Math.max(1, qtyNumber + diff)))
+    updateField('qty', String(Math.min(MAX_QTY, Math.max(1, qtyNumber + diff))))
   }
 
   function addPrice(amount) {
-    updateField('price', String(priceNumber + amount))
+    updateField('price', String(Math.min(MAX_PRICE, priceNumber + amount)))
   }
 
   const moreSummary = [
@@ -175,7 +180,7 @@ export default function RegisterForm({
                 type="text"
                 inputMode="numeric"
                 value={form.price === '' ? '' : priceNumber.toLocaleString('ko-KR')}
-                onChange={(e) => updateField('price', e.target.value.replace(/[^\d]/g, ''))}
+                onChange={(e) => updateField('price', onlyDigits(e.target.value, 8))}
                 placeholder="0"
                 enterKeyHint="done"
                 className="min-h-[4rem] w-full min-w-0 bg-transparent text-right text-[32px] font-extrabold tracking-[-0.02em] outline-none tabular placeholder:text-line"
@@ -214,7 +219,7 @@ export default function RegisterForm({
                   type="text"
                   inputMode="numeric"
                   value={form.qty}
-                  onChange={(e) => updateField('qty', e.target.value.replace(/[^\d]/g, ''))}
+                  onChange={(e) => updateField('qty', onlyDigits(e.target.value, 4))}
                   onBlur={() => updateField('qty', String(qtyNumber))}
                   className="w-20 bg-transparent text-right text-[28px] font-extrabold outline-none tabular"
                 />
@@ -241,7 +246,7 @@ export default function RegisterForm({
                     {formatCurrency(priceNumber)} × {qtyNumber}개
                   </p>
                 </div>
-                <b className="text-[28px] font-extrabold text-accent-dark tabular">
+                <b className="min-w-0 text-right text-[28px] font-extrabold text-accent-dark tabular [overflow-wrap:anywhere]">
                   {formatCurrency(priceNumber * qtyNumber)}
                 </b>
               </div>

@@ -82,7 +82,7 @@ export default function HomePage() {
         <div className="hero receipt px-5 pb-4 pt-4">
           <div className="hero-deco" aria-hidden />
           <p className="text-[18px] font-semibold opacity-85">오늘 쓴 돈</p>
-          <p className="mt-0.5 text-[40px] font-extrabold leading-tight tracking-[-0.03em] tabular">
+          <p className="mt-0.5 text-[clamp(30px,10vw,40px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
             {isLoading ? '…' : formatCurrency(todaySummary.total)}
           </p>
           {!isLoading && (

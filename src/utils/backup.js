@@ -1,5 +1,7 @@
 import JSZip from 'jszip'
 import { db } from '../db'
+import { rememberReplacedRecords } from '../db/mutations'
+import { clearWorkspaceLocal } from '../lib/workspace'
 import { getToday } from './format'
 
 const BACKUP_VERSION = 1
@@ -69,11 +71,16 @@ export async function importBackup(file, mode) {
 }
 
 async function importOverwrite(zip, data) {
+  // 백업에 있는 클라우드 기록은 그대로 두고, 백업에 없는 것만 다른 폰에서도 지워지게 표시
+  const keep = new Set(
+    [...data.shops, ...data.items, ...data.photos].map((row) => row.cloudId).filter(Boolean),
+  )
   await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
+    await db.deletions.clear()
+    await rememberReplacedRecords(keep)
     await db.shops.clear()
     await db.items.clear()
     await db.photos.clear()
-    await db.deletions.clear()
 
     if (data.shops.length) await db.shops.bulkPut(data.shops)
     if (data.items.length) await db.items.bulkPut(data.items)
@@ -132,6 +139,7 @@ async function readPhotoBlob(zip, entry) {
   return file.async('blob')
 }
 
+/** 이 폰의 기록을 모두 지움. 다른 폰과 같이 쓰던 중이면 연결도 끊음 (다시 맞출 때 되살아나지 않게) */
 export async function deleteAllData() {
   await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
     await db.photos.clear()
@@ -139,6 +147,7 @@ export async function deleteAllData() {
     await db.shops.clear()
     await db.deletions.clear()
   })
+  clearWorkspaceLocal()
 }
 
 export async function getStorageEstimate() {

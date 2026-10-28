@@ -8,7 +8,8 @@ import { useCapture } from '../context/CaptureContext'
 import { db } from '../db'
 import { saveItemWithPhotos } from '../db/mutations'
 import { useRegisterForm } from '../hooks/useRegisterForm'
-import { setLastShopId } from '../utils/lastShop'
+import { useLiveQuery } from '../hooks/useLiveQuery'
+import { clearLastShopId, setLastShopId } from '../utils/lastShop'
 import { formatCurrency, formatDateLabel, getToday } from '../utils/format'
 
 const MODE_KEY = 'sailp-capture-mode'
@@ -74,6 +75,18 @@ export default function CapturePage() {
   useEffect(() => {
     if (presetShopId) selectShop(presetShopId)
   }, [presetShopId, selectShop])
+
+  // 지운 가게를 가리키는 초안·마지막 가게는 고른 것을 비움 (없는 가게로 저장되지 않게)
+  const { data: chosenShop, isLoading: isCheckingShop } = useLiveQuery(
+    () => (form.shopId ? db.shops.get(form.shopId) : null),
+    [form.shopId],
+  )
+  useEffect(() => {
+    if (form.shopId && !isCheckingShop && chosenShop === undefined) {
+      updateField('shopId', null)
+      clearLastShopId()
+    }
+  }, [form.shopId, isCheckingShop, chosenShop, updateField])
 
   async function handleCapture(file) {
     const entry = await captureFile(file)
@@ -375,7 +388,7 @@ export default function CapturePage() {
                   type="button"
                   onClick={handleSave}
                   disabled={busy || !isValid}
-                  className="btn btn-accent flex-1 text-[21px]"
+                  className="btn btn-accent min-w-0 flex-1 whitespace-normal py-2 text-[21px] leading-tight"
                   style={{ minHeight: '3.75rem' }}
                 >
                   {isSaving ? '저장하는 중…' : isValid ? `${formatCurrency(total)} 저장하기` : '저장하기'}

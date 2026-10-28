@@ -209,7 +209,7 @@ export default function HistoryPage() {
           <p className="text-[17px] font-semibold opacity-85">
             {searchAll ? '찾은 기록에서 쓴 돈' : `${month.month + 1}월에 쓴 돈`}
           </p>
-          <p className="text-[36px] font-extrabold leading-tight tracking-[-0.03em] tabular">
+          <p className="text-[clamp(28px,9vw,36px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
             {isLoading ? '…' : formatCurrency(summary.total)}
           </p>
           <div className="mt-1.5 flex flex-wrap gap-2">

@@ -11,6 +11,14 @@ export function getLastShopId() {
   }
 }
 
+export function clearLastShopId() {
+  try {
+    localStorage.removeItem(LAST_SHOP_KEY)
+  } catch {
+    // 저장소를 못 써도 앱은 계속 동작
+  }
+}
+
 export function setLastShopId(shopId) {
   if (shopId == null) return
   localStorage.setItem(LAST_SHOP_KEY, String(shopId))

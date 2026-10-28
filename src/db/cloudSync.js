@@ -5,6 +5,7 @@ import {
   normalizeWorkspaceCode,
   setWorkspaceLocal,
 } from '../lib/workspace'
+import { markSyncFailed, markSyncSucceeded } from '../lib/syncStatus'
 import { db } from './index'
 
 const NOT_FOUND_MESSAGE = '이 번호의 장부를 찾을 수 없어요. 번호를 다시 확인해 주세요.'
@@ -14,6 +15,9 @@ async function rpc(fn, args) {
   const { data, error } = await supabase.rpc(fn, args)
   if (error) {
     if (error.message?.includes('workspace_not_found')) throw new Error(NOT_FOUND_MESSAGE)
+    if (/failed to fetch|network|load failed/i.test(error.message ?? '')) {
+      throw new Error('인터넷에 연결되지 않았어요. 연결을 확인한 뒤 다시 눌러 주세요.')
+    }
     if (error.code === 'PGRST202') {
       throw new Error('클라우드 보안 설정(secure.sql)이 아직 적용되지 않았어요.')
     }
@@ -352,6 +356,7 @@ export function pushLocalToCloud() {
     const workspace = await ensureWorkspace()
     await pushDeletions(workspace)
     await pushChanges(workspace)
+    markSyncSucceeded()
     return { ok: true, workspace }
   })
 }
@@ -384,6 +389,7 @@ export function syncBidirectional() {
     await linkLegacyPhotos(remote)
     await pushPhotos(workspace)
     await applyRemote(remote)
+    markSyncSucceeded()
     return { ok: true, workspace }
   })
 }
@@ -394,6 +400,8 @@ export async function syncAfterWrite() {
   try {
     await pushLocalToCloud()
   } catch (err) {
+    // 이 폰에는 저장됐고, 다음에 맞출 때 다시 올라감. 설정 화면에 「맞추지 못했어요」로 알림
+    markSyncFailed()
     console.warn('[cloud sync]', err)
   }
 }

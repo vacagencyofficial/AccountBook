@@ -8,6 +8,7 @@ import { getPhotoQuality, setPhotoQuality } from '../utils/photoConfig'
 import { formatStorageEstimate } from '../utils/storage'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
+import { formatSyncTime, getSyncStatus } from '../lib/syncStatus'
 
 function isStandaloneApp() {
   return (
@@ -114,7 +115,9 @@ export default function SettingsPage() {
     try {
       const { deleteAllData } = await import('../utils/backup')
       await deleteAllData()
-      setMessage('이 폰의 기록을 모두 지웠어요')
+      setMessage(workspaceCode ? '이 폰의 기록을 모두 지우고 다른 폰과의 연결도 끊었어요' : '이 폰의 기록을 모두 지웠어요')
+      setWorkspaceCode('')
+      setCodeInput('')
       setShowDeleteConfirm(false)
       await loadStorage()
     } catch (err) {
@@ -257,6 +260,7 @@ export default function SettingsPage() {
             ) : (
               <>
                 <p className="text-[18px] font-extrabold text-good">✓ 다른 폰과 같이 쓰는 중</p>
+                <SyncStatusLine />
                 <CloudInvitePanel code={workspaceCode} disabled={isSyncing} />
                 <button type="button" onClick={handleSyncNow} disabled={isSyncing} className="btn btn-primary w-full">
                   {isSyncing ? '맞추는 중…' : '지금 맞추기'}
@@ -424,7 +428,11 @@ export default function SettingsPage() {
       {showDeleteConfirm && (
         <ConfirmDialog
           title="정말 모두 지울까요?"
-          description="이 폰의 가게, 사입 기록, 사진이 모두 사라져요. 백업 파일이 있으면 먼저 받아 두세요."
+          description={
+            workspaceCode
+              ? '이 폰의 가게, 사입 기록, 사진이 모두 사라지고 다른 폰과의 연결도 끊겨요.\n다른 폰의 기록은 그대로예요. 백업 파일이 있으면 먼저 받아 두세요.'
+              : '이 폰의 가게, 사입 기록, 사진이 모두 사라져요. 백업 파일이 있으면 먼저 받아 두세요.'
+          }
           cancelLabel="그대로 두기"
           confirmLabel={isDeleting ? '지우는 중…' : '모두 지우기'}
           onConfirm={handleDeleteAll}
@@ -435,6 +443,19 @@ export default function SettingsPage() {
       )}
     </div>
   )
+}
+
+function SyncStatusLine() {
+  const { lastSyncedAt, failed } = getSyncStatus()
+  if (failed) {
+    return (
+      <p className="rounded-[10px] bg-warn-soft px-3 py-2 text-[16px] font-bold leading-snug text-warn">
+        최근에 맞추지 못했어요. 기록은 이 폰에 잘 있고, 인터넷이 되면 「지금 맞추기」를 눌러 주세요.
+      </p>
+    )
+  }
+  if (!lastSyncedAt) return null
+  return <p className="text-[16px] font-semibold text-ink-soft">마지막으로 맞춘 때: {formatSyncTime(lastSyncedAt)}</p>
 }
 
 function SettingsSection({ title, children }) {

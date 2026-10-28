@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { seedIfEmpty } from '../db/seed'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode } from '../lib/workspace'
+import { markSyncFailed } from '../lib/syncStatus'
 
 const DbContext = createContext({ ready: false, error: null, cloud: { configured: false } })
 
@@ -25,6 +26,7 @@ export function DbProvider({ children }) {
             const { syncBidirectional } = await import('../db/cloudSync')
             await syncBidirectional()
           } catch (syncErr) {
+            markSyncFailed()
             console.warn('[cloud boot sync]', syncErr)
           }
         }

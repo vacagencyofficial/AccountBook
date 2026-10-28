@@ -22,6 +22,21 @@ async function rememberDeletion(kind, cloudId) {
   if (cloudId) await db.deletions.add({ kind, cloudId })
 }
 
+/**
+ * 장부를 통째로 바꾸기 전에(엑셀·백업 덮어쓰기): 클라우드에 올라간 가게·기록 중
+ * 새 내용에 없는 것은 지움 표시를 남겨, 다음 맞추기 때 되살아나지 않고 다른 폰에서도 지워지게 함.
+ * db.shops·db.items·db.deletions 를 포함한 트랜잭션 안에서 부름
+ */
+export async function rememberReplacedRecords(keepCloudIds = new Set()) {
+  for (const shop of await db.shops.toArray()) {
+    if (shop.cloudId && !keepCloudIds.has(shop.cloudId)) await rememberDeletion('shop', shop.cloudId)
+  }
+  for (const item of await db.items.toArray()) {
+    // 클라우드에서 기록을 지우면 그 사진도 함께 지워짐
+    if (item.cloudId && !keepCloudIds.has(item.cloudId)) await rememberDeletion('item', item.cloudId)
+  }
+}
+
 export async function createShop(data) {
   const now = Date.now()
   const id = await db.shops.add({

@@ -258,7 +258,7 @@ export default function ItemDetailPage() {
               <p className="text-[16px] font-bold text-ink-muted tabular">
                 {formatCurrency(item.price)} × {item.qty}개
               </p>
-              <p className="text-[30px] font-extrabold text-brand tabular">{formatCurrency(total)}</p>
+              <p className="text-[30px] font-extrabold text-brand tabular [overflow-wrap:anywhere]">{formatCurrency(total)}</p>
               {item.status && item.status !== '구매' && (
                 <p className="mt-1 text-[16px] font-bold text-warn">아직 안 산 것이라 쓴 돈 합계에는 들어가지 않아요</p>
               )}

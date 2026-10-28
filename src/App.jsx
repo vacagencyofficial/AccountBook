@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import ShopsPage from './pages/ShopsPage'
@@ -9,6 +9,7 @@ import SettingsPage from './pages/SettingsPage'
 import CapturePage from './pages/CapturePage'
 import JoinPage from './pages/JoinPage'
 import ItemDetailPage from './pages/ItemDetailPage'
+import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
   return (
@@ -24,7 +25,7 @@ export default function App() {
         <Route path="shops" element={<ShopsPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   )

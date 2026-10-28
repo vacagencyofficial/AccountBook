@@ -26,12 +26,14 @@ export async function attachShopAndPhoto(items) {
   const shops = await db.shops.where('id').anyOf(shopIds).toArray()
   const shopMap = Object.fromEntries(shops.map((s) => [s.id, s]))
 
-  return Promise.all(
-    items.map(async (item) => {
-      const photo = await db.photos.where('itemId').equals(item.id).first()
-      return { ...item, shop: shopMap[item.shopId], photo }
-    }),
-  )
+  // 사진은 한 번에 가져와 기록마다 첫 장만 붙임 (기록이 많을 때 기록 수만큼 조회하지 않게)
+  const photos = await db.photos.where('itemId').anyOf(items.map((i) => i.id)).sortBy('id')
+  const firstPhoto = {}
+  for (const photo of photos) {
+    if (!(photo.itemId in firstPhoto)) firstPhoto[photo.itemId] = photo
+  }
+
+  return items.map((item) => ({ ...item, shop: shopMap[item.shopId], photo: firstPhoto[item.id] }))
 }
 
 export async function countShops() {
