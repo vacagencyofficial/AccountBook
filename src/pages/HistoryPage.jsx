@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import HistoryFilters from '../components/HistoryFilters'
+import ImportModeDialog from '../components/ImportModeDialog'
 import ItemRow from '../components/ItemRow'
 import { IconExcel, IconMoney } from '../components/Icons'
 import { db } from '../db'
@@ -13,10 +14,14 @@ import { groupByCategory, groupByShop, summarizeItems } from '../utils/analytics
 
 export default function HistoryPage() {
   const { filters, dateRange, updateFilter, resetFilters, hasActiveFilters } = useHistoryFilters()
+  const excelInputRef = useRef(null)
   const [includePhotos, setIncludePhotos] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isBackingUp, setIsBackingUp] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [pendingExcel, setPendingExcel] = useState(null)
   const [exportError, setExportError] = useState(null)
+  const [importMessage, setImportMessage] = useState(null)
 
   const { data: items, isLoading } = useLiveQuery(async () => {
     const rows = await db.items.orderBy('createdAt').reverse().toArray()
@@ -65,9 +70,48 @@ export default function HistoryPage() {
     }
   }
 
+  function handleImportClick() {
+    setExportError(null)
+    setImportMessage(null)
+    excelInputRef.current?.click()
+  }
+
+  function handleExcelSelected(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    const lower = file.name.toLowerCase()
+    if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
+      setExportError('엑셀 파일(.xlsx)만 불러올 수 있습니다')
+      return
+    }
+    setPendingExcel(file)
+  }
+
+  async function handleImportExcel(mode) {
+    if (!pendingExcel) return
+    setIsImporting(true)
+    setExportError(null)
+    setImportMessage(null)
+    try {
+      const { importHistoryFromExcel } = await import('../utils/importExcel')
+      const result = await importHistoryFromExcel(pendingExcel, mode)
+      setPendingExcel(null)
+      setImportMessage(
+        mode === 'overwrite'
+          ? `엑셀로 덮어썼습니다. (${result.items}건)`
+          : `엑셀을 병합했습니다. (가게 ${result.shops} · 품목 ${result.items}건)`,
+      )
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : '엑셀 불러오기에 실패했습니다')
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
   return (
     <div>
-      <PageHeader title="장부" subtitle="모아보고 엑셀로 저장" tone="ledger">
+      <PageHeader title="장부" subtitle="엑셀로 저장하고 불러오기" tone="ledger">
         <div className="mt-4 flex items-end justify-between rounded-2xl border-2 border-ledger/25 bg-paper px-4 py-3">
           <div>
             <p className="inline-flex items-center gap-1 text-[13px] font-bold text-ledger">
@@ -95,25 +139,42 @@ export default function HistoryPage() {
             />
             사진도 엑셀에 넣기
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={handleExport}
               disabled={!canExport}
-              className="tap-target flex flex-1 items-center justify-center gap-2 rounded-2xl bg-ledger text-[16px] font-black text-white disabled:opacity-40"
+              className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-ledger text-[16px] font-black text-white disabled:opacity-40"
             >
               <IconExcel className="h-5 w-5" />
               {isExporting ? '내보내는 중…' : '엑셀 내보내기'}
             </button>
             <button
               type="button"
+              onClick={handleImportClick}
+              disabled={isImporting}
+              className="tap-target flex items-center justify-center gap-2 rounded-2xl border-2 border-ledger bg-ledger/10 text-[16px] font-black text-ledger disabled:opacity-50"
+            >
+              <IconExcel className="h-5 w-5" />
+              {isImporting ? '불러오는 중…' : '엑셀 불러오기'}
+            </button>
+            <button
+              type="button"
               onClick={handleBackup}
               disabled={isBackingUp}
-              className="tap-target flex-1 rounded-2xl border-2 border-line text-[16px] font-bold text-ink disabled:opacity-50"
+              className="tap-target col-span-2 rounded-2xl border-2 border-line text-[16px] font-bold text-ink disabled:opacity-50"
             >
-              {isBackingUp ? '백업 중…' : '전체 백업'}
+              {isBackingUp ? '백업 중…' : '전체 백업 (ZIP)'}
             </button>
           </div>
+          <input
+            ref={excelInputRef}
+            type="file"
+            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            className="hidden"
+            onChange={handleExcelSelected}
+          />
+          {importMessage && <p className="mt-2 text-[14px] font-bold text-ledger">{importMessage}</p>}
           {exportError && <p className="mt-2 text-[14px] font-bold text-red-600">{exportError}</p>}
         </div>
 
@@ -174,6 +235,17 @@ export default function HistoryPage() {
           )}
         </div>
       </section>
+
+      {pendingExcel && (
+        <ImportModeDialog
+          title="엑셀 불러오기"
+          description="덮어쓰기는 지금 장부를 지우고 엑셀로 채웁니다. 병합은 기존 기록에 엑셀 내용을 추가합니다. (사진은 엑셀에서 가져오지 않습니다)"
+          disabled={isImporting}
+          onOverwrite={() => handleImportExcel('overwrite')}
+          onMerge={() => handleImportExcel('merge')}
+          onCancel={() => setPendingExcel(null)}
+        />
+      )}
     </div>
   )
 }
