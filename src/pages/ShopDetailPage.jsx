@@ -78,7 +78,7 @@ export default function ShopDetailPage() {
   return (
     <PageShell
       title={shop.name}
-      subtitle={[shop.building, shopLocation(shop)].filter(Boolean).join(' · ')}
+      subtitle={shopLocation(shop) || undefined}
       backTo="/shops"
     >
       {error && (
@@ -130,7 +130,7 @@ export default function ShopDetailPage() {
 
         {itemsLoading ? (
           <div className="skeleton h-24" />
-        ) : items.length === 0 ? (
+        ) : (items?.length ?? 0) === 0 ? (
           <EmptyState
             title="기록이 없습니다"
             description="빠른 등록에서 이 가게로 사입 기록을 추가하세요"
@@ -153,7 +153,7 @@ export default function ShopDetailPage() {
           >
             가게 삭제
           </button>
-          {items.length > 0 && (
+          {(items?.length ?? 0) > 0 && (
             <p className="text-center text-[12px] text-ink-muted">
               삭제 시 이 가게의 사입 기록 {items.length}건도 함께 삭제됩니다
             </p>
@@ -165,7 +165,7 @@ export default function ShopDetailPage() {
         <ConfirmDialog
           title="가게를 삭제할까요?"
           description={
-            items.length > 0
+            (items?.length ?? 0) > 0
               ? `"${shop.name}"와 사입 기록 ${items.length}건이 모두 삭제됩니다.`
               : `"${shop.name}"를 삭제합니다.`
           }

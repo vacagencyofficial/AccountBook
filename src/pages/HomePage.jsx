@@ -88,19 +88,43 @@ export default function HomePage() {
             </Link>
           </div>
           <ul className="divide-y-2 divide-line">
-            {shopRanks.map((row, index) => (
-              <li key={row.shopId} className="flex items-center justify-between py-3 text-[16px]">
-                <span className="min-w-0 truncate font-semibold text-ink">
-                  <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-wash text-[14px] font-black text-ink-muted">
-                    {index + 1}
+            {shopRanks.map((row, index) => {
+              const content = (
+                <>
+                  <span className="min-w-0 truncate font-semibold text-ink">
+                    <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-wash text-[14px] font-black text-ink-muted">
+                      {index + 1}
+                    </span>
+                    {row.shop?.name ?? '삭제된 가게'}
                   </span>
-                  {row.shop?.name ?? '삭제된 가게'}
-                </span>
-                <span className="shrink-0 tabular font-black text-ink">
-                  {formatCurrency(row.total)}
-                </span>
-              </li>
-            ))}
+                  <span className="flex shrink-0 items-center gap-1 tabular font-black text-ink">
+                    {formatCurrency(row.total)}
+                    <span className="text-[18px] font-bold text-ink-muted" aria-hidden>
+                      ›
+                    </span>
+                  </span>
+                </>
+              )
+
+              if (!row.shopId) {
+                return (
+                  <li key={`gone-${index}`} className="flex items-center justify-between py-3 text-[16px]">
+                    {content}
+                  </li>
+                )
+              }
+
+              return (
+                <li key={row.shopId}>
+                  <Link
+                    to={`/shops/${row.shopId}`}
+                    className="tap-target flex items-center justify-between py-3 text-[16px] active:bg-wash"
+                  >
+                    {content}
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
