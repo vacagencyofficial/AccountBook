@@ -8,7 +8,8 @@ import {
 import { markSyncFailed, markSyncSucceeded } from '../lib/syncStatus'
 import { db } from './index'
 
-const NOT_FOUND_MESSAGE = '이 번호의 장부를 찾을 수 없어요. 번호를 다시 확인해 주세요.'
+const NOT_FOUND_MESSAGE =
+  '이 번호의 장부를 찾을 수 없어요. 번호가 바뀌었다면 같이 쓰는 분께 새 초대 주소를 받아 주세요.'
 
 /** 서버 함수 호출 (표 직접 접근은 secure.sql로 막혀 있음) */
 async function rpc(fn, args) {
@@ -162,8 +163,16 @@ async function markPushed(table, local, cloudId) {
 async function pushDeletions(workspace) {
   const deletions = await db.deletions.toArray()
   for (const entry of deletions) {
-    await rpc('sailp_delete', { p_code: workspace.code, p_kind: entry.kind, p_id: entry.cloudId })
+    const paths = await rpc('sailp_delete', { p_code: workspace.code, p_kind: entry.kind, p_id: entry.cloudId })
     await db.deletions.delete(entry.id)
+    if (paths?.length) {
+      // 지운 사진 파일도 저장소에서 정리 (실패해도 기록 동기화에는 영향 없음)
+      try {
+        await supabase.storage.from('photos').remove(paths)
+      } catch (err) {
+        console.warn('[photo cleanup]', err)
+      }
+    }
   }
 }
 
@@ -347,6 +356,16 @@ async function applyRemote(remote) {
       // skip broken photos
     }
   }
+}
+
+/** 장부 번호를 새 10자리로 바꿈 (옛 번호는 더 이상 열리지 않음) */
+export function rotateWorkspaceCode() {
+  return serialized(async () => {
+    const workspace = await ensureWorkspace()
+    const next = await rpc('sailp_rotate_code', { p_code: workspace.code })
+    setWorkspaceLocal({ code: next.code, id: next.id })
+    return next
+  })
 }
 
 /** 이 폰 → 클라우드 (바뀐 것만) */

@@ -48,8 +48,23 @@ export default function CapturePage() {
   const [mode, setMode] = useState(loadMode)
   // 가게 상세의 「이 가게 물건 적기」로 들어온 경우 그 가게를 골라 두고 가격부터
   const presetShopId = location.state?.shopId
-  const [step, setStep] = useState(presetShopId ? 1 : 0)
+  // 지금 질문 번호는 주소 기록(history)에 둠 → 폰의 「뒤로」를 누르면 이전 질문으로 돌아감
+  const step = location.state?.step ?? (presetShopId ? 1 : 0)
   const stepMode = mode === 'steps'
+
+  function setStep(next, { replace = false } = {}) {
+    if (next === step) return
+    // fromStep: 어느 질문에서 넘어왔는지 (「이전」을 폰 뒤로가기와 똑같이 처리하려고)
+    navigate(location.pathname, {
+      replace,
+      state: { ...location.state, step: next, fromStep: replace ? undefined : step },
+    })
+  }
+
+  function goPrevStep() {
+    if (location.state?.fromStep === step - 1) navigate(-1)
+    else setStep(Math.max(0, step - 1), { replace: true })
+  }
 
   function changeMode(next) {
     setMode(next)
@@ -69,7 +84,7 @@ export default function CapturePage() {
   function nextMoreSaved() {
     setSaved(null)
     // 같은 가게에서 이어 적는 경우가 많아 가게는 그대로, 가격부터
-    setStep(form.shopId ? 1 : 0)
+    setStep(form.shopId ? 1 : 0, { replace: true })
   }
 
   useEffect(() => {
@@ -355,7 +370,7 @@ export default function CapturePage() {
                 {step > 0 && (
                   <button
                     type="button"
-                    onClick={() => setStep(step - 1)}
+                    onClick={goPrevStep}
                     className="btn btn-outline shrink-0"
                     style={{ minHeight: '3.75rem' }}
                   >
@@ -377,7 +392,7 @@ export default function CapturePage() {
                 {stepMode && (
                   <button
                     type="button"
-                    onClick={() => setStep(1)}
+                    onClick={goPrevStep}
                     className="btn btn-outline shrink-0"
                     style={{ minHeight: '3.75rem' }}
                   >

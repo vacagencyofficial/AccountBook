@@ -56,6 +56,11 @@ body,
   height: 100%;
 }
 
+/* 설정 → 글씨 크기 (보통 1 / 크게 1.1 / 아주 크게 1.2) */
+#root {
+  zoom: var(--app-zoom, 1);
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import ShopChipSelector from './ShopChipSelector'
+import { useToday } from '../hooks/useToday'
 import { CATEGORIES, STATUSES } from '../db'
-import { formatCurrency, formatDateLabel, getToday } from '../utils/format'
+import { formatCurrency, formatDateLabel } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
 import { statusLabel } from '../utils/labels'
 
@@ -105,7 +106,7 @@ export default function RegisterForm({
   const colorSelectValue = colorCustom ? '__custom__' : form.color || ''
   const sizeSelectValue = sizeCustom ? '__custom__' : form.size || ''
 
-  const today = getToday()
+  const today = useToday()
   const yesterday = getYesterday()
   const date = form.date || today
   const isOtherDate = date !== today && date !== yesterday

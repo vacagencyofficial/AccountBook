@@ -6,7 +6,8 @@ import { IconCamera } from '../components/Icons'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
-import { formatCurrency, getToday, itemTotal } from '../utils/format'
+import { useToday } from '../hooks/useToday'
+import { formatCurrency, itemTotal } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
 import { isPurchased, itemsForMonth, itemsForToday, summarizeItems } from '../utils/analytics'
 import { formatManwon } from '../utils/labels'
@@ -61,7 +62,7 @@ function WeekCompare({ thisWeek, lastWeek }) {
 }
 
 export default function HomePage() {
-  const today = getToday()
+  const today = useToday()
 
   const { data: items, isLoading } = useLiveQuery(async () => {
     const rows = await db.items.orderBy('createdAt').reverse().toArray()

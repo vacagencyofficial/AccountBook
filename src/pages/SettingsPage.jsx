@@ -9,6 +9,7 @@ import { formatStorageEstimate } from '../utils/storage'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
 import { formatSyncTime, getSyncStatus } from '../lib/syncStatus'
+import { getTextSize, setTextSize, TEXT_SIZES } from '../lib/textSize'
 
 function isStandaloneApp() {
   return (
@@ -27,6 +28,7 @@ export default function SettingsPage() {
   const [pendingFile, setPendingFile] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false)
+  const [showRotateConfirm, setShowRotateConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
@@ -190,6 +192,24 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleRotateCode() {
+    setShowRotateConfirm(false)
+    setIsSyncing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const { rotateWorkspaceCode } = await import('../db/cloudSync')
+      const ws = await rotateWorkspaceCode()
+      setWorkspaceCode(ws.code)
+      setCodeInput(ws.code)
+      setMessage('새 번호로 바꿨어요. 아래 「카톡·문자로 보내기」로 다른 폰에 새 초대를 보내 주세요')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '번호를 바꾸지 못했어요')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   async function handlePullReplace() {
     setShowReplaceConfirm(false)
     if (!isCloudConfigured) return
@@ -234,6 +254,10 @@ export default function SettingsPage() {
           onChange={handleFileSelected}
         />
 
+        <SettingsSection title="글씨 크기">
+          <TextSizePicker />
+        </SettingsSection>
+
         <SettingsSection title="다른 폰과 같이 쓰기">
           <div className="space-y-3 p-4">
             {!isCloudConfigured ? (
@@ -261,6 +285,21 @@ export default function SettingsPage() {
               <>
                 <p className="text-[18px] font-extrabold text-good">✓ 다른 폰과 같이 쓰는 중</p>
                 <SyncStatusLine />
+                {/^SAILP-[A-Z0-9]{6}$/.test(workspaceCode) && (
+                  <div className="space-y-2 rounded-[12px] bg-warn-soft p-3">
+                    <p className="text-[16px] font-bold leading-snug text-warn">
+                      지금 장부 번호는 짧아서 남이 짐작하기 쉬워요. 더 안전한 새 번호로 바꾸는 걸 추천해요.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowRotateConfirm(true)}
+                      disabled={isSyncing}
+                      className="btn btn-outline w-full"
+                    >
+                      새 번호로 바꾸기
+                    </button>
+                  </div>
+                )}
                 <CloudInvitePanel code={workspaceCode} disabled={isSyncing} />
                 <button type="button" onClick={handleSyncNow} disabled={isSyncing} className="btn btn-primary w-full">
                   {isSyncing ? '맞추는 중…' : '지금 맞추기'}
@@ -413,6 +452,17 @@ export default function SettingsPage() {
         />
       )}
 
+      {showRotateConfirm && (
+        <ConfirmDialog
+          title="장부 번호를 바꿀까요?"
+          description={'바꾸면 같이 쓰던 다른 폰은 연결이 끊겨요.\n바꾼 뒤 새 초대 주소를 다시 보내 주세요. 기록은 그대로예요.'}
+          cancelLabel="그대로 두기"
+          confirmLabel="바꾸기"
+          onConfirm={handleRotateCode}
+          onCancel={() => setShowRotateConfirm(false)}
+        />
+      )}
+
       {showReplaceConfirm && (
         <ConfirmDialog
           title="다른 폰 기록으로 바꿀까요?"
@@ -441,6 +491,31 @@ export default function SettingsPage() {
           disabled={isDeleting}
         />
       )}
+    </div>
+  )
+}
+
+function TextSizePicker() {
+  const [size, setSize] = useState(getTextSize)
+  return (
+    <div className="p-4">
+      <div className="grid grid-cols-3 gap-2">
+        {TEXT_SIZES.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => {
+              setTextSize(item.value)
+              setSize(item.value)
+            }}
+            className={`chip ${size === item.value ? 'chip-on' : ''}`}
+            aria-pressed={size === item.value}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[16px] font-semibold text-ink-soft">모든 화면의 글씨와 버튼이 함께 커져요</p>
     </div>
   )
 }

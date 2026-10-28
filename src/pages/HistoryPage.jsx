@@ -9,7 +9,8 @@ import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
 import { filterHistoryItems } from '../hooks/useHistoryFilters'
 import { useLiveQuery } from '../hooks/useLiveQuery'
-import { formatCurrency, getToday, itemTotal } from '../utils/format'
+import { useToday } from '../hooks/useToday'
+import { formatCurrency, itemTotal } from '../utils/format'
 import { formatDateString, getMonthRange } from '../utils/dateRange'
 import { groupByCategory, groupByShop, isPurchased, summarizeItems } from '../utils/analytics'
 import { formatManwon } from '../utils/labels'
@@ -25,7 +26,7 @@ function dayHeading(dateStr) {
 }
 
 export default function HistoryPage() {
-  const today = getToday()
+  const today = useToday()
   const excelInputRef = useRef(null)
   const [month, setMonth] = useState(() => {
     const now = new Date()
