@@ -1,7 +1,9 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
+import { NavLink, Outlet, useNavigate, useSearchParams } from 'react-router-dom'
 import CaptureFab from './CaptureFab'
 import InstallPrompt from './InstallPrompt'
 import { IconHome, IconLedger, IconSettings, IconShop } from './Icons'
+import { normalizeWorkspaceCode } from '../lib/workspace'
 
 const tabs = [
   { to: '/', label: '홈', icon: IconHome, end: true, active: 'text-brand bg-brand-soft' },
@@ -11,6 +13,17 @@ const tabs = [
 ]
 
 export default function Layout() {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const raw = searchParams.get('join') || searchParams.get('code')
+    const code = normalizeWorkspaceCode(raw || '')
+    if (code) {
+      navigate(`/join/${encodeURIComponent(code)}`, { replace: true })
+    }
+  }, [searchParams, navigate])
+
   return (
     <div className="flex min-h-dvh flex-col bg-wash">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col pb-24">

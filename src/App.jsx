@@ -7,10 +7,13 @@ import ShopNewPage from './pages/ShopNewPage'
 import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import CapturePage from './pages/CapturePage'
+import JoinPage from './pages/JoinPage'
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/join/:code" element={<JoinPage />} />
+      <Route path="/join" element={<JoinPage />} />
       <Route path="/capture" element={<CapturePage />} />
       <Route path="/shops/new" element={<ShopNewPage />} />
       <Route path="/shops/:shopId" element={<ShopDetailPage />} />

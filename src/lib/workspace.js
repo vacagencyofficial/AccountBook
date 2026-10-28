@@ -10,6 +10,16 @@ function randomCode() {
   return out
 }
 
+/** SAILP-XXXXXX / sailp-xxxx / 경로용 코드 정규화 */
+export function normalizeWorkspaceCode(raw) {
+  if (!raw) return ''
+  let value = String(raw).trim().toUpperCase()
+  value = value.replace(/^.*\b(SAILP-[A-Z0-9]{6})\b.*$/, '$1')
+  if (/^SAILP-[A-Z0-9]{6}$/.test(value)) return value
+  if (/^[A-Z0-9]{6}$/.test(value)) return `SAILP-${value}`
+  return value
+}
+
 export function getWorkspaceCode() {
   try {
     return localStorage.getItem(CODE_KEY) || ''
@@ -38,4 +48,15 @@ export function clearWorkspaceLocal() {
 
 export function createLocalWorkspaceCode() {
   return randomCode()
+}
+
+/** 다른 기기가 열면 자동 연결되는 초대 링크 */
+export function buildInviteUrl(code, origin = typeof window !== 'undefined' ? window.location.origin : '') {
+  const normalized = normalizeWorkspaceCode(code)
+  if (!normalized || !origin) return ''
+  return `${origin.replace(/\/$/, '')}/join/${encodeURIComponent(normalized)}`
+}
+
+export function qrImageUrl(data, size = 240) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
 }

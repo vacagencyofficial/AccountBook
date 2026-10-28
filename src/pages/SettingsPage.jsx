@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ImportModeDialog from '../components/ImportModeDialog'
+import CloudInvitePanel from '../components/CloudInvitePanel'
 import { getPhotoQuality, MAX_LONG_EDGE, setPhotoQuality } from '../utils/photoConfig'
 import { formatStorageEstimate } from '../utils/storage'
 import { isCloudConfigured } from '../lib/supabase'
-import { getWorkspaceCode } from '../lib/workspace'
+import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
 
 function isStandaloneApp() {
   return (
@@ -16,6 +18,7 @@ function isStandaloneApp() {
 
 export default function SettingsPage() {
   const fileInputRef = useRef(null)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [storageText, setStorageText] = useState('확인 중…')
   const [photoQuality, setPhotoQualityState] = useState(getPhotoQuality())
   const [isExporting, setIsExporting] = useState(false)
@@ -29,10 +32,22 @@ export default function SettingsPage() {
   const [workspaceCode, setWorkspaceCode] = useState(getWorkspaceCode())
   const [codeInput, setCodeInput] = useState(getWorkspaceCode())
   const [isSyncing, setIsSyncing] = useState(false)
+  const [showManualCode, setShowManualCode] = useState(false)
 
   useEffect(() => {
     loadStorage()
   }, [])
+
+  useEffect(() => {
+    if (searchParams.get('joined') === '1') {
+      setMessage('다른 기기에서 보낸 초대로 장부가 연결되었습니다.')
+      setWorkspaceCode(getWorkspaceCode())
+      setCodeInput(getWorkspaceCode())
+      const next = new URLSearchParams(searchParams)
+      next.delete('joined')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   async function loadStorage() {
     try {
@@ -109,7 +124,7 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleConnectCloud() {
+  async function handleStartCloud() {
     if (!isCloudConfigured) {
       setError('클라우드 키가 아직 앱에 연결되어 있지 않습니다. 배포 환경 변수를 설정해 주세요.')
       return
@@ -119,17 +134,54 @@ export default function SettingsPage() {
     setMessage(null)
     try {
       const { connectWorkspace, syncBidirectional } = await import('../db/cloudSync')
-      const ws = await connectWorkspace(codeInput || undefined)
+      // 코드 입력 없이 새 장부 생성 또는 기존 연결 유지
+      const ws = await connectWorkspace(workspaceCode || undefined)
       setWorkspaceCode(ws.code)
       setCodeInput(ws.code)
-      const result = await syncBidirectional()
-      setMessage(
-        result.skipped
-          ? `워크스페이스 ${ws.code} 연결됨 (동기화 대기)`
-          : `클라우드 동기화 완료 · 코드 ${ws.code}`,
-      )
+      await syncBidirectional()
+      setMessage('클라우드에 저장을 시작했습니다. 아래 버튼으로 다른 기기를 초대하세요.')
     } catch (err) {
       setError(err instanceof Error ? err.message : '클라우드 연결에 실패했습니다')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  async function handleConnectCloud() {
+    if (!isCloudConfigured) {
+      setError('클라우드 키가 아직 앱에 연결되어 있지 않습니다. 배포 환경 변수를 설정해 주세요.')
+      return
+    }
+    const typed = normalizeWorkspaceCode(codeInput)
+    setIsSyncing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const { connectWorkspace, syncBidirectional } = await import('../db/cloudSync')
+      const ws = await connectWorkspace(typed || undefined)
+      setWorkspaceCode(ws.code)
+      setCodeInput(ws.code)
+      await syncBidirectional()
+      setMessage(`클라우드 동기화 완료`)
+      setShowManualCode(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '클라우드 연결에 실패했습니다')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  async function handleSyncNow() {
+    if (!isCloudConfigured || !workspaceCode) return
+    setIsSyncing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const { syncBidirectional } = await import('../db/cloudSync')
+      await syncBidirectional()
+      setMessage('지금 기기와 클라우드를 맞춰 두었습니다.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '동기화에 실패했습니다')
     } finally {
       setIsSyncing(false)
     }
@@ -176,44 +228,87 @@ export default function SettingsPage() {
           onChange={handleFileSelected}
         />
 
-        <SettingsSection title="클라우드 (Supabase 무료)">
+        <SettingsSection title="클라우드 · 다른 기기와 같이 쓰기">
           <li className="space-y-3 py-3.5">
-            <p className="text-[15px] font-bold text-ink">
-              상태:{' '}
-              {isCloudConfigured
-                ? workspaceCode
-                  ? `연결됨 · ${workspaceCode}`
-                  : '키 있음 · 코드 연결 필요'
-                : '아직 미연결 (환경 변수 필요)'}
-            </p>
-            <p className="text-[13px] font-medium text-ink-muted">
-              같은 코드를 다른 폰/PC에 입력하면 데이터가 같이 보입니다.
-            </p>
-            <input
-              type="text"
-              value={codeInput}
-              onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-              placeholder="SAILP-XXXXXX (비우면 새로 생성)"
-              className="tap-target w-full rounded-xl border-2 border-line bg-wash px-3 text-[16px] font-bold outline-none focus:border-brand focus:bg-paper"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleConnectCloud}
-                disabled={isSyncing}
-                className="tap-target flex-1 rounded-xl bg-brand text-[15px] font-black text-white disabled:opacity-50"
-              >
-                {isSyncing ? '동기화 중…' : '연결 · 동기화'}
-              </button>
-              <button
-                type="button"
-                onClick={handlePullReplace}
-                disabled={isSyncing || !isCloudConfigured}
-                className="tap-target flex-1 rounded-xl border-2 border-line text-[15px] font-bold text-ink disabled:opacity-50"
-              >
-                클라우드에서 가져오기
-              </button>
-            </div>
+            {!isCloudConfigured ? (
+              <p className="text-[15px] font-bold text-ink-muted">
+                아직 서버 키가 없습니다. 배포 담당자가 Vercel 환경 변수를 넣으면 사용할 수 있습니다.
+              </p>
+            ) : !workspaceCode ? (
+              <>
+                <p className="text-[16px] font-black text-ink">한 번만 눌러 시작</p>
+                <p className="text-[14px] font-medium leading-relaxed text-ink-muted">
+                  코드를 외우거나 입력할 필요 없습니다. 시작한 뒤 <strong>초대 링크</strong>만 보내면
+                  다른 폰이 자동으로 붙습니다.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleStartCloud}
+                  disabled={isSyncing}
+                  className="tap-target w-full rounded-2xl bg-brand text-[17px] font-black text-white disabled:opacity-50"
+                >
+                  {isSyncing ? '준비 중…' : '이 장부 클라우드에 저장하기'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowManualCode((v) => !v)}
+                  className="text-[14px] font-bold text-ink-muted underline"
+                >
+                  {showManualCode ? '직접 입력 닫기' : '이미 초대 코드가 있나요?'}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-[15px] font-bold text-good">연결됨 · 자동 맞춤 가능</p>
+                <CloudInvitePanel code={workspaceCode} disabled={isSyncing} />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSyncNow}
+                    disabled={isSyncing}
+                    className="tap-target flex-1 rounded-xl bg-brand text-[15px] font-black text-white disabled:opacity-50"
+                  >
+                    {isSyncing ? '맞추는 중…' : '지금 동기화'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePullReplace}
+                    disabled={isSyncing}
+                    className="tap-target flex-1 rounded-xl border-2 border-line text-[15px] font-bold text-ink disabled:opacity-50"
+                  >
+                    클라우드로 덮어쓰기
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowManualCode((v) => !v)}
+                  className="text-[14px] font-bold text-ink-muted underline"
+                >
+                  {showManualCode ? '고급 설정 닫기' : '고급 · 코드 직접 입력'}
+                </button>
+              </>
+            )}
+
+            {isCloudConfigured && showManualCode && (
+              <div className="space-y-2 rounded-xl border-2 border-dashed border-line bg-wash p-3">
+                <p className="text-[13px] font-bold text-ink-muted">직접 코드 입력 (거의 쓸 일 없음)</p>
+                <input
+                  type="text"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                  placeholder="SAILP-XXXXXX"
+                  className="tap-target w-full rounded-xl border-2 border-line bg-paper px-3 text-[16px] font-bold outline-none focus:border-brand"
+                />
+                <button
+                  type="button"
+                  onClick={handleConnectCloud}
+                  disabled={isSyncing}
+                  className="tap-target w-full rounded-xl border-2 border-brand text-[15px] font-bold text-brand disabled:opacity-50"
+                >
+                  이 코드로 연결
+                </button>
+              </div>
+            )}
           </li>
         </SettingsSection>
 
