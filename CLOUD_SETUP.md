@@ -1,5 +1,8 @@
 # 사입노트 — 무료 클라우드 설정 (Supabase + Vercel)
 
+비전공자용 전체 설명은 **[사용가이드.md](./사용가이드.md)** 를 보세요.  
+이 문서는 체크리스트용 요약입니다.
+
 ## 1) Supabase (무료)
 
 1. https://supabase.com 가입 후 **New project**

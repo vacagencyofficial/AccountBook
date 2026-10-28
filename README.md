@@ -1,39 +1,44 @@
-# 사입노트
+# 사입노트 (Sailp)
 
-동대문 도매 사입 현장에서 **사진 · 가게 · 금액 · 메모**를 기록하고,  
-**PWA(홈 화면 앱)** 으로 쓰며, **Supabase 무료 클라우드**로 기기 간 동기화할 수 있는 모바일 웹앱입니다.
+동대문 도매 사입 현장에서 **사진 · 가게 · 금액 · 메모**를 기록하는 모바일 웹앱(PWA)입니다.  
+기기 간 동기화는 **Supabase 무료 클라우드**, 배포는 **Vercel**을 사용합니다.
 
-## 기능
+## 비전공자용 설명서 (필독)
+
+👉 **[사용가이드.md](./사용가이드.md)**
+
+1. 프로젝트 개요  
+2. 기능 정리  
+3. 배포 방법  
+4. 클라우드 방법  
+5. 이후 기능 수정 및 반영  
+
+## 저장소
+
+https://github.com/vacagencyofficial/AccountBook
+
+## 빠른 기능 요약
 
 - 카메라 촬영 / 갤러리 첨부
-- 가게·단가·수량·메모·카테고리 저장
-- 오늘/월 합계, 필터, 엑셀 내보내기·불러오기
+- 가게 · 단가 · 수량 · 메모 · 카테고리
+- 오늘/월 합계, 필터
+- 엑셀 내보내기 · 불러오기
 - ZIP 백업/복원
-- PWA 홈 화면 설치
-- 클라우드 동기화 (워크스페이스 코드)
+- 홈 화면 설치(PWA)
+- 워크스페이스 코드로 클라우드 동기화
 
-## 로컬 실행
+## 로컬에서 실행 (개발자)
 
 ```bash
 npm install
-cp .env.example .env.local   # Supabase 키 입력 (없으면 로컬만 동작)
+cp .env.example .env.local   # Supabase 키 (없으면 로컬만)
 npm run dev
 ```
 
 `http://localhost:43123`
 
-## 클라우드·배포 (무료)
-
-자세한 절차: **[CLOUD_SETUP.md](./CLOUD_SETUP.md)**
-
-1. Supabase Free 프로젝트 + `supabase/schema.sql` 실행  
-2. Vercel Hobby에 배포 + 환경 변수 2개  
-3. 앱 설정에서 워크스페이스 코드로 동기화  
-4. 폰에서 **홈 화면에 추가**
+클라우드만 빠르게 보려면: **[CLOUD_SETUP.md](./CLOUD_SETUP.md)**
 
 ## 기술
 
-- Vite + React + Tailwind
-- Dexie (오프라인 IndexedDB)
-- Supabase (Postgres + Storage)
-- vite-plugin-pwa
+Vite · React · Tailwind · Dexie · Supabase · vite-plugin-pwa
