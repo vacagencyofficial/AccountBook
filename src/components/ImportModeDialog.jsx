@@ -1,6 +1,6 @@
 export default function ImportModeDialog({
-  title = '백업 불러오기',
-  description = '덮어쓰기는 현재 데이터를 모두 지우고 복원합니다. 병합은 기존 데이터에 추가합니다.',
+  title = '백업에서 되살리기',
+  description = '「지금 기록 지우고 바꾸기」는 지금 장부를 비우고 파일 내용으로 채워요. 「지금 기록에 더하기」는 있던 기록에 더해요.',
   disabled,
   onOverwrite,
   onMerge,
@@ -8,32 +8,17 @@ export default function ImportModeDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm border-2 border-line bg-paper p-5">
-        <h3 className="text-[18px] font-black text-ink">{title}</h3>
-        <p className="mt-2 text-[15px] font-medium text-ink-muted">{description}</p>
+      <div className="card w-full max-w-sm p-5" role="dialog" aria-modal="true">
+        <h3 className="text-[20px] font-extrabold text-ink">{title}</h3>
+        <p className="mt-2 text-[17px] font-medium leading-relaxed text-ink-muted">{description}</p>
         <div className="mt-5 space-y-2">
-          <button
-            type="button"
-            onClick={onOverwrite}
-            disabled={disabled}
-            className="w-full bg-ink py-3 text-[16px] font-black text-white disabled:opacity-50"
-          >
-            지우고 덮어쓰기
+          <button type="button" onClick={onMerge} disabled={disabled} className="btn btn-primary w-full">
+            지금 기록에 더하기
           </button>
-          <button
-            type="button"
-            onClick={onMerge}
-            disabled={disabled}
-            className="w-full border-2 border-line py-3 text-[16px] font-bold text-ink disabled:opacity-50"
-          >
-            기존에 합치기
+          <button type="button" onClick={onOverwrite} disabled={disabled} className="btn btn-outline w-full">
+            지금 기록 지우고 바꾸기
           </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={disabled}
-            className="w-full py-2.5 text-[13px] text-ink-muted"
-          >
+          <button type="button" onClick={onCancel} disabled={disabled} className="btn w-full text-ink-muted">
             취소
           </button>
         </div>

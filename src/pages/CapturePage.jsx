@@ -113,81 +113,113 @@ export default function CapturePage() {
   const total = (parseInt(form.price, 10) || 0) * qtyNumber
   const missing = firstMissing(form)
 
+  const steps = [
+    { label: '가게', done: Boolean(form.shopId) },
+    { label: '가격', done: form.price !== '' },
+    { label: '이름', done: Boolean(form.name.trim() || form.memo.trim()) },
+  ]
+  const currentStep = steps.findIndex((step) => !step.done)
+
   return (
     <div className="flex min-h-dvh flex-col bg-wash">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b-2 border-line bg-paper px-4 py-3">
-        <button
-          type="button"
-          onClick={handleClose}
-          className="tap-target inline-flex items-center gap-1 px-3 text-[16px] font-semibold text-ink-muted"
-        >
-          <IconClose className="h-5 w-5" />
-          닫기
-        </button>
-        <div className="text-center">
-          <h1 className="text-[18px] font-black text-accent-dark">물건 적기</h1>
-          <p className="text-[14px] font-bold text-ink-muted">
-            {photos.length === 0 ? '사진은 없어도 돼요' : `사진 ${photos.length}장`}
-          </p>
+      <header className="sticky top-0 z-10 bg-paper shadow-[0_1px_0_var(--color-line-soft)]">
+        <div className="mx-auto flex max-w-lg items-center justify-between px-2 py-2">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="tap-target inline-flex items-center gap-1 px-3 text-[18px] font-bold text-ink-muted"
+          >
+            <IconClose className="h-6 w-6" />
+            닫기
+          </button>
+          <h1 className="text-[21px] font-extrabold">물건 적기</h1>
+          <span className="w-[5.5rem]" />
         </div>
-        <span className="w-16" />
+        {!saved && (
+          <ol className="mx-auto flex max-w-lg gap-1.5 px-4 pb-0" aria-label="채울 칸">
+            {steps.map((step, index) => (
+              <li
+                key={step.label}
+                className={[
+                  'flex-1 border-b-4 pb-2 text-center text-[16px] font-bold',
+                  step.done
+                    ? 'border-brand text-brand'
+                    : index === currentStep
+                      ? 'border-accent text-accent-dark'
+                      : 'border-line-soft text-ink-soft',
+                ].join(' ')}
+              >
+                {step.done ? `✓ ${step.label}` : step.label}
+              </li>
+            ))}
+          </ol>
+        )}
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 overflow-y-auto px-4 py-4 pb-40">
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-44">
         {error && (
-          <div className="mb-4 border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-medium text-red-700">
+          <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700" role="alert">
             {error}
           </div>
         )}
 
         {saved ? (
-          <section className="space-y-4" aria-live="polite">
-            <div className="border-2 border-good bg-good-soft px-4 py-5 text-center">
-              <p className="text-[22px] font-black text-good">
-                ✓ {formatCurrency(saved.total)}을 저장했어요
-              </p>
-              <p className="mt-2 text-[16px] font-bold leading-snug text-ink">
+          <section className="space-y-3" aria-live="polite">
+            <div className="card px-5 py-6 text-center">
+              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-good-soft text-[34px] font-black text-good">
+                ✓
+              </div>
+              <p className="text-[24px] font-extrabold text-ink">{formatCurrency(saved.total)}을 저장했어요</p>
+              <p className="mt-2 text-[17px] font-bold leading-snug text-ink-muted">
                 {[saved.shopName, saved.name && `${saved.name} ${saved.qty}개`].filter(Boolean).join(' · ')}
               </p>
-              <p className="mt-1 text-[15px] font-semibold text-ink-muted">
+              <p className="mt-1 text-[16px] font-semibold text-ink-soft">
                 {formatDateLabel(saved.date)}
                 {saved.photoCount ? ` · 사진 ${saved.photoCount}장` : ''}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setSaved(null)}
-              className="tap-target w-full bg-accent py-4 text-[19px] font-black text-white active:bg-accent-dark"
-            >
+            <button type="button" onClick={() => setSaved(null)} className="btn btn-accent w-full text-[20px]" style={{ minHeight: '3.75rem' }}>
               다음 물건 적기
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/history')}
-              className="tap-target w-full border-2 border-line bg-paper py-3 text-[17px] font-black text-ink"
-            >
+            <button type="button" onClick={() => navigate('/history')} className="btn btn-outline w-full">
               장부 보기
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="tap-target w-full py-2 text-[16px] font-bold text-ink-muted"
-            >
+            <button type="button" onClick={() => navigate('/')} className="btn w-full text-ink-muted">
               홈으로
             </button>
           </section>
         ) : (
           <>
-            <section className="mb-4 border-2 border-line bg-paper p-3">
-              <p className="mb-2 text-[16px] font-black text-ink">
-                사진 <span className="text-[15px] font-bold text-ink-muted">(없어도 돼요)</span>
-              </p>
-              <div className="grid grid-cols-2 gap-2">
+            <section className="card mb-6 p-3">
+              <div className="flex items-center gap-3">
+                {photos.length === 0 ? (
+                  <p className="flex-1 pl-1 text-[17px] font-bold text-ink-muted">
+                    사진 <span className="font-semibold text-ink-soft">(없어도 돼요)</span>
+                  </p>
+                ) : (
+                  <ul className="flex flex-1 gap-3 overflow-x-auto pb-1 pt-2">
+                    {photos.map((photo, index) => (
+                      <li key={photo.id} className="relative shrink-0">
+                        <PhotoThumbnail blob={photo.blob} alt={`사진 ${index + 1}`} size="lg" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(photo.id)}
+                          className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white"
+                          aria-label={`사진 ${index + 1} 빼기`}
+                        >
+                          <IconClose className="h-5 w-5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => inputRef.current?.openCamera()}
-                  className="tap-target inline-flex items-center justify-center gap-2 whitespace-nowrap bg-accent px-3 text-[17px] font-black text-white active:bg-accent-dark disabled:opacity-50"
+                  className="btn btn-soft"
                 >
                   <IconCamera className="h-6 w-6" />
                   사진 찍기
@@ -196,33 +228,14 @@ export default function CapturePage() {
                   type="button"
                   disabled={busy}
                   onClick={() => inputRef.current?.openGallery()}
-                  className="tap-target inline-flex items-center justify-center gap-2 whitespace-nowrap border-2 border-brand bg-brand-soft px-3 text-[17px] font-black text-brand-dark disabled:opacity-50"
+                  className="btn btn-soft"
                 >
                   <IconGallery className="h-6 w-6" />
                   사진 고르기
                 </button>
               </div>
-
               {isCompressing && (
                 <p className="mt-3 text-center text-[16px] font-bold text-ink-muted">사진 넣는 중이에요…</p>
-              )}
-
-              {photos.length > 0 && (
-                <ul className="mt-3 flex gap-3 overflow-x-auto pb-1 pt-2">
-                  {photos.map((photo, index) => (
-                    <li key={photo.id} className="relative shrink-0">
-                      <PhotoThumbnail blob={photo.blob} alt={`사진 ${index + 1}`} size="lg" />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(photo.id)}
-                        className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center border-2 border-white bg-red-600 text-white"
-                        aria-label={`사진 ${index + 1} 빼기`}
-                      >
-                        <IconClose className="h-5 w-5" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
               )}
             </section>
 
@@ -231,7 +244,6 @@ export default function CapturePage() {
               updateField={updateField}
               selectShop={selectShop}
               onSubmit={handleSave}
-              isSaving={isSaving}
               autoFocusName={focusName}
             />
           </>
@@ -241,10 +253,10 @@ export default function CapturePage() {
       </main>
 
       {!saved && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-line bg-paper px-4 py-3 safe-bottom">
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-paper px-4 pt-3 shadow-[0_-4px_18px_rgb(15_23_42/0.08)] safe-bottom">
           <div className="mx-auto max-w-lg">
             {saveError && (
-              <p className="mb-2 text-center text-[15px] font-bold text-red-700" role="alert">
+              <p className="mb-2 text-center text-[16px] font-bold text-red-700" role="alert">
                 {saveError}
               </p>
             )}
@@ -252,12 +264,13 @@ export default function CapturePage() {
               type="button"
               onClick={handleSave}
               disabled={busy || !isValid}
-              className="tap-target w-full bg-good py-4 text-[19px] font-black text-white disabled:opacity-40"
+              className="btn btn-accent w-full text-[21px]"
+              style={{ minHeight: '3.75rem' }}
             >
               {isSaving ? '저장하는 중…' : isValid ? `${formatCurrency(total)} 저장하기` : '저장하기'}
             </button>
             {missing && (
-              <p className="mt-2 text-center text-[16px] font-bold leading-snug text-accent-dark">{missing}</p>
+              <p className="mt-2 text-center text-[17px] font-bold leading-snug text-accent-dark">{missing}</p>
             )}
           </div>
         </div>
@@ -265,31 +278,19 @@ export default function CapturePage() {
 
       {showLeave && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-sm border-2 border-line bg-paper p-5" role="dialog" aria-modal="true">
-            <h3 className="text-[19px] font-black text-ink">적던 내용이 있어요</h3>
-            <p className="mt-2 text-[16px] font-medium leading-relaxed text-ink-muted">
+          <div className="card w-full max-w-sm p-5" role="dialog" aria-modal="true">
+            <h3 className="text-[20px] font-extrabold text-ink">적던 내용이 있어요</h3>
+            <p className="mt-2 text-[17px] font-medium leading-relaxed text-ink-muted">
               남겨 두면 다음에 「물건 적기」를 누를 때 그대로 이어서 쓸 수 있어요.
             </p>
             <div className="mt-5 space-y-2">
-              <button
-                type="button"
-                onClick={() => setShowLeave(false)}
-                className="tap-target w-full bg-ink text-[17px] font-black text-white"
-              >
+              <button type="button" onClick={() => setShowLeave(false)} className="btn btn-primary w-full">
                 계속 적기
               </button>
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                className="tap-target w-full border-2 border-line text-[17px] font-bold text-ink"
-              >
+              <button type="button" onClick={() => navigate('/')} className="btn btn-outline w-full">
                 남겨 두고 나가기
               </button>
-              <button
-                type="button"
-                onClick={leaveAndDiscard}
-                className="tap-target w-full text-[16px] font-bold text-red-600"
-              >
+              <button type="button" onClick={leaveAndDiscard} className="btn btn-text-danger w-full">
                 지우고 나가기
               </button>
             </div>

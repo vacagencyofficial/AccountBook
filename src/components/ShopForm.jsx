@@ -24,7 +24,7 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="가게명" required>
+      <Field label="가게 이름" required>
         <input
           type="text"
           value={form.name}
@@ -35,7 +35,7 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
         />
       </Field>
 
-      <Field label="상가명">
+      <Field label="상가 이름">
         <input
           type="text"
           value={form.building}
@@ -80,7 +80,7 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
         <textarea
           value={form.memo}
           onChange={(e) => updateField('memo', e.target.value)}
-          placeholder="사장님 성향, 최소수량, 결제조건 등"
+          placeholder="예: 최소 3장부터, 현금 선결제"
           rows={3}
           className={`${inputClass} resize-none`}
         />
@@ -91,7 +91,7 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
           <button
             type="button"
             onClick={onCancel}
-            className="tap-target flex-1 border-2 border-line text-[17px] font-bold text-ink"
+            className="btn btn-outline flex-1"
           >
             취소
           </button>
@@ -99,7 +99,7 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
         <button
           type="submit"
           disabled={!form.name.trim() || isSubmitting}
-          className="tap-target flex-1 bg-good text-[17px] font-black text-white disabled:opacity-40"
+          className="btn btn-primary flex-1"
         >
           {isSubmitting ? '저장 중…' : submitLabel}
         </button>
@@ -111,9 +111,9 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="mb-1.5 block text-[16px] font-black text-ink">
+      <label className="label">
         {label}
-        {required && <span className="ml-1 text-accent">필수</span>}
+        {required && <span className="ml-1.5 text-[16px] font-bold text-accent-dark">꼭 적기</span>}
       </label>
       {children}
     </div>
@@ -121,7 +121,7 @@ function Field({ label, required, children }) {
 }
 
 const inputClass =
-  'tap-target w-full border-2 border-line bg-paper px-3 py-2.5 text-[17px] font-semibold outline-none focus:border-brand'
+  'field'
 
 export function shopToForm(shop) {
   if (!shop) return { ...emptyShop }

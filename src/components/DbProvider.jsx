@@ -51,8 +51,9 @@ export function DbProvider({ children }) {
     return (
       <div className="flex h-dvh items-center justify-center px-6 text-center">
         <div>
-          <p className="text-[17px] font-bold text-red-600">데이터베이스 초기화 실패</p>
-          <p className="mt-1 text-[14px] text-ink-muted">{error.message}</p>
+          <p className="text-[19px] font-bold text-red-700">앱을 여는 중 문제가 생겼어요</p>
+          <p className="mt-2 text-[17px] font-medium text-ink-muted">앱을 닫았다가 다시 열어 주세요.</p>
+          <p className="mt-3 text-[16px] text-ink-soft">{error.message}</p>
         </div>
       </div>
     )
@@ -61,7 +62,7 @@ export function DbProvider({ children }) {
   if (!ready) {
     return (
       <div className="flex h-dvh items-center justify-center">
-        <p className="text-[16px] font-medium text-ink-muted">불러오는 중…</p>
+        <p className="text-[18px] font-semibold text-ink-muted">불러오는 중…</p>
       </div>
     )
   }

@@ -3,6 +3,7 @@ import ShopChipSelector from './ShopChipSelector'
 import { CATEGORIES, STATUSES } from '../db'
 import { formatCurrency, formatDateLabel, getToday } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
+import { statusLabel } from '../utils/labels'
 
 function getYesterday() {
   const d = new Date()
@@ -29,19 +30,19 @@ const COLOR_OPTIONS = [
 
 const SIZE_OPTIONS = ['FREE', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '26', '27', '28', '29', '30', '32']
 
-const STATUS_HELP = {
-  구매: '사기로 정함',
-  검토: '조금 더 생각해 볼 것',
-  보류: '지금은 보류',
-}
+const PRICE_STEPS = [
+  { value: 1000, label: '+1천' },
+  { value: 5000, label: '+5천' },
+  { value: 10000, label: '+1만' },
+]
 
 export default function RegisterForm({
   form,
   updateField,
   selectShop,
   onSubmit,
-  isSaving,
   autoFocusName = false,
+  defaultMoreOpen = false,
 }) {
   const [customColor, setCustomColor] = useState(
     () => (form.color && !COLOR_OPTIONS.includes(form.color) ? form.color : ''),
@@ -55,8 +56,8 @@ export default function RegisterForm({
   const [sizeCustom, setSizeCustom] = useState(
     () => Boolean(form.size && !SIZE_OPTIONS.includes(form.size)),
   )
+  const [moreOpen, setMoreOpen] = useState(defaultMoreOpen)
   const nameRef = useRef(null)
-  const priceRef = useRef(null)
 
   useEffect(() => {
     if (autoFocusName && nameRef.current) {
@@ -67,25 +68,6 @@ export default function RegisterForm({
   function handleSubmit(event) {
     event.preventDefault()
     onSubmit()
-  }
-
-  function handleNameKeyDown(event) {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      priceRef.current?.focus()
-    }
-  }
-
-  function handlePriceKeyDown(event) {
-    if (
-      event.key === 'Enter' &&
-      form.shopId &&
-      form.price !== '' &&
-      (form.name.trim() || form.memo.trim())
-    ) {
-      event.preventDefault()
-      onSubmit()
-    }
   }
 
   function handleColorSelect(value) {
@@ -116,28 +98,39 @@ export default function RegisterForm({
   const date = form.date || today
   const isOtherDate = date !== today && date !== yesterday
   const qtyNumber = Math.max(1, parseInt(form.qty, 10) || 1)
+  const priceNumber = parseInt(form.price, 10) || 0
 
   function changeQty(diff) {
     updateField('qty', String(Math.max(1, qtyNumber + diff)))
   }
 
+  function addPrice(amount) {
+    updateField('price', String(priceNumber + amount))
+  }
+
+  const moreSummary = [
+    date === today ? '오늘' : formatDateLabel(date),
+    statusLabel(form.status),
+    form.category !== '기타' ? form.category : null,
+    form.color,
+    form.size,
+    form.memo ? '메모 있음' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <section className="border-2 border-line bg-paper p-4">
-        <p className="mb-2 text-[16px] font-black text-ink">언제 샀나요?</p>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <section>
+        <p className="label">언제 샀나요?</p>
         <div className="grid grid-cols-3 gap-2">
-          <DateChip active={date === today} onClick={() => updateField('date', today)}>
+          <Chip active={date === today} onClick={() => updateField('date', today)}>
             오늘
-          </DateChip>
-          <DateChip active={date === yesterday} onClick={() => updateField('date', yesterday)}>
+          </Chip>
+          <Chip active={date === yesterday} onClick={() => updateField('date', yesterday)}>
             어제
-          </DateChip>
-          <label
-            className={[
-              'tap-target relative flex items-center justify-center border-2 text-[16px] font-black',
-              isOtherDate ? 'border-brand bg-brand text-white' : 'border-line bg-wash text-ink',
-            ].join(' ')}
-          >
+          </Chip>
+          <label className={`chip relative ${isOtherDate ? 'chip-on' : ''}`}>
             {isOtherDate ? formatDateLabel(date) : '날짜 고르기'}
             <input
               type="date"
@@ -151,229 +144,213 @@ export default function RegisterForm({
         </div>
       </section>
 
-      <section className=" border-2 border-good/40 bg-paper p-4 tone-rail-good">
-        <p className="mb-1 text-[16px] font-black text-good">1. 어느 가게인가요?</p>
-        <p className="mb-3 text-[14px] font-semibold text-ink-muted">아래에서 가게 이름을 눌러 고르세요</p>
+      <section>
         <ShopChipSelector selectedShopId={form.shopId} onSelect={selectShop} />
       </section>
 
-      <section className="space-y-3 border-2 border-brand/40 bg-paper p-4 tone-rail-brand">
-        <p className="text-[16px] font-black text-brand">2. 이름 · 가격 · 몇 개</p>
-
-        <Field label="옷 이름" required>
+      <section>
+        <label className="label" htmlFor="register-price">
+          한 개 가격
+        </label>
+        <div className="card flex items-baseline gap-2 border-b-[3px] border-brand px-4" style={{ borderRadius: '10px 10px 0 0' }}>
           <input
-            ref={nameRef}
-            type="text"
-            value={form.name}
-            onChange={(e) => updateField('name', e.target.value)}
-            onKeyDown={handleNameKeyDown}
-            placeholder="예: 니트, 청바지"
-            autoComplete="off"
-            enterKeyHint="next"
-            className={inputClass}
-          />
-        </Field>
-
-        <Field label="한 개 가격 (원)" required>
-          <input
-            ref={priceRef}
+            id="register-price"
             type="text"
             inputMode="numeric"
-            value={form.price}
+            value={form.price === '' ? '' : priceNumber.toLocaleString('ko-KR')}
             onChange={(e) => updateField('price', e.target.value.replace(/[^\d]/g, ''))}
-            onKeyDown={handlePriceKeyDown}
-            placeholder="예: 15000"
+            placeholder="0"
             enterKeyHint="done"
-            className={`${inputClass} text-[22px] font-black tabular`}
+            className="min-h-[4rem] w-full min-w-0 bg-transparent text-right text-[32px] font-extrabold tracking-[-0.02em] outline-none tabular placeholder:text-line"
           />
-        </Field>
+          <span className="text-[20px] font-bold text-ink-soft">원</span>
+        </div>
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
+          {PRICE_STEPS.map((step) => (
+            <button key={step.value} type="button" onClick={() => addPrice(step.value)} className="btn btn-soft">
+              {step.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
-        <div>
-          <p className="mb-1.5 text-[15px] font-black text-ink">몇 개 샀나요?</p>
-          <div className="grid grid-cols-[4rem_1fr_4rem] gap-2">
-            <button
-              type="button"
-              onClick={() => changeQty(-1)}
-              disabled={qtyNumber <= 1}
-              aria-label="하나 빼기"
-              className="tap-target border-2 border-line bg-wash text-[26px] font-black text-ink disabled:opacity-40"
-            >
-              −
-            </button>
-            <label className="relative block">
-              <span className="sr-only">산 개수</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={form.qty}
-                onChange={(e) => updateField('qty', e.target.value.replace(/[^\d]/g, ''))}
-                onBlur={() => updateField('qty', String(qtyNumber))}
-                className={`${inputClass} pr-10 text-center text-[22px] font-black tabular`}
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[17px] font-bold text-ink-muted">
-                개
-              </span>
-            </label>
-            <button
-              type="button"
-              onClick={() => changeQty(1)}
-              aria-label="하나 더하기"
-              className="tap-target border-2 border-line bg-wash text-[26px] font-black text-ink"
-            >
-              +
-            </button>
-          </div>
-          {form.price !== '' && (
-            <div className="mt-3 flex items-center justify-between bg-brand-soft px-3 py-2.5">
-              <span className="text-[15px] font-bold text-ink-muted tabular">
-                {formatCurrency(form.price)} × {qtyNumber}개
-              </span>
-              <span className="text-[20px] font-black text-brand tabular">
-                {formatCurrency((parseInt(form.price, 10) || 0) * qtyNumber)}
-              </span>
-            </div>
-          )}
+      <section>
+        <p className="label">몇 개 샀어요?</p>
+        <div className="card flex items-center justify-between gap-2 p-1.5">
+          <button
+            type="button"
+            onClick={() => changeQty(-1)}
+            disabled={qtyNumber <= 1}
+            aria-label="하나 빼기"
+            className="btn btn-soft h-14 w-16 text-[30px]"
+          >
+            −
+          </button>
+          <label className="flex flex-1 items-baseline justify-center gap-1">
+            <span className="sr-only">산 개수</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.qty}
+              onChange={(e) => updateField('qty', e.target.value.replace(/[^\d]/g, ''))}
+              onBlur={() => updateField('qty', String(qtyNumber))}
+              className="w-20 bg-transparent text-right text-[28px] font-extrabold outline-none tabular"
+            />
+            <span className="text-[20px] font-bold text-ink-soft">개</span>
+          </label>
+          <button
+            type="button"
+            onClick={() => changeQty(1)}
+            aria-label="하나 더하기"
+            className="btn btn-soft h-14 w-16 text-[30px]"
+          >
+            +
+          </button>
         </div>
 
-        <Field label="메모 (기억할 말)">
-          <input
-            type="text"
-            value={form.memo}
-            onChange={(e) => updateField('memo', e.target.value)}
-            placeholder="예: 봄에 팔 것, 단골 할인"
-            autoComplete="off"
-            className={inputClass}
-          />
-        </Field>
+        {form.price !== '' && (
+          <div className="receipt mt-4 flex items-center justify-between rounded-t-[16px] bg-accent-soft px-4 py-3" style={{ '--receipt-color': 'var(--color-accent-soft)' }}>
+            <div>
+              <p className="text-[16px] font-semibold text-ink-muted">합계</p>
+              <p className="text-[16px] font-semibold text-ink-muted tabular">
+                {formatCurrency(priceNumber)} × {qtyNumber}개
+              </p>
+            </div>
+            <b className="text-[28px] font-extrabold text-accent-dark tabular">{formatCurrency(priceNumber * qtyNumber)}</b>
+          </div>
+        )}
       </section>
 
-      <section className="space-y-3 border-2 border-ledger/40 bg-paper p-4 tone-rail-ledger">
-        <p className="text-[16px] font-black text-ledger">3. 옷 종류 · 상태</p>
-
-        <Field label="옷 종류">
-          <select
-            value={form.category}
-            onChange={(e) => updateField('category', e.target.value)}
-            className={selectClass}
-          >
-            {CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="지금 상태는?">
-          <select
-            value={form.status}
-            onChange={(e) => updateField('status', e.target.value)}
-            className={selectClass}
-          >
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status} — {STATUS_HELP[status]}
-              </option>
-            ))}
-          </select>
-        </Field>
+      <section>
+        <label className="label" htmlFor="register-name">
+          옷 이름
+        </label>
+        <input
+          id="register-name"
+          ref={nameRef}
+          type="text"
+          value={form.name}
+          onChange={(e) => updateField('name', e.target.value)}
+          placeholder="예: 니트, 청바지"
+          autoComplete="off"
+          enterKeyHint="done"
+          className="field"
+        />
       </section>
 
-      <section className="space-y-3 border-2 border-line bg-paper p-4">
-        <p className="text-[16px] font-black text-ink">4. 색 · 크기 (선택)</p>
-        <p className="text-[13px] font-semibold text-ink-muted">모르면 비워 두셔도 됩니다</p>
+      <section className="card overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          className="flex min-h-[3.5rem] w-full items-center justify-between gap-3 px-4 text-left"
+          aria-expanded={moreOpen}
+        >
+          <b className="shrink-0 text-[18px] font-extrabold">더 적기 {moreOpen ? '▴' : '▾'}</b>
+          <span className="truncate text-[16px] font-semibold text-ink-soft">{moreSummary}</span>
+        </button>
 
-        <Field label="색">
-          <select
-            value={colorSelectValue}
-            onChange={(e) => handleColorSelect(e.target.value)}
-            className={selectClass}
-          >
-            <option value="">색 고르기</option>
-            {COLOR_OPTIONS.map((color) => (
-              <option key={color} value={color}>
-                {color}
-              </option>
-            ))}
-            <option value="__custom__">목록에 없음 · 직접 쓰기</option>
-          </select>
-          {colorCustom && (
-            <input
-              type="text"
-              value={customColor}
-              onChange={(e) => {
-                setCustomColor(e.target.value)
-                updateField('color', e.target.value)
-              }}
-              placeholder="색 이름 적기"
-              className={`${inputClass} mt-2`}
-            />
-          )}
-        </Field>
+        {moreOpen && (
+          <div className="space-y-5 border-t border-line-soft px-4 pb-4 pt-4">
+            <div>
+              <p className="label">샀나요?</p>
+              <div className="grid grid-cols-3 gap-2">
+                {STATUSES.map((status) => (
+                  <Chip key={status} active={form.status === status} onClick={() => updateField('status', status)}>
+                    {statusLabel(status)}
+                  </Chip>
+                ))}
+              </div>
+              {form.status !== '구매' && (
+                <p className="mt-2 text-[16px] font-semibold text-warn">아직 안 산 것은 쓴 돈 합계에 들어가지 않아요</p>
+              )}
+            </div>
 
-        <Field label="크기">
-          <select
-            value={sizeSelectValue}
-            onChange={(e) => handleSizeSelect(e.target.value)}
-            className={selectClass}
-          >
-            <option value="">크기 고르기</option>
-            {SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-            <option value="__custom__">목록에 없음 · 직접 쓰기</option>
-          </select>
-          {sizeCustom && (
-            <input
-              type="text"
-              value={customSize}
-              onChange={(e) => {
-                setCustomSize(e.target.value)
-                updateField('size', e.target.value)
-              }}
-              placeholder="크기 적기"
-              className={`${inputClass} mt-2`}
-            />
-          )}
-        </Field>
+            <div>
+              <p className="label">옷 종류</p>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map((category) => (
+                  <Chip key={category} active={form.category === category} onClick={() => updateField('category', category)}>
+                    {category}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="label">색</span>
+                <select value={colorSelectValue} onChange={(e) => handleColorSelect(e.target.value)} className="field">
+                  <option value="">고르기</option>
+                  {COLOR_OPTIONS.map((color) => (
+                    <option key={color} value={color}>
+                      {color}
+                    </option>
+                  ))}
+                  <option value="__custom__">직접 쓰기</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="label">크기</span>
+                <select value={sizeSelectValue} onChange={(e) => handleSizeSelect(e.target.value)} className="field">
+                  <option value="">고르기</option>
+                  {SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                  <option value="__custom__">직접 쓰기</option>
+                </select>
+              </label>
+            </div>
+            {colorCustom && (
+              <input
+                type="text"
+                value={customColor}
+                onChange={(e) => {
+                  setCustomColor(e.target.value)
+                  updateField('color', e.target.value)
+                }}
+                placeholder="색 이름 적기"
+                className="field"
+                aria-label="색 직접 쓰기"
+              />
+            )}
+            {sizeCustom && (
+              <input
+                type="text"
+                value={customSize}
+                onChange={(e) => {
+                  setCustomSize(e.target.value)
+                  updateField('size', e.target.value)
+                }}
+                placeholder="크기 적기"
+                className="field"
+                aria-label="크기 직접 쓰기"
+              />
+            )}
+
+            <label className="block">
+              <span className="label">메모</span>
+              <input
+                type="text"
+                value={form.memo}
+                onChange={(e) => updateField('memo', e.target.value)}
+                placeholder="예: 봄에 팔 것, 단골 할인"
+                autoComplete="off"
+                className="field"
+              />
+            </label>
+          </div>
+        )}
       </section>
-
-      {isSaving && <p className="text-center text-[16px] font-bold text-ink-muted">저장하는 중…</p>}
     </form>
   )
 }
 
-function DateChip({ active, onClick, children }) {
+function Chip({ active, onClick, children }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        'tap-target border-2 text-[16px] font-black',
-        active ? 'border-brand bg-brand text-white' : 'border-line bg-wash text-ink',
-      ].join(' ')}
-    >
+    <button type="button" onClick={onClick} className={`chip ${active ? 'chip-on' : ''}`} aria-pressed={active}>
       {children}
     </button>
   )
 }
-
-function Field({ label, required, children }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[15px] font-black text-ink">
-        {label}
-        {required && <span className="ml-1 text-accent">필수</span>}
-      </span>
-      {children}
-    </label>
-  )
-}
-
-const inputClass =
-  'tap-target w-full border-2 border-line bg-paper px-3 py-3 text-[17px] font-semibold text-ink outline-none placeholder:text-ink-muted/70 focus:border-brand'
-
-const selectClass =
-  'tap-target w-full appearance-none border-2 border-line bg-paper px-3 py-3 text-[17px] font-bold text-ink outline-none focus:border-brand'

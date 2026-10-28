@@ -3,16 +3,16 @@ import { db } from '../db'
 import { createShop } from '../db/mutations'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { getLastShopId } from '../utils/lastShop'
-import { IconPlus, IconSearch } from './Icons'
+import { IconPlus } from './Icons'
 
 export default function ShopChipSelector({ selectedShopId, onSelect }) {
   const [search, setSearch] = useState('')
-  const [showSearch, setShowSearch] = useState(false)
-  const [showNewShop, setShowNewShop] = useState(false)
-  const [newShop, setNewShop] = useState({ name: '', building: '' })
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [building, setBuilding] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState(null)
 
-  const { data: shops } = useLiveQuery(
+  const { data: shops, isLoading } = useLiveQuery(
     () => db.shops.orderBy('lastVisitedAt').reverse().toArray(),
     [],
   )
@@ -23,186 +23,144 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
     [shops, selectedShopId],
   )
 
+  // 최근 가게 6곳 (마지막에 고른 가게·지금 고른 가게를 앞에)
   const recentShops = useMemo(() => {
-    const list = visibleShops
-    const lastId = getLastShopId()
-    if (!lastId) return list.slice(0, 6)
-    const last = list.find((s) => s.id === lastId)
-    const rest = list.filter((s) => s.id !== lastId)
-    return last ? [last, ...rest].slice(0, 6) : list.slice(0, 6)
-  }, [visibleShops])
+    const front = [selectedShopId, getLastShopId()].filter(Boolean)
+    const picked = front.map((id) => visibleShops.find((s) => s.id === id)).filter(Boolean)
+    const rest = visibleShops.filter((s) => !front.includes(s.id))
+    return [...new Map([...picked, ...rest].map((s) => [s.id, s])).values()].slice(0, 6)
+  }, [visibleShops, selectedShopId])
 
+  const query = search.trim()
   const filteredShops = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = query.toLowerCase()
     if (!q) return []
     return visibleShops.filter(
-      (shop) =>
-        shop.name.toLowerCase().includes(q) ||
-        shop.building?.toLowerCase().includes(q),
+      (shop) => shop.name.toLowerCase().includes(q) || shop.building?.toLowerCase().includes(q),
     )
-  }, [visibleShops, search])
+  }, [visibleShops, query])
+  const exactMatch = filteredShops.some((shop) => shop.name === query)
+  const noShops = !isLoading && visibleShops.length === 0
+  const showPanel = panelOpen || noShops
 
-  const showAddNew = search.trim().length > 0 && filteredShops.length === 0 && !showNewShop
+  function closePanel() {
+    setPanelOpen(false)
+    setSearch('')
+    setBuilding('')
+    setError(null)
+  }
+
+  function pick(shopId) {
+    onSelect(shopId)
+    closePanel()
+  }
 
   async function handleCreateShop() {
-    if (!newShop.name.trim()) return
+    if (!query) return
     setIsCreating(true)
+    setError(null)
     try {
-      const id = await createShop(newShop)
-      onSelect(id)
-      setSearch('')
-      setShowNewShop(false)
-      setShowSearch(false)
-      setNewShop({ name: '', building: '' })
+      const id = await createShop({ name: query, building })
+      pick(id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '가게를 추가하지 못했어요. 다시 눌러 주세요.')
     } finally {
       setIsCreating(false)
     }
   }
 
-  function openNewShopForm() {
-    setNewShop({ name: search.trim(), building: '' })
-    setShowNewShop(true)
-  }
-
-  const selectedShop = shops?.find((s) => s.id === selectedShopId)
-
   return (
-    <div className="space-y-3">
-      {recentShops.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="label mb-0">어느 가게예요?</p>
+        {!noShops && (
+          <button
+            type="button"
+            onClick={() => (panelOpen ? closePanel() : setPanelOpen(true))}
+            className="flex min-h-[2.75rem] items-center gap-1 px-1 text-[17px] font-bold text-brand"
+            aria-expanded={panelOpen}
+          >
+            {panelOpen ? (
+              '닫기'
+            ) : (
+              <>
+                <IconPlus className="h-5 w-5" />
+                다른 가게
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {recentShops.length > 0 && !panelOpen && (
+        <div className="flex flex-wrap gap-2">
           {recentShops.map((shop) => (
             <button
               key={shop.id}
               type="button"
               onClick={() => onSelect(shop.id)}
-              className={[
-                'tap-target shrink-0 border-2 px-4 text-[15px] font-bold',
-                selectedShopId === shop.id
-                  ? 'border-good bg-good text-white'
-                  : 'border-line bg-wash text-ink',
-              ].join(' ')}
+              className={`chip ${selectedShopId === shop.id ? 'chip-on' : ''}`}
+              aria-pressed={selectedShopId === shop.id}
             >
+              {selectedShopId === shop.id && '✓ '}
               {shop.name}
-              {shop.building ? (
-                <span className="ml-1 text-[12px] font-medium opacity-80">{shop.building}</span>
-              ) : null}
+              {shop.building && <span className="text-[16px] font-semibold opacity-75">{shop.building}</span>}
             </button>
           ))}
         </div>
       )}
 
-      {!showSearch ? (
-        <button
-          type="button"
-          onClick={() => setShowSearch(true)}
-          className="inline-flex items-center gap-1 text-[15px] font-bold text-brand"
-        >
-          <IconSearch className="h-4 w-4" />
-          다른 가게 찾기 / 추가
-        </button>
-      ) : (
-        <div className="space-y-2">
+      {showPanel && (
+        <div className="card space-y-3 p-3">
           <input
             type="search"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setShowNewShop(false)
-            }}
-            placeholder="가게 이름 검색"
-            autoFocus
-            className="tap-target w-full border-2 border-line bg-wash px-3 text-[16px] outline-none focus:border-brand focus:bg-paper"
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={noShops ? '가게 이름을 적어 주세요' : '가게 이름으로 찾기'}
+            autoFocus={!noShops}
+            className="field"
+            aria-label="가게 이름"
           />
-          <button
-            type="button"
-            onClick={() => {
-              setShowSearch(false)
-              setSearch('')
-              setShowNewShop(false)
-            }}
-            className="text-[14px] font-bold text-ink-muted"
-          >
-            검색 닫기
-          </button>
+
+          {filteredShops.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {filteredShops.map((shop) => (
+                <button key={shop.id} type="button" onClick={() => pick(shop.id)} className="chip">
+                  {shop.name}
+                  {shop.building && <span className="text-[16px] font-semibold opacity-75">{shop.building}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {query && !exactMatch && (
+            <div className="space-y-2 rounded-[10px] bg-good-soft p-3">
+              <p className="text-[17px] font-bold text-good">「{query}」 새 가게로 추가</p>
+              <input
+                type="text"
+                value={building}
+                onChange={(e) => setBuilding(e.target.value)}
+                placeholder="상가 이름 (없어도 돼요)"
+                className="field"
+                aria-label="상가 이름"
+              />
+              <button
+                type="button"
+                disabled={isCreating}
+                onClick={handleCreateShop}
+                className="btn w-full bg-good text-white"
+              >
+                {isCreating ? '추가하는 중…' : '이 가게 추가하고 고르기'}
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <p className="text-[16px] font-bold text-red-700" role="alert">
+              {error}
+            </p>
+          )}
         </div>
-      )}
-
-      {search && filteredShops.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {filteredShops.map((shop) => (
-            <button
-              key={shop.id}
-              type="button"
-              onClick={() => {
-                onSelect(shop.id)
-                setSearch('')
-                setShowSearch(false)
-              }}
-              className={[
-                ' border-2 px-3 py-2 text-[15px] font-bold',
-                selectedShopId === shop.id
-                  ? 'border-good bg-good text-white'
-                  : 'border-line bg-wash text-ink',
-              ].join(' ')}
-            >
-              {shop.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {showAddNew && (
-        <button
-          type="button"
-          onClick={openNewShopForm}
-          className="tap-target flex w-full items-center justify-center gap-2 border-2 border-dashed border-good bg-good-soft text-[15px] font-bold text-good"
-        >
-          <IconPlus className="h-5 w-5" />
-          &quot;{search.trim()}&quot; 새 가게로 추가
-        </button>
-      )}
-
-      {showNewShop && (
-        <div className="space-y-2 border-2 border-line bg-wash p-3">
-          <input
-            type="text"
-            value={newShop.name}
-            onChange={(e) => setNewShop((s) => ({ ...s, name: e.target.value }))}
-            placeholder="가게명 *"
-            className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] outline-none focus:border-brand"
-          />
-          <input
-            type="text"
-            value={newShop.building}
-            onChange={(e) => setNewShop((s) => ({ ...s, building: e.target.value }))}
-            placeholder="상가명 (청평화, APM…)"
-            className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] outline-none focus:border-brand"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowNewShop(false)}
-              className="tap-target flex-1 border-2 border-line bg-paper text-[15px] font-bold text-ink-muted"
-            >
-              취소
-            </button>
-            <button
-              type="button"
-              disabled={!newShop.name.trim() || isCreating}
-              onClick={handleCreateShop}
-              className="tap-target flex-1 bg-good text-[15px] font-bold text-white disabled:opacity-50"
-            >
-              {isCreating ? '추가 중…' : '추가'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {selectedShop && (
-        <p className=" bg-good-soft px-3 py-2 text-[15px] font-bold text-good">
-          선택됨: {selectedShop.name}
-          {selectedShop.building ? ` · ${selectedShop.building}` : ''}
-        </p>
       )}
     </div>
   )

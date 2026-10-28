@@ -43,7 +43,3 @@ export function buildInviteUrl(code, origin = typeof window !== 'undefined' ? wi
   if (!normalized || !origin) return ''
   return `${origin.replace(/\/$/, '')}/join/${encodeURIComponent(normalized)}`
 }
-
-export function qrImageUrl(data, size = 240) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
-}

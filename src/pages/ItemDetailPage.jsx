@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import CameraInput from '../components/CameraInput'
 import ConfirmDialog from '../components/ConfirmDialog'
 import EmptyState from '../components/EmptyState'
+import SubPage from '../components/SubPage'
 import PhotoThumbnail from '../components/PhotoThumbnail'
 import RegisterForm from '../components/RegisterForm'
 import StatusBadge from '../components/StatusBadge'
@@ -133,10 +134,7 @@ export default function ItemDetailPage() {
     return (
       <Shell onBack={goBack}>
         <EmptyState title="기록을 찾을 수 없어요" description="이미 지웠거나 잘못된 주소예요." />
-        <Link
-          to="/history"
-          className="tap-target mt-4 flex items-center justify-center border-2 border-line text-[17px] font-black text-ink"
-        >
+        <Link to="/history" className="btn btn-outline mt-4 w-full">
           장부로 가기
         </Link>
       </Shell>
@@ -148,17 +146,17 @@ export default function ItemDetailPage() {
   return (
     <Shell onBack={goBack} title={isEditing ? '기록 고치기' : '기록 자세히'}>
       {message && !isEditing && (
-        <div className="mb-4 border-2 border-good bg-good-soft px-4 py-3 text-[17px] font-black text-good" aria-live="polite">
+        <div className="mb-4 rounded-[10px] bg-good-soft px-4 py-3 text-[17px] font-extrabold text-good" aria-live="polite">
           ✓ {message}
         </div>
       )}
       {error && (
-        <div className="mb-4 border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700" role="alert">
+        <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700" role="alert">
           {error}
         </div>
       )}
 
-      <section className="mb-4 border-2 border-line bg-paper p-3">
+      <section className="card mb-4 p-3">
         {currentPhoto ? (
           <BigPhoto blob={currentPhoto.blob} alt={item.name} />
         ) : (
@@ -172,7 +170,7 @@ export default function ItemDetailPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedPhoto(index)}
-                  className={['border-4', currentPhoto?.id === photo.id ? 'border-brand' : 'border-transparent'].join(' ')}
+                  className={['rounded-[12px] border-4', currentPhoto?.id === photo.id ? 'border-brand' : 'border-transparent'].join(' ')}
                   aria-label={`사진 ${index + 1} 크게 보기`}
                 >
                   <PhotoThumbnail blob={photo.blob} alt={`사진 ${index + 1}`} size="md" />
@@ -181,7 +179,7 @@ export default function ItemDetailPage() {
                   <button
                     type="button"
                     onClick={() => handleRemovePhoto(photo.id)}
-                    className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center border-2 border-white bg-red-600 text-white"
+                    className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-red-600 text-white"
                     aria-label={`사진 ${index + 1} 빼기`}
                   >
                     <IconClose className="h-5 w-5" />
@@ -198,7 +196,7 @@ export default function ItemDetailPage() {
               type="button"
               disabled={isAddingPhoto}
               onClick={() => inputRef.current?.openCamera()}
-              className="tap-target inline-flex items-center justify-center gap-2 whitespace-nowrap bg-accent text-[17px] font-black text-white disabled:opacity-50"
+              className="btn btn-soft"
             >
               <IconCamera className="h-6 w-6" />
               사진 찍기
@@ -207,7 +205,7 @@ export default function ItemDetailPage() {
               type="button"
               disabled={isAddingPhoto}
               onClick={() => inputRef.current?.openGallery()}
-              className="tap-target inline-flex items-center justify-center gap-2 whitespace-nowrap border-2 border-brand bg-brand-soft text-[17px] font-black text-brand-dark disabled:opacity-50"
+              className="btn btn-soft"
             >
               <IconGallery className="h-6 w-6" />
               사진 고르기
@@ -224,21 +222,21 @@ export default function ItemDetailPage() {
             updateField={updateField}
             selectShop={selectShop}
             onSubmit={handleSave}
-            isSaving={isSaving}
+            defaultMoreOpen
           />
-          <div className="sticky bottom-0 -mx-4 mt-4 space-y-2 border-t-2 border-line bg-paper px-4 py-3 safe-bottom">
+          <div className="sticky bottom-0 -mx-4 mt-6 space-y-2 bg-paper px-4 pt-3 shadow-[0_-4px_18px_rgb(15_23_42/0.08)] safe-bottom">
             <button
               type="button"
               onClick={handleSave}
               disabled={!canSave || isSaving}
-              className="tap-target w-full bg-good text-[19px] font-black text-white disabled:opacity-40"
+              className="btn btn-accent w-full text-[19px]"
             >
               {isSaving ? '저장하는 중…' : '고친 내용 저장하기'}
             </button>
             <button
               type="button"
               onClick={() => setForm(null)}
-              className="tap-target w-full border-2 border-line text-[17px] font-bold text-ink"
+              className="btn btn-outline w-full"
             >
               고치지 않고 돌아가기
             </button>
@@ -246,9 +244,9 @@ export default function ItemDetailPage() {
         </>
       ) : (
         <>
-          <section className="border-2 border-line bg-paper p-4">
+          <section className="card p-4">
             <div className="flex items-start justify-between gap-3">
-              <h2 className="min-w-0 break-keep text-[22px] font-black text-ink">{item.name || '이름 없는 물건'}</h2>
+              <h2 className="min-w-0 break-keep text-[23px] font-extrabold text-ink">{item.name || '이름 없는 물건'}</h2>
               <StatusBadge status={item.status} />
             </div>
             <p className="mt-1 text-[17px] font-bold text-ink-muted">
@@ -256,19 +254,19 @@ export default function ItemDetailPage() {
               {shopLocation(item.shop) ? ` · ${shopLocation(item.shop)}` : ''}
             </p>
 
-            <div className="mt-4 bg-brand-soft px-4 py-3">
+            <div className="mt-4 rounded-[12px] bg-brand-soft px-4 py-3">
               <p className="text-[16px] font-bold text-ink-muted tabular">
                 {formatCurrency(item.price)} × {item.qty}개
               </p>
-              <p className="text-[28px] font-black text-brand tabular">{formatCurrency(total)}</p>
+              <p className="text-[30px] font-extrabold text-brand tabular">{formatCurrency(total)}</p>
               {item.status && item.status !== '구매' && (
-                <p className="mt-1 text-[15px] font-bold text-warn">아직 안 산 것이라 쓴 돈 합계에는 들어가지 않아요</p>
+                <p className="mt-1 text-[16px] font-bold text-warn">아직 안 산 것이라 쓴 돈 합계에는 들어가지 않아요</p>
               )}
             </div>
 
             <dl className="mt-4 space-y-3">
               <InfoRow label="산 날">{formatDateLabel(item.date)}</InfoRow>
-              <InfoRow label="옷 종류">{item.category || '기타'}</InfoRow>
+              <InfoRow label="종류">{item.category || '기타'}</InfoRow>
               {item.color && <InfoRow label="색">{item.color}</InfoRow>}
               {item.size && <InfoRow label="크기">{item.size}</InfoRow>}
               {item.memo && <InfoRow label="메모">{item.memo}</InfoRow>}
@@ -282,14 +280,14 @@ export default function ItemDetailPage() {
                 setMessage(null)
                 setForm(itemToForm(item))
               }}
-              className="tap-target w-full bg-brand text-[19px] font-black text-white"
+              className="btn btn-primary w-full text-[19px]"
             >
               고치기
             </button>
             <button
               type="button"
               onClick={() => setShowDelete(true)}
-              className="tap-target w-full border-2 border-red-200 bg-red-50 text-[17px] font-bold text-red-700"
+              className="btn btn-text-danger w-full"
             >
               이 기록 지우기
             </button>
@@ -317,34 +315,22 @@ export default function ItemDetailPage() {
 
 function Shell({ title = '기록 자세히', onBack, children }) {
   return (
-    <div className="min-h-dvh bg-wash">
-      <header className="sticky top-0 z-10 border-b-2 border-line bg-paper px-2 py-2">
-        <div className="mx-auto flex max-w-lg items-center gap-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className="tap-target inline-flex items-center px-3 text-[17px] font-bold text-ink-muted"
-          >
-            ← 뒤로
-          </button>
-          <h1 className="text-[20px] font-black text-ink">{title}</h1>
-        </div>
-      </header>
-      <main className="mx-auto max-w-lg px-4 py-4 pb-10">{children}</main>
-    </div>
+    <SubPage title={title} onBack={onBack}>
+      {children}
+    </SubPage>
   )
 }
 
 function BigPhoto({ blob, alt }) {
   const url = useObjectUrl(blob)
   if (!url) return <div className="skeleton aspect-square w-full" />
-  return <img src={url} alt={alt} className="max-h-[60vh] w-full bg-wash object-contain" />
+  return <img src={url} alt={alt} className="max-h-[60vh] w-full rounded-[12px] bg-wash object-contain" />
 }
 
 function InfoRow({ label, children }) {
   return (
     <div className="flex gap-3">
-      <dt className="w-20 shrink-0 text-[16px] font-bold text-ink-muted">{label}</dt>
+      <dt className="w-16 shrink-0 text-[16px] font-bold text-ink-soft">{label}</dt>
       <dd className="min-w-0 whitespace-pre-wrap break-keep text-[17px] font-semibold text-ink">{children}</dd>
     </div>
   )
