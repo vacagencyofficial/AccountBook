@@ -125,7 +125,7 @@ function FilterChip({ active, onClick, children }) {
       type="button"
       onClick={onClick}
       className={[
-        'rounded-xl border-2 px-3 py-2.5 text-[15px] font-black',
+        ' border-2 px-3 py-2.5 text-[15px] font-black',
         active ? 'border-ledger bg-ledger text-white' : 'border-line bg-paper text-ink',
       ].join(' ')}
     >
@@ -135,4 +135,4 @@ function FilterChip({ active, onClick, children }) {
 }
 
 const inputClass =
-  'tap-target w-full rounded-xl border-2 border-line bg-paper px-3 text-[16px] font-semibold text-ink outline-none focus:border-ledger'
+  'tap-target w-full border-2 border-line bg-paper px-3 text-[16px] font-semibold text-ink outline-none focus:border-ledger'

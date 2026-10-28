@@ -9,7 +9,7 @@ export default function CompressionInfo({ result }) {
       : 0
 
   return (
-    <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">
+    <div className=" bg-slate-50 px-4 py-3 text-xs text-slate-600">
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         <span>
           크기 {result.width}×{result.height}px

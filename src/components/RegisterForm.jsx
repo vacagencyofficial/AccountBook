@@ -114,13 +114,13 @@ export default function RegisterForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <section className="rounded-2xl border-2 border-good/40 bg-paper p-4 tone-rail-good">
+      <section className=" border-2 border-good/40 bg-paper p-4 tone-rail-good">
         <p className="mb-1 text-[16px] font-black text-good">1. 어느 가게인가요?</p>
         <p className="mb-3 text-[14px] font-semibold text-ink-muted">초록 버튼을 눌러 고르세요</p>
         <ShopChipSelector selectedShopId={form.shopId} onSelect={selectShop} />
       </section>
 
-      <section className="space-y-3 rounded-2xl border-2 border-brand/40 bg-paper p-4 tone-rail-brand">
+      <section className="space-y-3 border-2 border-brand/40 bg-paper p-4 tone-rail-brand">
         <p className="text-[16px] font-black text-brand">2. 이름 · 가격 · 몇 개</p>
 
         <Field label="옷 이름" required>
@@ -161,7 +161,7 @@ export default function RegisterForm({
                 type="button"
                 onClick={() => updateField('qty', value)}
                 className={[
-                  'tap-target rounded-xl border-2 text-[16px] font-black',
+                  'tap-target border-2 text-[16px] font-black',
                   form.qty === value
                     ? 'border-brand bg-brand text-white'
                     : 'border-line bg-wash text-ink',
@@ -199,7 +199,7 @@ export default function RegisterForm({
         </Field>
       </section>
 
-      <section className="space-y-3 rounded-2xl border-2 border-ledger/40 bg-paper p-4 tone-rail-ledger">
+      <section className="space-y-3 border-2 border-ledger/40 bg-paper p-4 tone-rail-ledger">
         <p className="text-[16px] font-black text-ledger">3. 옷 종류 · 상태</p>
 
         <Field label="옷 종류">
@@ -231,7 +231,7 @@ export default function RegisterForm({
         </Field>
       </section>
 
-      <section className="space-y-3 rounded-2xl border-2 border-line bg-paper p-4">
+      <section className="space-y-3 border-2 border-line bg-paper p-4">
         <p className="text-[16px] font-black text-ink">4. 색 · 크기 (선택)</p>
         <p className="text-[13px] font-semibold text-ink-muted">모르면 비워 두셔도 됩니다</p>
 
@@ -310,7 +310,7 @@ function Field({ label, required, children }) {
 }
 
 const inputClass =
-  'tap-target w-full rounded-xl border-2 border-line bg-paper px-3 py-3 text-[17px] font-semibold text-ink outline-none placeholder:text-ink-muted/70 focus:border-brand'
+  'tap-target w-full border-2 border-line bg-paper px-3 py-3 text-[17px] font-semibold text-ink outline-none placeholder:text-ink-muted/70 focus:border-brand'
 
 const selectClass =
-  'tap-target w-full appearance-none rounded-xl border-2 border-line bg-paper px-3 py-3 text-[17px] font-bold text-ink outline-none focus:border-brand'
+  'tap-target w-full appearance-none border-2 border-line bg-paper px-3 py-3 text-[17px] font-bold text-ink outline-none focus:border-brand'

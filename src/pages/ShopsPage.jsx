@@ -45,7 +45,7 @@ export default function ShopsPage() {
         action={
           <Link
             to="/shops/new"
-            className="tap-target inline-flex items-center gap-1 rounded-xl bg-good px-3 text-[15px] font-black text-white"
+            className="tap-target inline-flex items-center gap-1 bg-good px-3 text-[15px] font-black text-white"
           >
             <IconPlus className="h-4 w-4" />
             새 가게
@@ -59,7 +59,7 @@ export default function ShopsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="가게 이름·상가 찾기"
-            className="tap-target w-full rounded-xl border-2 border-good/40 bg-paper pl-10 pr-3 text-[16px] font-semibold outline-none focus:border-good"
+            className="tap-target w-full border-2 border-good/40 bg-paper pl-10 pr-3 text-[16px] font-semibold outline-none focus:border-good"
           />
         </div>
       </PageHeader>
@@ -68,7 +68,7 @@ export default function ShopsPage() {
         {isLoading ? (
           <div className="space-y-2 py-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton h-16 rounded-2xl" />
+              <div key={i} className="skeleton h-16" />
             ))}
           </div>
         ) : filtered.length === 0 ? (

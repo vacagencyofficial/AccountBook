@@ -5,7 +5,7 @@ export default function ShopRow({ shop, itemCount }) {
   return (
     <li>
       <Link to={`/shops/${shop.id}`} className="flex items-center gap-3 py-4 active:bg-wash">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-good-soft text-[18px] font-black text-good">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-good-soft text-[18px] font-black text-good">
           {shop.name.slice(0, 1)}
         </div>
 
@@ -13,7 +13,7 @@ export default function ShopRow({ shop, itemCount }) {
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-[17px] font-black text-ink">{shop.name}</p>
             {itemCount != null && (
-              <span className="shrink-0 rounded-full bg-wash px-2 py-0.5 text-[13px] font-bold text-ink-muted">
+              <span className="shrink-0 bg-wash px-2 py-0.5 text-[13px] font-bold text-ink-muted">
                 {itemCount}건
               </span>
             )}

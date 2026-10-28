@@ -68,19 +68,19 @@ export default function JoinPage() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-wash px-6 text-center">
-      <div className="w-full max-w-sm rounded-3xl border-2 border-line bg-paper p-6">
+      <div className="w-full max-w-sm border-2 border-line bg-paper p-6">
         <p className="text-[15px] font-black text-brand">사입노트</p>
         <h1 className="mt-2 text-[22px] font-black text-ink">
           {status === 'done' ? '연결 완료' : status === 'error' || status === 'cancelled' ? '연결 안내' : '장부 초대'}
         </h1>
         <p className="mt-3 text-[16px] font-medium leading-relaxed text-ink-muted">{detail}</p>
         {joinedCode && status === 'done' && (
-          <p className="mt-3 rounded-xl bg-good-soft px-3 py-2 text-[15px] font-bold text-good">{joinedCode}</p>
+          <p className="mt-3 bg-good-soft px-3 py-2 text-[15px] font-bold text-good">{joinedCode}</p>
         )}
         {(status === 'error' || status === 'cancelled' || status === 'done') && (
           <Link
             to={status === 'done' ? '/' : '/settings'}
-            className="tap-target mt-6 flex w-full items-center justify-center rounded-2xl bg-brand text-[16px] font-black text-white"
+            className="tap-target mt-6 flex w-full items-center justify-center bg-brand text-[16px] font-black text-white"
           >
             {status === 'done' ? '홈으로' : '설정으로 이동'}
           </Link>

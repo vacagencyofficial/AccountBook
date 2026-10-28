@@ -25,7 +25,7 @@ export default function ItemRow({ item, showDate = false }) {
 
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-ink-muted">
           {showDate && (
-            <span className="rounded-lg bg-wash px-2 py-0.5">{formatDateLabel(item.date)}</span>
+            <span className=" bg-wash px-2 py-0.5">{formatDateLabel(item.date)}</span>
           )}
           <StatusBadge status={item.status} />
           <span>

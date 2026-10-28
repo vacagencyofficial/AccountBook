@@ -7,7 +7,7 @@ const TONES = {
 export default function StatusBadge({ status }) {
   const label = status || '구매'
   return (
-    <span className={`inline-flex rounded-lg px-2 py-0.5 text-[13px] font-black ${TONES[label] ?? TONES['구매']}`}>
+    <span className={`inline-flex px-2 py-0.5 text-[13px] font-black ${TONES[label] ?? TONES['구매']}`}>
       {label}
     </span>
   )

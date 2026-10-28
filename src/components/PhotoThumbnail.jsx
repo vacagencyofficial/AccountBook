@@ -13,11 +13,11 @@ export default function PhotoThumbnail({ blob, alt = '', size = 'md' }) {
 
   if (!url) {
     return (
-      <div className={`flex ${box} shrink-0 items-center justify-center rounded-xl bg-wash text-ink-muted`}>
+      <div className={`flex ${box} shrink-0 items-center justify-center bg-wash text-ink-muted`}>
         <IconGallery className="h-6 w-6" />
       </div>
     )
   }
 
-  return <img src={url} alt={alt} className={`${box} shrink-0 rounded-xl object-cover bg-wash`} />
+  return <img src={url} alt={alt} className={`${box} shrink-0 object-cover bg-wash`} />
 }

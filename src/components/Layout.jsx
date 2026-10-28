@@ -42,7 +42,7 @@ export default function Layout() {
                 end={end}
                 className={({ isActive }) =>
                   [
-                    'tap-target flex flex-col items-center justify-center gap-0.5 rounded-2xl border-2 px-1 py-1.5 text-[14px] font-black',
+                    'tap-target flex flex-col items-center justify-center gap-0.5 border-2 px-1 py-1.5 text-[14px] font-black',
                     isActive ? active : `border-transparent ${idle}`,
                   ].join(' ')
                 }

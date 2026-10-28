@@ -112,7 +112,7 @@ export default function HistoryPage() {
   return (
     <div>
       <PageHeader title="장부" subtitle="모아서 보고, 엑셀로 챙겨 두세요" tone="ledger">
-        <div className="mt-4 flex items-end justify-between rounded-2xl border-2 border-ledger/40 bg-paper px-4 py-3 tone-rail-ledger">
+        <div className="mt-4 flex items-end justify-between border-2 border-ledger/40 bg-paper px-4 py-3 tone-rail-ledger">
           <div>
             <p className="inline-flex items-center gap-1 text-[14px] font-black text-ledger">
               <IconMoney className="h-4 w-4" />
@@ -136,7 +136,7 @@ export default function HistoryPage() {
               type="checkbox"
               checked={includePhotos}
               onChange={(e) => setIncludePhotos(e.target.checked)}
-              className="h-5 w-5 rounded border-line"
+              className="h-5 w-5 border-line"
             />
             엑셀에 사진도 같이 넣기
           </label>
@@ -145,7 +145,7 @@ export default function HistoryPage() {
               type="button"
               onClick={handleExport}
               disabled={!canExport}
-              className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-good text-[17px] font-black text-white disabled:opacity-40"
+              className="tap-target flex items-center justify-center gap-2 bg-good text-[17px] font-black text-white disabled:opacity-40"
             >
               <IconExcel className="h-5 w-5" />
               {isExporting ? '저장하는 중…' : '엑셀로 저장하기'}
@@ -154,7 +154,7 @@ export default function HistoryPage() {
               type="button"
               onClick={handleImportClick}
               disabled={isImporting}
-              className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-brand text-[17px] font-black text-white disabled:opacity-50"
+              className="tap-target flex items-center justify-center gap-2 bg-brand text-[17px] font-black text-white disabled:opacity-50"
             >
               <IconExcel className="h-5 w-5" />
               {isImporting ? '가져오는 중…' : '엑셀에서 가져오기'}
@@ -163,7 +163,7 @@ export default function HistoryPage() {
               type="button"
               onClick={handleBackup}
               disabled={isBackingUp}
-              className="tap-target rounded-2xl border-2 border-warn bg-warn-soft text-[16px] font-black text-warn disabled:opacity-50"
+              className="tap-target border-2 border-warn bg-warn-soft text-[16px] font-black text-warn disabled:opacity-50"
             >
               {isBackingUp ? '보관하는 중…' : '사진까지 통째로 보관하기'}
             </button>
@@ -223,7 +223,7 @@ export default function HistoryPage() {
           {isLoading ? (
             <div className="space-y-2 py-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="skeleton h-20 rounded-2xl" />
+                <div key={i} className="skeleton h-20" />
               ))}
             </div>
           ) : hasNoData ? (

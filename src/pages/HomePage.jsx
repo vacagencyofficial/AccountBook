@@ -43,13 +43,13 @@ export default function HomePage() {
   return (
     <div>
       <PageHeader brand subtitle={`${formatTodayHeader()} · 오늘도 수고하세요`} tone="brand">
-        <p className="mt-3 rounded-xl bg-paper/80 px-3 py-2 text-[14px] font-bold leading-snug text-ink-muted">
+        <p className="mt-3 bg-paper/80 px-3 py-2 text-[14px] font-bold leading-snug text-ink-muted">
           <span className="text-accent">주황</span>은 사진 · <span className="text-good">초록</span>은 가게 ·{' '}
           <span className="text-ledger">보라</span>는 장부입니다
         </p>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="tone-rail-brand rounded-2xl border-2 border-brand/40 bg-paper p-3">
+          <div className="tone-rail-brand border-2 border-brand/40 bg-paper p-3">
             <p className="inline-flex items-center gap-1 text-[14px] font-black text-brand">
               <IconCalendar className="h-4 w-4" />
               오늘 쓴 돈
@@ -59,7 +59,7 @@ export default function HomePage() {
             </p>
             <p className="mt-2 text-[14px] font-bold text-ink-muted">{countLabel(todaySummary.count, todaySummary.qty)}</p>
           </div>
-          <div className="tone-rail-good rounded-2xl border-2 border-good/40 bg-paper p-3">
+          <div className="tone-rail-good border-2 border-good/40 bg-paper p-3">
             <p className="inline-flex items-center gap-1 text-[14px] font-black text-good">
               <IconMoney className="h-4 w-4" />
               {formatMonthLabel()} 합계
@@ -73,7 +73,7 @@ export default function HomePage() {
 
         <Link
           to="/capture"
-          className="tap-target mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-[19px] font-black text-white shadow-md shadow-accent/30 active:bg-accent-dark"
+          className="tap-target mt-4 flex w-full items-center justify-center gap-2 bg-accent py-4 text-[19px] font-black text-white shadow-md shadow-accent/30 active:bg-accent-dark"
         >
           <IconCamera className="h-7 w-7" />
           사진 찍고 적기
@@ -85,7 +85,7 @@ export default function HomePage() {
         <section className="tone-rail-good border-b-2 border-line bg-paper px-4 py-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="inline-flex items-center gap-2 text-[18px] font-black text-good">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-good-soft">
+              <span className="flex h-9 w-9 items-center justify-center bg-good-soft">
                 <IconShop className="h-5 w-5" />
               </span>
               이번 달 많이 간 가게
@@ -99,7 +99,7 @@ export default function HomePage() {
               const content = (
                 <>
                   <span className="min-w-0 truncate font-bold text-ink">
-                    <span className="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-good-soft text-[15px] font-black text-good">
+                    <span className="mr-2 inline-flex h-8 w-8 items-center justify-center bg-good-soft text-[15px] font-black text-good">
                       {index + 1}
                     </span>
                     {row.shop?.name ?? '없는 가게'}
@@ -143,7 +143,7 @@ export default function HomePage() {
             {categoryRanks.map((row) => (
               <span
                 key={row.category}
-                className="rounded-xl border-2 border-brand/25 bg-brand-soft px-3 py-2 text-[15px] font-bold text-brand-dark"
+                className=" border-2 border-brand/25 bg-brand-soft px-3 py-2 text-[15px] font-bold text-brand-dark"
               >
                 {row.category} · {row.count}개 · {formatCurrency(row.total)}
               </span>
@@ -155,7 +155,7 @@ export default function HomePage() {
       <section className="bg-paper px-4 py-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[18px] font-black text-ink">오늘 적으신 것</h2>
-          <span className="rounded-full bg-brand-soft px-3 py-1 text-[14px] font-black text-brand">
+          <span className=" bg-brand-soft px-3 py-1 text-[14px] font-black text-brand">
             {todaySummary.count}개
           </span>
         </div>
@@ -163,7 +163,7 @@ export default function HomePage() {
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="skeleton h-20 rounded-2xl" />
+              <div key={i} className="skeleton h-20" />
             ))}
           </div>
         ) : todayItems.length === 0 ? (

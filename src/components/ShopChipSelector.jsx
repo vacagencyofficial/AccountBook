@@ -71,7 +71,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
               type="button"
               onClick={() => onSelect(shop.id)}
               className={[
-                'tap-target shrink-0 rounded-xl border-2 px-4 text-[15px] font-bold',
+                'tap-target shrink-0 border-2 px-4 text-[15px] font-bold',
                 selectedShopId === shop.id
                   ? 'border-good bg-good text-white'
                   : 'border-line bg-wash text-ink',
@@ -106,7 +106,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
             }}
             placeholder="가게 이름 검색"
             autoFocus
-            className="tap-target w-full rounded-xl border-2 border-line bg-wash px-3 text-[16px] outline-none focus:border-brand focus:bg-paper"
+            className="tap-target w-full border-2 border-line bg-wash px-3 text-[16px] outline-none focus:border-brand focus:bg-paper"
           />
           <button
             type="button"
@@ -134,7 +134,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
                 setShowSearch(false)
               }}
               className={[
-                'rounded-xl border-2 px-3 py-2 text-[15px] font-bold',
+                ' border-2 px-3 py-2 text-[15px] font-bold',
                 selectedShopId === shop.id
                   ? 'border-good bg-good text-white'
                   : 'border-line bg-wash text-ink',
@@ -150,7 +150,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
         <button
           type="button"
           onClick={openNewShopForm}
-          className="tap-target flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-good bg-good-soft text-[15px] font-bold text-good"
+          className="tap-target flex w-full items-center justify-center gap-2 border-2 border-dashed border-good bg-good-soft text-[15px] font-bold text-good"
         >
           <IconPlus className="h-5 w-5" />
           &quot;{search.trim()}&quot; 새 가게로 추가
@@ -158,26 +158,26 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
       )}
 
       {showNewShop && (
-        <div className="space-y-2 rounded-xl border-2 border-line bg-wash p-3">
+        <div className="space-y-2 border-2 border-line bg-wash p-3">
           <input
             type="text"
             value={newShop.name}
             onChange={(e) => setNewShop((s) => ({ ...s, name: e.target.value }))}
             placeholder="가게명 *"
-            className="tap-target w-full rounded-xl border-2 border-line bg-paper px-3 text-[16px] outline-none focus:border-brand"
+            className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] outline-none focus:border-brand"
           />
           <input
             type="text"
             value={newShop.building}
             onChange={(e) => setNewShop((s) => ({ ...s, building: e.target.value }))}
             placeholder="상가명 (청평화, APM…)"
-            className="tap-target w-full rounded-xl border-2 border-line bg-paper px-3 text-[16px] outline-none focus:border-brand"
+            className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] outline-none focus:border-brand"
           />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setShowNewShop(false)}
-              className="tap-target flex-1 rounded-xl border-2 border-line bg-paper text-[15px] font-bold text-ink-muted"
+              className="tap-target flex-1 border-2 border-line bg-paper text-[15px] font-bold text-ink-muted"
             >
               취소
             </button>
@@ -185,7 +185,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
               type="button"
               disabled={!newShop.name.trim() || isCreating}
               onClick={handleCreateShop}
-              className="tap-target flex-1 rounded-xl bg-good text-[15px] font-bold text-white disabled:opacity-50"
+              className="tap-target flex-1 bg-good text-[15px] font-bold text-white disabled:opacity-50"
             >
               {isCreating ? '추가 중…' : '추가'}
             </button>
@@ -194,7 +194,7 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
       )}
 
       {selectedShop && (
-        <p className="rounded-xl bg-good-soft px-3 py-2 text-[15px] font-bold text-good">
+        <p className=" bg-good-soft px-3 py-2 text-[15px] font-bold text-good">
           선택됨: {selectedShop.name}
           {selectedShop.building ? ` · ${selectedShop.building}` : ''}
         </p>

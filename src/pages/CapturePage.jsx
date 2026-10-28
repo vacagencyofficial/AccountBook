@@ -94,7 +94,7 @@ export default function CapturePage() {
         <button
           type="button"
           onClick={handleClose}
-          className="tap-target inline-flex items-center gap-1 rounded-xl px-3 text-[16px] font-semibold text-ink-muted"
+          className="tap-target inline-flex items-center gap-1 px-3 text-[16px] font-semibold text-ink-muted"
         >
           <IconClose className="h-5 w-5" />
           닫기
@@ -110,14 +110,14 @@ export default function CapturePage() {
 
       <main className="mx-auto w-full max-w-lg flex-1 overflow-y-auto px-4 py-4 pb-32">
         {error && (
-          <div className="mb-4 rounded-2xl border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-medium text-red-700">
+          <div className="mb-4 border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-medium text-red-700">
             {error}
           </div>
         )}
 
         {saveMessage && (
           <div
-            className={`mb-4 rounded-2xl border-2 px-4 py-3 text-[16px] font-medium ${
+            className={`mb-4 border-2 px-4 py-3 text-[16px] font-medium ${
               saveMessage.includes('실패')
                 ? 'border-red-300 bg-red-50 text-red-700'
                 : 'border-good bg-good-soft text-good'
@@ -129,7 +129,7 @@ export default function CapturePage() {
 
         {!showForm && !isCompressing && (
           <section className="space-y-4">
-            <div className="rounded-2xl border-2 border-accent/40 bg-accent-soft px-4 py-4">
+            <div className=" border-2 border-accent/40 bg-accent-soft px-4 py-4">
               <p className="text-[19px] font-black text-accent-dark">먼저 사진을 넣어 주세요</p>
               <p className="mt-1 text-[15px] font-semibold leading-relaxed text-ink-muted">
                 주황은 카메라, 파랑은 갤러리입니다. 편한 쪽을 누르세요.
@@ -140,9 +140,9 @@ export default function CapturePage() {
               type="button"
               disabled={busy}
               onClick={() => inputRef.current?.openCamera()}
-              className="tap-target flex w-full items-center gap-4 rounded-2xl bg-accent px-5 py-5 text-left text-white shadow-sm active:bg-accent-dark disabled:opacity-50"
+              className="tap-target flex w-full items-center gap-4 bg-accent px-5 py-5 text-left text-white shadow-sm active:bg-accent-dark disabled:opacity-50"
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20">
+              <span className="flex h-14 w-14 items-center justify-center bg-white/20">
                 <IconCamera className="h-8 w-8" />
               </span>
               <span>
@@ -155,9 +155,9 @@ export default function CapturePage() {
               type="button"
               disabled={busy}
               onClick={() => inputRef.current?.openGallery()}
-              className="tap-target flex w-full items-center gap-4 rounded-2xl border-2 border-brand bg-brand-soft px-5 py-5 text-left text-brand-dark active:bg-brand/10 disabled:opacity-50"
+              className="tap-target flex w-full items-center gap-4 border-2 border-brand bg-brand-soft px-5 py-5 text-left text-brand-dark active:bg-brand/10 disabled:opacity-50"
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white">
+              <span className="flex h-14 w-14 items-center justify-center bg-brand text-white">
                 <IconGallery className="h-8 w-8" />
               </span>
               <span>
@@ -169,14 +169,14 @@ export default function CapturePage() {
         )}
 
         {isCompressing && photos.length === 0 && (
-          <div className="rounded-2xl border-2 border-line bg-paper py-16 text-center text-[17px] font-medium text-ink-muted">
+          <div className=" border-2 border-line bg-paper py-16 text-center text-[17px] font-medium text-ink-muted">
             사진을 정리하는 중…
           </div>
         )}
 
         {showForm && (
           <>
-            <div className="mb-4 rounded-2xl border-2 border-line bg-paper p-3">
+            <div className="mb-4 border-2 border-line bg-paper p-3">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-[15px] font-black text-ink">이 사진으로 적을게요</p>
                 <div className="flex gap-2">
@@ -184,7 +184,7 @@ export default function CapturePage() {
                     type="button"
                     disabled={busy}
                     onClick={() => inputRef.current?.openCamera()}
-                    className="inline-flex items-center gap-1 rounded-xl bg-accent px-3 py-2 text-[14px] font-bold text-white disabled:opacity-50"
+                    className="inline-flex items-center gap-1 bg-accent px-3 py-2 text-[14px] font-bold text-white disabled:opacity-50"
                   >
                     <IconCamera className="h-4 w-4" />
                     촬영
@@ -193,7 +193,7 @@ export default function CapturePage() {
                     type="button"
                     disabled={busy}
                     onClick={() => inputRef.current?.openGallery()}
-                    className="inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-2 text-[14px] font-bold text-white disabled:opacity-50"
+                    className="inline-flex items-center gap-1 bg-brand px-3 py-2 text-[14px] font-bold text-white disabled:opacity-50"
                   >
                     <IconPlus className="h-4 w-4" />
                     갤러리
@@ -207,7 +207,7 @@ export default function CapturePage() {
                       type="button"
                       onClick={() => setSelectedId(photo.id)}
                       className={[
-                        'rounded-xl border-4',
+                        ' border-4',
                         selectedId === photo.id ? 'border-brand' : 'border-transparent',
                       ].join(' ')}
                     >
@@ -217,7 +217,7 @@ export default function CapturePage() {
                       <button
                         type="button"
                         onClick={() => handleRemovePhoto(photo.id)}
-                        className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white"
+                        className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center bg-red-600 text-white"
                         aria-label="사진 삭제"
                       >
                         <IconClose className="h-4 w-4" />
@@ -254,7 +254,7 @@ export default function CapturePage() {
               type="button"
               onClick={handleSave}
               disabled={busy || !isValid}
-              className="tap-target w-full rounded-2xl bg-good py-4 text-[18px] font-bold text-white disabled:opacity-40"
+              className="tap-target w-full bg-good py-4 text-[18px] font-bold text-white disabled:opacity-40"
             >
               {isSaving ? '저장하는 중…' : '다 적었으면 저장'}
             </button>

@@ -56,7 +56,7 @@ export default function InstallPrompt() {
 
   return (
     <div className="fixed inset-x-0 bottom-16 z-40 px-4 pb-2">
-      <div className="mx-auto max-w-lg rounded-2xl border-2 border-brand/40 bg-paper p-4 shadow-lg">
+      <div className="mx-auto max-w-lg border-2 border-brand/40 bg-paper p-4 shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[16px] font-black text-brand">홈 화면에 붙여 두실래요?</p>
@@ -78,7 +78,7 @@ export default function InstallPrompt() {
             <button
               type="button"
               onClick={handleAndroidInstall}
-              className="tap-target flex-1 rounded-xl bg-brand text-[15px] font-black text-white"
+              className="tap-target flex-1 bg-brand text-[15px] font-black text-white"
             >
               홈에 붙이기
             </button>
@@ -86,7 +86,7 @@ export default function InstallPrompt() {
           <button
             type="button"
             onClick={dismiss}
-            className="tap-target flex-1 rounded-xl border-2 border-line text-[15px] font-bold text-ink-muted"
+            className="tap-target flex-1 border-2 border-line text-[15px] font-bold text-ink-muted"
           >
             나중에
           </button>

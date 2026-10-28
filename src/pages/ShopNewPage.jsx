@@ -34,7 +34,7 @@ export default function ShopNewPage() {
 
       <main className="mx-auto max-w-lg px-4 py-6">
         {error && (
-          <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+          <div className="mb-4 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
         )}
 
         <div className="border-y border-line py-4">

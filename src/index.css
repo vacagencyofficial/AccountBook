@@ -100,6 +100,13 @@ textarea {
   min-height: 3.15rem;
 }
 
+/* 요청: 둥근 모서리(radius) 사용하지 않음 — 각진 UI */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
 /* 색 의미 띠 — 화면 구분용 */
 .tone-rail-brand {
   box-shadow: inset 6px 0 0 0 var(--color-brand);

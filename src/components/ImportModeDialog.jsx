@@ -16,7 +16,7 @@ export default function ImportModeDialog({
             type="button"
             onClick={onOverwrite}
             disabled={disabled}
-            className="w-full rounded-xl bg-ink py-3 text-[16px] font-black text-white disabled:opacity-50"
+            className="w-full bg-ink py-3 text-[16px] font-black text-white disabled:opacity-50"
           >
             지우고 덮어쓰기
           </button>

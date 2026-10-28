@@ -210,12 +210,12 @@ export default function SettingsPage() {
 
       <section className="space-y-4 px-4 py-5">
         {message && (
-          <div className="rounded-2xl border-2 border-good/40 bg-good-soft px-4 py-3 text-[16px] font-black text-good">
+          <div className=" border-2 border-good/40 bg-good-soft px-4 py-3 text-[16px] font-black text-good">
             {message}
           </div>
         )}
         {error && (
-          <div className="rounded-2xl border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-black text-red-700">
+          <div className=" border-2 border-red-300 bg-red-50 px-4 py-3 text-[16px] font-black text-red-700">
             {error}
           </div>
         )}
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleStartCloud}
                   disabled={isSyncing}
-                  className="tap-target w-full rounded-2xl bg-brand text-[18px] font-black text-white disabled:opacity-50"
+                  className="tap-target w-full bg-brand text-[18px] font-black text-white disabled:opacity-50"
                 >
                   {isSyncing ? '준비 중…' : '이 장부 인터넷에 맡기기'}
                 </button>
@@ -265,7 +265,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={handleSyncNow}
                     disabled={isSyncing}
-                    className="tap-target flex-1 rounded-xl bg-brand text-[15px] font-black text-white disabled:opacity-50"
+                    className="tap-target flex-1 bg-brand text-[15px] font-black text-white disabled:opacity-50"
                   >
                     {isSyncing ? '맞추는 중…' : '지금 맞추기'}
                   </button>
@@ -273,7 +273,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={handlePullReplace}
                     disabled={isSyncing}
-                    className="tap-target flex-1 rounded-xl border-2 border-line text-[15px] font-bold text-ink disabled:opacity-50"
+                    className="tap-target flex-1 border-2 border-line text-[15px] font-bold text-ink disabled:opacity-50"
                   >
                     인터넷 내용으로 채우기
                   </button>
@@ -289,20 +289,20 @@ export default function SettingsPage() {
             )}
 
             {isCloudConfigured && showManualCode && (
-              <div className="space-y-2 rounded-xl border-2 border-dashed border-line bg-wash p-3">
+              <div className="space-y-2 border-2 border-dashed border-line bg-wash p-3">
                 <p className="text-[14px] font-bold text-ink-muted">번호 직접 넣기</p>
                 <input
                   type="text"
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                   placeholder="SAILP-XXXXXX"
-                  className="tap-target w-full rounded-xl border-2 border-line bg-paper px-3 text-[16px] font-bold outline-none focus:border-brand"
+                  className="tap-target w-full border-2 border-line bg-paper px-3 text-[16px] font-bold outline-none focus:border-brand"
                 />
                 <button
                   type="button"
                   onClick={handleConnectCloud}
                   disabled={isSyncing}
-                  className="tap-target w-full rounded-xl border-2 border-brand text-[15px] font-bold text-brand disabled:opacity-50"
+                  className="tap-target w-full border-2 border-brand text-[15px] font-bold text-brand disabled:opacity-50"
                 >
                   이 번호로 연결
                 </button>
@@ -402,7 +402,7 @@ function SettingsSection({ title, children, tone }) {
   return (
     <div>
       <h2 className="mb-2 text-[14px] font-black text-ink">{title}</h2>
-      <ul className={`divide-y-2 divide-line rounded-2xl border-2 bg-paper px-4 ${rail}`}>{children}</ul>
+      <ul className={`divide-y-2 divide-line border-2 bg-paper px-4 ${rail}`}>{children}</ul>
     </div>
   )
 }
