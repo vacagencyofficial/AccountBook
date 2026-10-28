@@ -67,7 +67,7 @@ export default function CapturePage() {
         photoBlobs: photos.map((p) => p.blob),
       })
 
-      setSaveMessage('저장되었습니다. 다음 사진을 넣어 주세요.')
+      setSaveMessage('잘 저장했어요. 다음 사진도 넣으실 수 있어요.')
       resetForNextItem(keptShopId)
       clearPhotos()
       setSelectedId(null)
@@ -100,8 +100,10 @@ export default function CapturePage() {
           닫기
         </button>
         <div className="text-center">
-          <h1 className="text-[18px] font-bold text-ink">사진 기록</h1>
-          <p className="text-[13px] text-ink-muted">{photos.length}장 선택됨</p>
+          <h1 className="text-[18px] font-black text-accent-dark">사진 적기</h1>
+          <p className="text-[14px] font-bold text-ink-muted">
+            {photos.length === 0 ? '사진을 넣어 주세요' : `사진 ${photos.length}장 골랐어요`}
+          </p>
         </div>
         <span className="w-16" />
       </header>
@@ -127,10 +129,10 @@ export default function CapturePage() {
 
         {!showForm && !isCompressing && (
           <section className="space-y-4">
-            <div className="rounded-2xl border-2 border-accent/30 bg-accent-soft px-4 py-4">
-              <p className="text-[18px] font-bold text-accent-dark">사진을 넣어 주세요</p>
-              <p className="mt-1 text-[15px] text-ink-muted">
-                카메라로 찍거나, 갤러리에서 고를 수 있습니다.
+            <div className="rounded-2xl border-2 border-accent/40 bg-accent-soft px-4 py-4">
+              <p className="text-[19px] font-black text-accent-dark">먼저 사진을 넣어 주세요</p>
+              <p className="mt-1 text-[15px] font-semibold leading-relaxed text-ink-muted">
+                주황은 카메라, 파랑은 갤러리입니다. 편한 쪽을 누르세요.
               </p>
             </div>
 
@@ -176,7 +178,7 @@ export default function CapturePage() {
           <>
             <div className="mb-4 rounded-2xl border-2 border-line bg-paper p-3">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[15px] font-bold text-ink">선택한 사진</p>
+                <p className="text-[15px] font-black text-ink">이 사진으로 적을게요</p>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -254,11 +256,11 @@ export default function CapturePage() {
               disabled={busy || !isValid}
               className="tap-target w-full rounded-2xl bg-good py-4 text-[18px] font-bold text-white disabled:opacity-40"
             >
-              {isSaving ? '저장 중…' : '저장하기'}
+              {isSaving ? '저장하는 중…' : '다 적었으면 저장'}
             </button>
             {!isValid && (
-              <p className="mt-2 text-center text-[14px] text-ink-muted">
-                가게 · 품명(또는 메모) · 금액을 입력해 주세요
+              <p className="mt-2 text-center text-[14px] font-bold leading-snug text-ink-muted">
+                아직이에요 · 가게, 옷 이름(또는 메모), 가격을 채워 주세요
               </p>
             )}
           </div>
