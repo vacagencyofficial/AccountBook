@@ -1,20 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { IconShare } from './Icons'
+import {
+  canPromptInstall,
+  isInstalledApp,
+  isIosSafari,
+  promptInstall,
+  subscribeInstall,
+} from '../lib/install'
 
 const DISMISS_KEY = 'sailp-install-dismissed'
 // 「나중에」를 누르면 일주일 뒤에 다시 한 번만 알려 줌
 const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000
-
-function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
-}
-
-function isIosSafari() {
-  const ua = window.navigator.userAgent
-  const isIos = /iphone|ipad|ipod/i.test(ua)
-  const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua)
-  return isIos && isSafari
-}
 
 function isSnoozed() {
   try {
@@ -28,48 +25,15 @@ function isSnoozed() {
   }
 }
 
-function IconShare(props) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      {...props}
-    >
-      <path d="M12 3v12M7 8l5-5 5 5" />
-      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
-    </svg>
-  )
-}
-
 export default function InstallPrompt() {
   const { pathname } = useLocation()
-  const [available, setAvailable] = useState(false)
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
-  const [showIosHelp, setShowIosHelp] = useState(false)
   const ios = isIosSafari()
+  const [canPrompt, setCanPrompt] = useState(canPromptInstall)
+  const [hidden, setHidden] = useState(() => isInstalledApp() || isSnoozed())
+  const [showIosHelp, setShowIosHelp] = useState(false)
+  const available = !hidden && (ios || canPrompt)
 
-  useEffect(() => {
-    if (isStandalone() || isSnoozed()) return
-
-    if (ios) {
-      setAvailable(true)
-      return
-    }
-
-    function handleBeforeInstall(event) {
-      event.preventDefault()
-      setDeferredPrompt(event)
-      setAvailable(true)
-    }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
-  }, [ios])
+  useEffect(() => subscribeInstall(() => setCanPrompt(canPromptInstall())), [])
 
   function dismiss() {
     try {
@@ -77,7 +41,7 @@ export default function InstallPrompt() {
     } catch {
       // 저장이 막힌 브라우저면 이번에만 닫음
     }
-    setAvailable(false)
+    setHidden(true)
   }
 
   async function handleInstall() {
@@ -85,11 +49,7 @@ export default function InstallPrompt() {
       setShowIosHelp((v) => !v)
       return
     }
-    if (!deferredPrompt) return
-    deferredPrompt.prompt()
-    await deferredPrompt.userChoice
-    setDeferredPrompt(null)
-    setAvailable(false)
+    if (await promptInstall()) setHidden(true)
   }
 
   // 홈 화면에서만, 하단 메뉴 바로 위에 작은 띠로

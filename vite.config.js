@@ -2,6 +2,11 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import pkg from './package.json' with { type: 'json' }
+
+// 설정 → 앱 정보에 보이는 버전·빌드 날짜
+process.env.VITE_APP_VERSION = pkg.version
+process.env.VITE_BUILD_DATE = new Date().toISOString().slice(0, 10)
 
 const sharedServer = {
   host: '0.0.0.0',

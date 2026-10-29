@@ -1,22 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ImportModeDialog from '../components/ImportModeDialog'
 import CloudInvitePanel from '../components/CloudInvitePanel'
 import { getPhotoQuality, setPhotoQuality } from '../utils/photoConfig'
 import { formatStorageEstimate } from '../utils/storage'
+import InstallGuide from '../components/InstallGuide'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
 import { formatSyncTime, getSyncStatus } from '../lib/syncStatus'
 import { getTextSize, setTextSize, TEXT_SIZES } from '../lib/textSize'
-
-function isStandaloneApp() {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true
-  )
-}
 
 export default function SettingsPage() {
   const fileInputRef = useRef(null)
@@ -32,7 +26,6 @@ export default function SettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
-  const [isInstalled] = useState(isStandaloneApp)
   const [workspaceCode, setWorkspaceCode] = useState(getWorkspaceCode())
   const [codeInput, setCodeInput] = useState(getWorkspaceCode())
   const [isSyncing, setIsSyncing] = useState(false)
@@ -393,14 +386,7 @@ export default function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection title="홈 화면에 추가">
-          <SettingsRow
-            label={isInstalled ? '홈 화면에 추가되어 있어요' : '아직 홈 화면에 없어요'}
-            description={
-              isInstalled
-                ? '홈 화면 아이콘을 눌러 바로 열 수 있어요'
-                : '아이폰: 화면 아래 「공유」 → 「홈 화면에 추가」\n갤럭시: 오른쪽 위 ⋮ → 「홈 화면에 추가」'
-            }
-          />
+          <InstallGuide />
         </SettingsSection>
 
         <SettingsSection title="사진·저장 공간">
@@ -438,7 +424,21 @@ export default function SettingsPage() {
           />
         </SettingsSection>
 
-        <p className="text-center text-[16px] font-semibold text-ink-soft">사입노트</p>
+        <SettingsSection title="도움">
+          <Link to="/help" className="flex min-h-[4rem] items-center justify-between gap-3 px-4 py-3">
+            <div>
+              <p className="text-[18px] font-bold text-ink">도움말</p>
+              <p className="mt-0.5 text-[16px] font-semibold text-ink-soft">자주 묻는 것과 쓰는 방법</p>
+            </div>
+            <span className="text-[24px] text-ink-soft" aria-hidden>
+              ›
+            </span>
+          </Link>
+          <SettingsRow
+            label="앱 정보"
+            description={`사입노트 ${import.meta.env.VITE_APP_VERSION} · ${import.meta.env.VITE_BUILD_DATE} 업데이트`}
+          />
+        </SettingsSection>
       </section>
 
       {pendingFile && (

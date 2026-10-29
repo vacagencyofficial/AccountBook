@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import ShopForm from '../components/ShopForm'
 import SubPage from '../components/SubPage'
 import { createShop } from '../db/mutations'
+import { useToast } from '../components/Toast'
 
 export default function ShopNewPage() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -15,8 +17,9 @@ export default function ShopNewPage() {
     try {
       const id = await createShop(form)
       navigate(`/shops/${id}`, { replace: true })
+      toast('가게를 추가했어요')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '가게 추가에 실패했습니다')
+      setError(err instanceof Error ? err.message : '가게를 추가하지 못했어요. 다시 눌러 주세요.')
       setIsSubmitting(false)
     }
   }
