@@ -39,6 +39,17 @@ npm start    # preview on 0.0.0.0:43123
 | `/history` | 장부·필터·엑셀 |
 | `/settings` | 백업·복원·설정 |
 
+## 시험(테스트)
+
+```bash
+npm test          # 아래 둘을 한 번에
+npm run test:sync # 동기화(폰 두 대 흉내)·계산·백업 알림·예산 — vitest
+npm run test:sql  # supabase/secure.sql 보안·동기화 함수 36가지 — PGlite
+```
+
+- 브라우저 없이 돌아갑니다. 폰 DB는 `fake-indexeddb`, Supabase 서버는 `@electric-sql/pglite`로 흉내 냅니다.
+- GitHub에 올리거나 PR을 만들면 `.github/workflows/ci.yml`이 코드 검사 → 빌드 → 시험을 자동으로 돌립니다.
+
 ## 배포
 
 - Vercel / Netlify: `vercel.json`, `netlify.toml` 포함
