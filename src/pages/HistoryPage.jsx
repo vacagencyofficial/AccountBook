@@ -147,7 +147,9 @@ export default function HistoryPage() {
       setImportMessage(
         mode === 'overwrite'
           ? `엑셀 내용으로 바꿨어요 (기록 ${result.items}건)`
-          : `기록 ${result.items}건을 더했어요 (새 가게 ${result.shops}곳)`,
+          : `기록 ${result.items}건을 더했어요 (새 가게 ${result.shops}곳)${
+              result.skipped ? ` · 이미 있는 ${result.skipped}건은 건너뛰었어요` : ''
+            }`,
       )
     } catch (err) {
       setExportError(err instanceof Error ? err.message : '엑셀 파일을 넣지 못했어요')
@@ -478,7 +480,7 @@ export default function HistoryPage() {
       {pendingExcel && (
         <ImportModeDialog
           title="엑셀 파일 넣기"
-          description="「지금 기록에 더하기」는 있던 기록에 엑셀 내용을 더해요. 「지금 기록 지우고 바꾸기」는 장부를 비우고 엑셀로 채워요. (사진은 들어오지 않아요)"
+          description="「지금 기록에 더하기」는 있던 기록에 엑셀 내용을 더해요. 「지금 기록 지우고 바꾸기」는 장부를 비우고 엑셀로 채워요. 엑셀에서는 사진이 들어오지 않아서, 바꾸면 지금 사진도 지워져요. 사진까지 옮기려면 「설정 → 백업」을 써 주세요."
           disabled={isImporting}
           onOverwrite={() => handleImportExcel('overwrite')}
           onMerge={() => handleImportExcel('merge')}

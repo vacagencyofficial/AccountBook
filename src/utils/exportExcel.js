@@ -144,6 +144,25 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
     r.getCell(2).numFmt = '#,##0'
   }
 
+  // 가게 정보(전화·메모·숨김)도 따로 담아, 이 엑셀을 다시 넣을 때 그대로 되살림
+  const shopSheet = workbook.addWorksheet('가게')
+  shopSheet.addRow(['가게', '상가위치', '전화', '메모', '숨김'])
+  shopSheet.getRow(1).font = { bold: true }
+  shopSheet.columns = [{ width: 14 }, { width: 22 }, { width: 16 }, { width: 28 }, { width: 6 }]
+  const seenShops = new Set()
+  for (const item of items) {
+    const shop = item.shop
+    if (!shop || seenShops.has(shop.id)) continue
+    seenShops.add(shop.id)
+    shopSheet.addRow([
+      shop.name,
+      shopLocation(shop),
+      shop.phone || '',
+      shop.memo || '',
+      shop.hidden ? 'O' : '',
+    ])
+  }
+
   const buffer = await workbook.xlsx.writeBuffer()
   downloadBlob(buffer, `사입장부_${getToday()}.xlsx`)
 }
