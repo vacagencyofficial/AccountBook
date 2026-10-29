@@ -8,6 +8,7 @@ import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import CapturePage from './pages/CapturePage'
 import JoinPage from './pages/JoinPage'
+import HelpPage from './pages/HelpPage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/shops/new" element={<ShopNewPage />} />
       <Route path="/shops/:shopId" element={<ShopDetailPage />} />
       <Route path="/items/:itemId" element={<ItemDetailPage />} />
+      <Route path="/help" element={<HelpPage />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="shops" element={<ShopsPage />} />

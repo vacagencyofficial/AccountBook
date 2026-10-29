@@ -8,6 +8,7 @@ import ItemRow from '../components/ItemRow'
 import ShopForm, { shopToForm } from '../components/ShopForm'
 import { db } from '../db'
 import { deleteShop, setShopHidden, updateShop } from '../db/mutations'
+import { useToast } from '../components/Toast'
 import { getItemsByShop } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { formatCurrency, itemTotal, shopLocation } from '../utils/format'
@@ -15,6 +16,7 @@ import { formatCurrency, itemTotal, shopLocation } from '../utils/format'
 export default function ShopDetailPage() {
   const { shopId } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
   const id = Number(shopId)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -43,8 +45,9 @@ export default function ShopDetailPage() {
     try {
       await updateShop(id, form)
       setIsEditing(false)
+      toast('가게 정보를 저장했어요')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '수정에 실패했습니다')
+      setError(err instanceof Error ? err.message : '저장하지 못했어요. 다시 눌러 주세요.')
     } finally {
       setIsSaving(false)
     }
@@ -56,8 +59,9 @@ export default function ShopDetailPage() {
     try {
       await deleteShop(id)
       navigate('/shops', { replace: true })
+      toast('가게를 지웠어요')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '삭제에 실패했습니다')
+      setError(err instanceof Error ? err.message : '지우지 못했어요. 다시 눌러 주세요.')
       setIsDeleting(false)
       setShowDeleteConfirm(false)
     }
@@ -167,6 +171,7 @@ export default function ShopDetailPage() {
                 onClick={() => {
                   setShopHidden(id, true)
                   navigate('/shops', { replace: true })
+                  toast('가게를 숨겼어요', { actionLabel: '되돌리기', onAction: () => setShopHidden(id, false) })
                 }}
                 className="btn btn-outline w-full"
               >

@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ItemRow from '../components/ItemRow'
+import Onboarding from '../components/Onboarding'
+import { needsOnboarding } from '../lib/onboarding'
 import { IconCamera } from '../components/Icons'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
@@ -63,6 +66,7 @@ function WeekCompare({ thisWeek, lastWeek }) {
 
 export default function HomePage() {
   const today = useToday()
+  const [showOnboarding, setShowOnboarding] = useState(needsOnboarding)
 
   const { data: items, isLoading } = useLiveQuery(async () => {
     const rows = await db.items.orderBy('createdAt').reverse().toArray()
@@ -77,6 +81,10 @@ export default function HomePage() {
 
   return (
     <div>
+      {/* 처음 쓰는 분(기록이 하나도 없을 때)만 안내 */}
+      {showOnboarding && !isLoading && (items ?? []).length === 0 && (
+        <Onboarding onDone={() => setShowOnboarding(false)} />
+      )}
       <PageHeader brand subtitle={formatHomeDate()} />
 
       <section className="px-4 pt-2">
@@ -87,7 +95,9 @@ export default function HomePage() {
           </p>
           {!isLoading && (
             <p className="mt-1 text-[16px] font-semibold opacity-80">
-              {todaySummary.count ? `${todaySummary.count}건 · ${todaySummary.qty}개 샀어요` : '아직 산 것이 없어요'}
+              {todaySummary.count
+                ? `${todaySummary.count}건 · ${todaySummary.qty}개 샀어요`
+                : '아직 산 것이 없어요'}
               {todaySummary.pendingCount > 0 && ` · 고민 중 ${todaySummary.pendingCount}건 제외`}
             </p>
           )}
@@ -119,7 +129,10 @@ export default function HomePage() {
               <span
                 key={day.label}
                 className={`block rounded-t-[4px] ${day.isToday ? 'bg-accent' : 'bg-line'}`}
-                style={{ height: `${Math.max(4, (day.total / week.max) * 100)}%`, opacity: day.isFuture ? 0.5 : 1 }}
+                style={{
+                  height: `${Math.max(4, (day.total / week.max) * 100)}%`,
+                  opacity: day.isFuture ? 0.5 : 1,
+                }}
               />
             ))}
           </div>

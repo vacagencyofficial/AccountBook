@@ -156,13 +156,34 @@ export async function deletePhoto(photoId) {
   void syncAfterWrite()
 }
 
+/** 기록 지우기. 「되돌리기」에 쓰도록 지운 기록과 사진을 돌려줌 */
 export async function deleteItem(itemId) {
   const item = await db.items.get(itemId)
+  let photos = []
   await db.transaction('rw', db.items, db.photos, db.deletions, async () => {
+    photos = await db.photos.where('itemId').equals(itemId).toArray()
     // 클라우드에서는 기록을 지우면 그 사진도 함께 지움
     await rememberDeletion('item', item?.cloudId)
     await db.photos.where('itemId').equals(itemId).delete()
     await db.items.delete(itemId)
+  })
+  void syncAfterWrite()
+  return item ? { item, photos } : null
+}
+
+/**
+ * 방금 지운 기록 되살리기. 클라우드 쪽은 이미 지워졌을 수 있어
+ * 클라우드 연결을 끊고 새 기록으로 다시 올림
+ */
+export async function restoreItem(snapshot) {
+  if (!snapshot) return
+  const { cloudId: _itemCloudId, ...item } = snapshot.item
+  await db.transaction('rw', db.items, db.photos, async () => {
+    await db.items.put({ ...item, ...changed() })
+    for (const photo of snapshot.photos) {
+      const { cloudId: _photoCloudId, legacy: _legacy, ...rest } = photo
+      await db.photos.put(rest)
+    }
   })
   void syncAfterWrite()
 }

@@ -9,7 +9,8 @@ import RegisterForm from '../components/RegisterForm'
 import StatusBadge from '../components/StatusBadge'
 import { IconCamera, IconClose, IconGallery } from '../components/Icons'
 import { db } from '../db'
-import { addItemPhotos, deleteItem, deletePhoto, updateItem } from '../db/mutations'
+import { addItemPhotos, deleteItem, deletePhoto, restoreItem, updateItem } from '../db/mutations'
+import { useToast } from '../components/Toast'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useObjectUrl } from '../hooks/useObjectUrl'
 import { compressImage } from '../utils/compressImage'
@@ -42,7 +43,7 @@ export default function ItemDetailPage() {
   const [isAddingPhoto, setIsAddingPhoto] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [message, setMessage] = useState(null)
+  const toast = useToast()
   const [error, setError] = useState(null)
 
   const { data: item, isLoading } = useLiveQuery(async () => {
@@ -86,7 +87,7 @@ export default function ItemDetailPage() {
         name: form.name || form.memo,
       })
       setForm(null)
-      setMessage('고친 내용을 저장했어요')
+      toast('고친 내용을 저장했어요')
       window.scrollTo(0, 0)
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장하지 못했어요. 다시 눌러 주세요.')
@@ -98,8 +99,9 @@ export default function ItemDetailPage() {
   async function handleDelete() {
     setIsDeleting(true)
     try {
-      await deleteItem(id)
+      const snapshot = await deleteItem(id)
       goBack()
+      toast('기록을 지웠어요', { actionLabel: '되돌리기', onAction: () => restoreItem(snapshot) })
     } catch (err) {
       setError(err instanceof Error ? err.message : '지우지 못했어요')
       setIsDeleting(false)
@@ -145,11 +147,6 @@ export default function ItemDetailPage() {
 
   return (
     <Shell onBack={goBack} title={isEditing ? '기록 고치기' : '기록 자세히'}>
-      {message && !isEditing && (
-        <div className="mb-4 rounded-[10px] bg-good-soft px-4 py-3 text-[17px] font-extrabold text-good" aria-live="polite">
-          ✓ {message}
-        </div>
-      )}
       {error && (
         <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700" role="alert">
           {error}
@@ -276,10 +273,7 @@ export default function ItemDetailPage() {
           <div className="mt-4 space-y-3">
             <button
               type="button"
-              onClick={() => {
-                setMessage(null)
-                setForm(itemToForm(item))
-              }}
+              onClick={() => setForm(itemToForm(item))}
               className="btn btn-primary w-full text-[19px]"
             >
               고치기
@@ -300,7 +294,7 @@ export default function ItemDetailPage() {
           title="이 기록을 지울까요?"
           description={`${item.name || '이름 없는 물건'} · ${formatCurrency(total)}${
             photos.length ? ` · 사진 ${photos.length}장` : ''
-          }\n지우면 되돌릴 수 없어요.`}
+          }`}
           confirmLabel={isDeleting ? '지우는 중…' : '지우기'}
           cancelLabel="그대로 두기"
           onConfirm={handleDelete}
