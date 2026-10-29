@@ -30,8 +30,9 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
 
   const sheet =
     workbook.getWorksheet('사입장부') ||
-    workbook.worksheets.find((ws) => ws.name !== '요약') ||
+    workbook.worksheets.find((ws) => ws.name !== '요약' && ws.name !== '가게') ||
     workbook.worksheets[0]
+  const shopInfo = readShopSheet(workbook.getWorksheet('가게'))
 
   if (!sheet) {
     throw new Error('엑셀 시트를 찾을 수 없습니다')
@@ -52,7 +53,11 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
   }
 
   const parsed = []
-  for (const { values } of rows.slice(1)) {
+  for (const { values: raw } of rows.slice(1)) {
+    // 예전 앱이 내보낸 엑셀은 내용이 제목보다 한 칸 오른쪽에 있음 → 한 칸 당겨 읽기
+    const shifted =
+      headerMap.date === 1 && headerMap.shop === 2 && cellToString(raw[1]).trim() === '' && parseDateCell(raw[2])
+    const values = shifted ? raw.slice(1) : raw
     const record = parseDataRow(values, headerMap)
     if (record) parsed.push(record)
   }
@@ -63,6 +68,7 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
 
   let shopCount = 0
   let itemCount = 0
+  let skipped = 0
 
   await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
     if (mode === 'overwrite') {
@@ -73,11 +79,14 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
     }
 
     const shopCache = new Map()
+    // 같은 엑셀을 두 번 더해도 겹치지 않게, 이미 있는 기록은 건너뜀
+    const existingItems = new Set()
     if (mode === 'merge') {
       const existing = await db.shops.toArray()
       for (const shop of existing) {
         shopCache.set(shopKey(shop.name, shop.building, shop.floor, shop.unit), shop.id)
       }
+      for (const item of await db.items.toArray()) existingItems.add(itemKey(item.shopId, item))
     }
 
     for (const record of parsed) {
@@ -85,19 +94,25 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
       let shopId = shopCache.get(key)
 
       if (!shopId) {
+        const info = shopInfo.get(key) ?? {}
         shopId = await db.shops.add({
           name: record.shopName,
           building: record.building,
           floor: record.floor,
           unit: record.unit,
-          phone: '',
-          memo: '',
+          phone: info.phone ?? '',
+          memo: info.memo ?? '',
+          hidden: info.hidden ? 1 : 0,
           lastVisitedAt: Date.now(),
         })
         shopCache.set(key, shopId)
         shopCount += 1
       }
 
+      if (existingItems.has(itemKey(shopId, record))) {
+        skipped += 1
+        continue
+      }
       await db.items.add({
         shopId,
         date: record.date,
@@ -122,7 +137,7 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
   } catch {
     // offline / unconfigured cloud — local import still succeeded
   }
-  return { shops: shopCount, items: itemCount }
+  return { shops: shopCount, items: itemCount, skipped }
 }
 
 function buildHeaderMap(values) {
@@ -176,17 +191,49 @@ function parseDataRow(values, headerMap) {
   }
 }
 
+const FLOOR_RE = /^(B\d+F?|\d+\s*F|\d+\s*층|지하\s*\d*\s*층?)$/i
+const UNIT_RE = /^[A-Z]{0,2}\s*-?\s*\d+[A-Z]?(호)?$/i
+
+/** 「청평화 · 3F · A-123」을 상가·층·호수로. 앱이 내보낸 엑셀은 「·」로만 나눠 상가 이름 속 「/」를 지킴 */
 function parseLocation(raw) {
-  if (!raw) return { building: '', floor: '', unit: '' }
+  const result = { building: '', floor: '', unit: '' }
+  if (!raw) return result
   const parts = raw
-    .split(/[·|/]/)
+    .split(raw.includes('·') ? '·' : /[|/]/)
     .map((part) => part.trim())
     .filter(Boolean)
-  return {
-    building: parts[0] || '',
-    floor: parts[1] || '',
-    unit: parts[2] || '',
+  for (const part of parts) {
+    if (!result.floor && FLOOR_RE.test(part)) result.floor = part
+    else if (!result.unit && (result.building || result.floor) && UNIT_RE.test(part)) result.unit = part
+    else if (!result.building) result.building = part
+    else if (!result.floor) result.floor = part
+    else if (!result.unit) result.unit = part
   }
+  return result
+}
+
+/** 엑셀의 「가게」 시트(앱이 내보낸 것)에서 전화·메모·숨김 */
+function readShopSheet(sheet) {
+  const info = new Map()
+  if (!sheet) return info
+  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return
+    const name = cellToString(row.getCell(1).value).trim()
+    if (!name) return
+    const { building, floor, unit } = parseLocation(cellToString(row.getCell(2).value))
+    info.set(shopKey(name, building, floor, unit), {
+      phone: cellToString(row.getCell(3).value).trim(),
+      memo: cellToString(row.getCell(4).value).trim(),
+      hidden: /^(o|y|1|예|true|✓)$/i.test(cellToString(row.getCell(5).value).trim()),
+    })
+  })
+  return info
+}
+
+function itemKey(shopId, item) {
+  return [shopId, item.date, item.name, item.price, item.qty, item.color || '', item.size || '', item.memo || '']
+    .map((v) => String(v ?? '').trim())
+    .join('|')
 }
 
 function parseDateCell(value) {
