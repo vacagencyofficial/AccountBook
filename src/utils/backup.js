@@ -163,6 +163,9 @@ function downloadBlob(blob, filename) {
   const link = document.createElement('a')
   link.href = url
   link.download = filename
+  // 화면에 붙여 눌러야 파일 이름이 지켜지고, 주소는 내려받기가 시작된 뒤에 정리
+  document.body.appendChild(link)
   link.click()
-  URL.revokeObjectURL(url)
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
