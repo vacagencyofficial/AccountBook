@@ -15,6 +15,8 @@ const HEADER_ALIASES = {
   qty: ['수량', '수량(장)', 'qty', 'quantity'],
   status: ['상태', 'status'],
   starred: ['별표', '즐겨찾기', 'star', 'starred'],
+  payment: ['결제', '결제방법', '결제 방법', 'payment'],
+  settled: ['외상갚음', '외상 갚음', '갚음', 'settled'],
   memo: ['메모', '비고', 'memo'],
 }
 
@@ -125,6 +127,8 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
         memo: record.memo,
         status: record.status,
         starred: record.starred ? 1 : 0,
+        payment: record.payment,
+        settled: record.settled ? 1 : 0,
         createdAt: Date.now(),
       })
       itemCount += 1
@@ -185,6 +189,8 @@ function parseDataRow(values, headerMap) {
     price,
     qty,
     status,
+    payment: parsePayment(cellToString(values[headerMap.payment])),
+    settled: /^(o|y|yes|1|true|예|v|✓|✔|갚음)$/i.test(cellToString(values[headerMap.settled]).trim()),
     // ★·O·1·Y·예처럼 무엇이든 적혀 있으면 별표
     starred: /^(★|\*|o|y|yes|1|true|예|v|✓|✔)$/i.test(cellToString(values[headerMap.starred]).trim()),
     memo: cellToString(values[headerMap.memo]).trim(),
@@ -228,6 +234,16 @@ function readShopSheet(sheet) {
     })
   })
   return info
+}
+
+function parsePayment(raw) {
+  const text = raw.trim().replace(/\s/g, '')
+  if (!text) return ''
+  if (/외상|미수|후불/.test(text)) return '외상'
+  if (/카드/.test(text)) return '카드'
+  if (/이체|계좌|송금/.test(text)) return '계좌이체'
+  if (/현금/.test(text)) return '현금'
+  return ''
 }
 
 function itemKey(shopId, item) {

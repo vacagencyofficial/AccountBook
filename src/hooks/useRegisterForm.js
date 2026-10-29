@@ -15,6 +15,7 @@ const defaultForm = {
   size: '',
   memo: '',
   status: '구매',
+  payment: '',
   date: '',
   // 날짜를 직접 고르지 않았으면(「오늘」 그대로) 날이 바뀔 때 오늘로 따라감
   dateAuto: true,

@@ -64,3 +64,5 @@ db.version(4)
 
 export const CATEGORIES = ['상의', '하의', '아우터', '원피스', '잡화', '기타']
 export const STATUSES = ['구매', '검토', '보류']
+// 어떻게 냈는지. 빈 값은 안 적음
+export const PAYMENTS = ['현금', '카드', '계좌이체', '외상']

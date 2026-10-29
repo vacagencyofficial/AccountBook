@@ -5,6 +5,21 @@ export function isPurchased(item) {
   return (item.status || '구매') === '구매'
 }
 
+/** 아직 안 갚은 외상인지 (산 것만) */
+export function isUnpaidCredit(item) {
+  return item.payment === '외상' && !item.settled && isPurchased(item)
+}
+
+/** 안 갚은 외상 합계·건수 */
+export function summarizeCredit(items = []) {
+  const unpaid = items.filter(isUnpaidCredit)
+  return {
+    count: unpaid.length,
+    total: unpaid.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), 0),
+    items: unpaid,
+  }
+}
+
 export function summarizeItems(items = []) {
   const bought = items.filter(isPurchased)
   const pending = items.filter((item) => !isPurchased(item))

@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { shopLocation } from '../utils/format'
+import { formatWonShort } from '../utils/labels'
 
-export default function ShopRow({ shop, itemCount }) {
+export default function ShopRow({ shop, itemCount, credit = 0 }) {
   return (
     <li>
       <Link to={`/shops/${shop.id}`} className="card flex items-center gap-3.5 px-3.5 py-3 active:bg-wash">
@@ -15,6 +16,9 @@ export default function ShopRow({ shop, itemCount }) {
             <p className="truncate text-[16px] font-semibold text-ink-soft">{shopLocation(shop)}</p>
           )}
           {shop.memo && <p className="truncate text-[16px] font-medium text-ink-soft">{shop.memo}</p>}
+          {credit > 0 && (
+            <p className="truncate text-[16px] font-bold text-warn">외상 {formatWonShort(credit)} 남음</p>
+          )}
         </div>
 
         {itemCount != null && (

@@ -14,8 +14,8 @@ import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useToday } from '../hooks/useToday'
 import { formatCurrency, itemTotal } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
-import { isPurchased, itemsForMonth, itemsForToday, summarizeItems } from '../utils/analytics'
-import { formatManwon } from '../utils/labels'
+import { isPurchased, itemsForMonth, itemsForToday, summarizeCredit, summarizeItems } from '../utils/analytics'
+import { formatManwon, formatWonShort } from '../utils/labels'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -81,6 +81,8 @@ export default function HomePage() {
   const week = weekStats(items ?? [])
   const monthNumber = new Date().getMonth() + 1
   const [budget] = useState(getMonthBudget)
+  const credit = summarizeCredit(items ?? [])
+  const creditShops = new Set(credit.items.map((item) => item.shopId)).size
   const [search, setSearch] = useState('')
   const navigate = useNavigate()
 
@@ -142,6 +144,18 @@ export default function HomePage() {
           <IconCamera className="h-7 w-7" />
           상품 입력
         </Link>
+
+        {credit.count > 0 && (
+          <Link to="/shops" className="card mt-4 flex items-center justify-between gap-3 px-4 py-3.5">
+            <div>
+              <p className="text-[16px] font-bold text-ink-muted">안 갚은 외상</p>
+              <p className="text-[22px] font-extrabold text-warn tabular">{formatCurrency(credit.total)}</p>
+            </div>
+            <span className="text-[16px] font-semibold text-ink-soft">
+              가게 {creditShops}곳 · {credit.count}건 ›
+            </span>
+          </Link>
+        )}
 
         {!isLoading && <BackupReminder items={items ?? []} />}
 
@@ -206,11 +220,6 @@ export default function HomePage() {
   )
 }
 
-function won(amount) {
-  const text = formatManwon(amount)
-  return text.endsWith('원') ? text : `${text}원`
-}
-
 /** 이번 달 예산 중 얼마나 썼는지 */
 function BudgetBar({ spent, budget }) {
   const ratio = spent / budget
@@ -219,9 +228,9 @@ function BudgetBar({ spent, budget }) {
   return (
     <div className="mt-3">
       <div className="flex items-baseline justify-between text-[16px] font-semibold">
-        <span className="opacity-85">예산 {won(budget)}</span>
+        <span className="opacity-85">예산 {formatWonShort(budget)}</span>
         <b className={over ? 'text-[#fdba74]' : ''}>
-          {over ? `${won(spent - budget)} 넘었어요` : `${pct}% 썼어요`}
+          {over ? `${formatWonShort(spent - budget)} 넘었어요` : `${pct}% 썼어요`}
         </b>
       </div>
       <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/15" aria-hidden>

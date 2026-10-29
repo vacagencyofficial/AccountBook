@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import PhotoThumbnail from './PhotoThumbnail'
 import StatusBadge from './StatusBadge'
+import { isUnpaidCredit } from '../utils/analytics'
 import { formatCurrency, formatDateLabel, itemTotal } from '../utils/format'
 
 export default function ItemRow({ item, showDate = false }) {
@@ -29,6 +30,7 @@ export default function ItemRow({ item, showDate = false }) {
         <div className="flex shrink-0 flex-col items-end gap-1">
           <b className="text-[20px] font-extrabold text-ink tabular">{formatCurrency(total)}</b>
           <StatusBadge status={item.status} />
+          {isUnpaidCredit(item) && <span className="pill bg-warn-soft text-warn">외상</span>}
         </div>
       </Link>
     </li>

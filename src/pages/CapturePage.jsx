@@ -135,6 +135,7 @@ export default function CapturePage() {
         qty,
         memo: form.memo,
         status: form.status,
+        payment: form.payment,
         photoBlobs: photos.map((p) => p.blob),
       })
 

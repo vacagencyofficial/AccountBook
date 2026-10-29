@@ -12,7 +12,8 @@ import PhotoViewer from '../components/PhotoViewer'
 import { useViewerState } from '../hooks/useViewerState'
 import { IconCamera, IconClose, IconGallery } from '../components/Icons'
 import { db } from '../db'
-import { addItemPhotos, deleteItem, deletePhoto, restoreItem, updateItem } from '../db/mutations'
+import { addItemPhotos, deleteItem, deletePhoto, restoreItem, setItemSettled, updateItem } from '../db/mutations'
+import { isUnpaidCredit } from '../utils/analytics'
 import { useToast } from '../components/Toast'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useObjectUrl } from '../hooks/useObjectUrl'
@@ -30,6 +31,7 @@ function itemToForm(item) {
     size: item.size ?? '',
     memo: item.memo ?? '',
     status: item.status || '구매',
+    payment: item.payment || '',
     date: item.date,
   }
 }
@@ -289,12 +291,36 @@ export default function ItemDetailPage() {
             <dl className="mt-4 space-y-3">
               <InfoRow label="산 날">{formatDateLabel(item.date)}</InfoRow>
               <InfoRow label="종류">{item.category || '기타'}</InfoRow>
+              {item.payment && (
+                <InfoRow label="결제">
+                  {item.payment}
+                  {item.payment === '외상' && (item.settled ? ' · 갚았어요' : ' · 아직 안 갚았어요')}
+                </InfoRow>
+              )}
               {item.color && <InfoRow label="색">{item.color}</InfoRow>}
               {item.size && <InfoRow label="크기">{item.size}</InfoRow>}
               {item.memo && <InfoRow label="메모">{item.memo}</InfoRow>}
             </dl>
           </section>
 
+          {isUnpaidCredit(item) && (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-card)] bg-warn-soft px-4 py-3">
+              <div>
+                <p className="text-[18px] font-extrabold text-warn">외상이에요</p>
+                <p className="text-[16px] font-semibold text-ink-muted tabular">{formatCurrency(total)} 아직 안 갚았어요</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void setItemSettled(item.id, true)
+                  toast('갚은 것으로 표시했어요', { actionLabel: '되돌리기', onAction: () => setItemSettled(item.id, false) })
+                }}
+                className="btn btn-primary shrink-0 text-[17px]"
+              >
+                갚았어요
+              </button>
+            </div>
+          )}
           <div className="mt-4 space-y-3">
             <button
               type="button"

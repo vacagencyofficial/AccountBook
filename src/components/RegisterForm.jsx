@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ShopChipSelector from './ShopChipSelector'
 import { useToday } from '../hooks/useToday'
-import { CATEGORIES, STATUSES } from '../db'
+import { CATEGORIES, PAYMENTS, STATUSES } from '../db'
 import { formatCurrency, formatDateLabel } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
 import { statusLabel } from '../utils/labels'
@@ -128,6 +128,7 @@ export default function RegisterForm({
   const moreSummary = [
     date === today ? '오늘' : formatDateLabel(date),
     statusLabel(form.status),
+    form.payment || null,
     form.category !== '기타' ? form.category : null,
     form.color,
     form.size,
@@ -321,6 +322,27 @@ export default function RegisterForm({
                 {form.status !== '구매' && (
                   <p className="mt-2 text-[16px] font-semibold text-warn">
                     아직 안 산 것은 쓴 돈 합계에 들어가지 않아요
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p className="label">어떻게 냈나요?</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {PAYMENTS.map((payment) => (
+                    <Chip
+                      key={payment}
+                      active={form.payment === payment}
+                      // 한 번 더 누르면 선택 풀기
+                      onClick={() => updateField('payment', form.payment === payment ? '' : payment)}
+                    >
+                      {payment === '계좌이체' ? '이체' : payment}
+                    </Chip>
+                  ))}
+                </div>
+                {form.payment === '외상' && (
+                  <p className="mt-2 text-[16px] font-semibold text-warn">
+                    외상은 가게 화면에 「남은 돈」으로 모여요. 갚으면 기록에서 「갚았어요」를 눌러 주세요
                   </p>
                 )}
               </div>

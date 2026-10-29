@@ -20,3 +20,9 @@ export function formatManwon(amount) {
   if (n >= 1000) return `${Math.round(n / 1000)}천`
   return `${n}원`
 }
+
+/** 「4.5만원」「17만원」「500원」처럼 짧게, 끝에 원까지 */
+export function formatWonShort(amount) {
+  const text = formatManwon(amount)
+  return text.endsWith('원') ? text : `${text}원`
+}
