@@ -205,7 +205,7 @@ export default function HistoryPage() {
           </div>
         )}
 
-        <div className="hero receipt px-5 pb-4 pt-4">
+        <div className="hero px-5 pb-4 pt-4">
           <div className="hero-deco" aria-hidden />
           <p className="text-[17px] font-semibold opacity-85">
             {searchAll ? '찾은 기록에서 쓴 돈' : `${month.month + 1}월에 쓴 돈`}

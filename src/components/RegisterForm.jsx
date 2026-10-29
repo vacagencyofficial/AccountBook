@@ -238,8 +238,7 @@ export default function RegisterForm({
 
             {form.price !== '' && (
               <div
-                className="receipt mt-4 flex items-center justify-between rounded-t-[16px] bg-accent-soft px-4 py-3"
-                style={{ '--receipt-color': 'var(--color-accent-soft)' }}
+                className="mt-4 flex items-center justify-between rounded-[16px] bg-accent-soft px-4 py-3"
               >
                 <div>
                   <p className="text-[16px] font-semibold text-ink-muted">합계</p>

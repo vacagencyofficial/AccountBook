@@ -46,6 +46,11 @@
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.07);
 }
 
+/* Windows PC 전용 글꼴 (main.jsx에서 os-windows 표시) */
+:root.os-windows {
+  --font-sans: 'Malgun Gothic', '맑은 고딕', 'SUIT Variable', sans-serif;
+}
+
 html {
   font-size: 19px;
 }
@@ -240,29 +245,10 @@ body {
     font-weight: 700;
   }
 
-  /* 영수증처럼 아래가 톱니 모양인 카드 */
-  .receipt {
-    position: relative;
-    margin-bottom: 10px;
-  }
-  .receipt::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -10px;
-    height: 10px;
-    background:
-      linear-gradient(-45deg, transparent 7px, var(--receipt-color) 0) 0 0 / 14px 10px,
-      linear-gradient(45deg, transparent 7px, var(--receipt-color) 0) 0 0 / 14px 10px;
-    transform: rotate(180deg);
-  }
-
   .hero {
-    --receipt-color: #172554;
     color: #fff;
     background: linear-gradient(140deg, #24479f 0%, #1e3a8a 45%, #172554 100%);
-    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    border-radius: var(--radius-card);
     position: relative;
   }
   .hero-deco {
