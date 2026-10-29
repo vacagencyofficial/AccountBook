@@ -7,6 +7,7 @@ import CloudInvitePanel from '../components/CloudInvitePanel'
 import { getPhotoQuality, setPhotoQuality } from '../utils/photoConfig'
 import { formatStorageEstimate } from '../utils/storage'
 import InstallGuide from '../components/InstallGuide'
+import BudgetSetting from '../components/BudgetSetting'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
 import { formatSyncTime, getSyncStatus } from '../lib/syncStatus'
@@ -249,6 +250,10 @@ export default function SettingsPage() {
 
         <SettingsSection title="글씨 크기">
           <TextSizePicker />
+        </SettingsSection>
+
+        <SettingsSection title="한 달 예산">
+          <BudgetSetting />
         </SettingsSection>
 
         <SettingsSection title="다른 폰과 같이 쓰기">

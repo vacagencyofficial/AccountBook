@@ -8,6 +8,8 @@ import PhotoThumbnail from '../components/PhotoThumbnail'
 import RegisterForm from '../components/RegisterForm'
 import StatusBadge from '../components/StatusBadge'
 import StarButton from '../components/StarButton'
+import PhotoViewer from '../components/PhotoViewer'
+import { useViewerState } from '../hooks/useViewerState'
 import { IconCamera, IconClose, IconGallery } from '../components/Icons'
 import { db } from '../db'
 import { addItemPhotos, deleteItem, deletePhoto, restoreItem, updateItem } from '../db/mutations'
@@ -59,6 +61,7 @@ export default function ItemDetailPage() {
   const isEditing = form != null
   const photos = item?.photos ?? []
   const currentPhoto = photos[Math.min(selectedPhoto, photos.length - 1)]
+  const [viewerIndex, openViewer, closeViewer] = useViewerState()
 
   function goBack() {
     // 앱 안에서 들어왔으면 이전 화면으로, 주소로 바로 열었으면 장부로
@@ -148,6 +151,13 @@ export default function ItemDetailPage() {
 
   return (
     <Shell onBack={goBack} title={isEditing ? '기록 고치기' : '기록 자세히'}>
+      {viewerIndex != null && photos.length > 0 && (
+        <PhotoViewer
+          slides={photos.map((photo) => ({ blob: photo.blob }))}
+          startIndex={viewerIndex}
+          onClose={closeViewer}
+        />
+      )}
       {error && (
         <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700" role="alert">
           {error}
@@ -156,7 +166,14 @@ export default function ItemDetailPage() {
 
       <section className="card mb-4 p-3">
         {currentPhoto ? (
-          <BigPhoto blob={currentPhoto.blob} alt={item.name} />
+          <button
+            type="button"
+            onClick={() => openViewer(photos.indexOf(currentPhoto))}
+            className="block w-full"
+            aria-label="사진 크게 보기"
+          >
+            <BigPhoto blob={currentPhoto.blob} alt={item.name} />
+          </button>
         ) : (
           <p className="py-6 text-center text-[16px] font-bold text-ink-muted">사진이 없어요</p>
         )}
