@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import EmptyState from './EmptyState'
 import StarButton from './StarButton'
+import PhotoViewer from './PhotoViewer'
+import { useViewerState } from '../hooks/useViewerState'
 import { IconGallery } from './Icons'
 import { db } from '../db'
 import { useLiveQuery } from '../hooks/useLiveQuery'
@@ -9,6 +11,8 @@ import { useObjectUrl } from '../hooks/useObjectUrl'
 import { formatCurrency, itemTotal } from '../utils/format'
 
 const PREF_KEY = 'sailp-gallery'
+// 한 번에 그리는 사진 수 (많으면 폰이 느려져서 나눠 보여 줌)
+const PAGE = 60
 
 const GROUPS = {
   all: '사진만 쭉',
@@ -79,8 +83,9 @@ function Tile({ item }) {
   )
 }
 
-/** 사진만 쭉: 기록마다 모든 사진을 글자 없이 촘촘하게 */
-function PhotoWall({ items }) {
+/** 사진만 쭉: 기록마다 모든 사진을 글자 없이 촘촘하게. 누르면 크게 보기 */
+function PhotoWall({ items, limit, onMore }) {
+  const [viewerIndex, openViewer, closeViewer] = useViewerState('wall')
   const ids = items.map((item) => item.id)
   const { data: photos } = useLiveQuery(
     () => (ids.length ? db.photos.where('itemId').anyOf(ids).sortBy('id') : []),
@@ -96,29 +101,71 @@ function PhotoWall({ items }) {
       ? byItem[item.id].map((photo) => ({ item, photo, key: photo.id }))
       : [{ item, photo: null, key: `item-${item.id}` }],
   )
+  const withPhoto = cells.filter((cell) => cell.photo)
 
   return (
-    <ul className="grid grid-cols-3 gap-1" aria-label="사진 모아보기">
-      {cells.map(({ item, photo, key }) => (
-        <li key={key} className="relative aspect-square overflow-hidden rounded-[6px] bg-brand-soft">
-          <Link
-            to={`/items/${item.id}`}
-            className="block h-full w-full"
-            aria-label={item.name || '이름 없음'}
-          >
-            <Photo blob={photo?.blob} alt={item.name || ''} />
-          </Link>
-          {item.starred ? (
-            <span
-              className="pointer-events-none absolute right-1.5 top-0.5 text-[16px] text-[#f59e0b] drop-shadow"
-              aria-label="별표"
-            >
-              ★
-            </span>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="grid grid-cols-3 gap-1" aria-label="사진 모아보기">
+        {cells.slice(0, limit).map(({ item, photo, key }) => (
+          <li key={key} className="relative aspect-square overflow-hidden rounded-[6px] bg-brand-soft">
+            {photo ? (
+              <button
+                type="button"
+                onClick={() => openViewer(withPhoto.findIndex((cell) => cell.key === key))}
+                className="block h-full w-full"
+                aria-label={`${item.name || '이름 없음'} 사진 크게 보기`}
+              >
+                <Photo blob={photo.blob} alt={item.name || ''} />
+              </button>
+            ) : (
+              <Link
+                to={`/items/${item.id}`}
+                className="block h-full w-full"
+                aria-label={item.name || '이름 없음'}
+              >
+                <Photo alt={item.name || ''} />
+              </Link>
+            )}
+            {item.starred ? (
+              <span
+                className="pointer-events-none absolute right-1.5 top-0.5 text-[16px] text-[#f59e0b] drop-shadow"
+                aria-label="별표"
+              >
+                ★
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <MoreButton left={cells.length - limit} onMore={onMore} />
+      {viewerIndex != null && withPhoto.length > 0 && (
+        <PhotoViewer
+          slides={withPhoto.map(({ item, photo }) => ({ blob: photo.blob, item }))}
+          startIndex={viewerIndex}
+          onClose={closeViewer}
+          showItemLink
+        />
+      )}
+    </>
+  )
+}
+
+/** 사진이 많을 때 나눠서 보여 주기: 끝에 닿으면 저절로, 버튼으로도 */
+function MoreButton({ left, onMore }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (left <= 0 || !ref.current || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver((entries) => entries[0].isIntersecting && onMore(), {
+      rootMargin: '400px',
+    })
+    observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [left, onMore])
+  if (left <= 0) return null
+  return (
+    <button ref={ref} type="button" onClick={onMore} className="btn btn-outline mt-3 w-full">
+      사진 더 보기 (남은 {left}장)
+    </button>
   )
 }
 
@@ -166,6 +213,8 @@ function Chips({ options, value, onChange, label }) {
  */
 export default function PhotoGrid({ items, emptyTitle = '아직 사진이 없어요', hideShopGroup = false }) {
   const [prefs, setPrefs] = useState(loadPrefs)
+  const [limit, setLimit] = useState(PAGE)
+  const showMore = useCallback(() => setLimit((n) => n + PAGE), [])
   const groupOptions = hideShopGroup ? { all: GROUPS.all, category: GROUPS.category } : GROUPS
   const group = prefs.group in groupOptions ? prefs.group : 'all'
   const sort = prefs.sort in SORTS ? prefs.sort : 'new'
@@ -175,6 +224,7 @@ export default function PhotoGrid({ items, emptyTitle = '아직 사진이 없어
     const merged = { ...prefs, ...next }
     setPrefs(merged)
     savePrefs(merged)
+    setLimit(PAGE)
   }
 
   const starredCount = items.filter((item) => item.starred).length
@@ -186,6 +236,15 @@ export default function PhotoGrid({ items, emptyTitle = '아직 사진이 없어
     groups.sort(
       (a, b) => b[1].reduce((s, i) => s + itemTotal(i), 0) - a[1].reduce((s, i) => s + itemTotal(i), 0),
     )
+  }
+
+  // 묶음 합계는 전체로, 칸은 앞에서부터 limit개까지만 그림
+  let budget = limit
+  const groupsInView = []
+  for (const [name, list] of groups ?? []) {
+    if (budget <= 0) break
+    groupsInView.push([name, list, list.slice(0, budget)])
+    budget -= list.length
   }
 
   return (
@@ -237,10 +296,10 @@ export default function PhotoGrid({ items, emptyTitle = '아직 사진이 없어
             }
           />
         ) : group === 'all' ? (
-          <PhotoWall items={shown} />
+          <PhotoWall items={shown} limit={limit} onMore={showMore} />
         ) : (
           <div className="space-y-5">
-            {groups.map(([name, groupItemsList]) => (
+            {groupsInView.map(([name, groupItemsList, visible]) => (
               <section key={name}>
                 <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
                   <h3 className="truncate text-[18px] font-extrabold text-ink">
@@ -251,12 +310,13 @@ export default function PhotoGrid({ items, emptyTitle = '아직 사진이 없어
                   </b>
                 </div>
                 <ul className="grid grid-cols-3 gap-x-2.5 gap-y-3" aria-label="사진 모아보기">
-                  {groupItemsList.map((item) => (
+                  {visible.map((item) => (
                     <Tile key={item.id} item={item} />
                   ))}
                 </ul>
               </section>
             ))}
+            <MoreButton left={shown.length - limit} onMore={showMore} />
           </div>
         )}
       </div>

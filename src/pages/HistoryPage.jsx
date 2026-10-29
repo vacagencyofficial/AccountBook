@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import HistoryFilters from '../components/HistoryFilters'
@@ -40,8 +41,11 @@ export default function HistoryPage() {
     sessionStorage.setItem('sailp-history-view', next)
   }
   const [selectedDate, setSelectedDate] = useState(today)
-  const [find, setFind] = useState(emptyFind)
-  const [showFind, setShowFind] = useState(false)
+  // 홈의 「찾기」로 들어오면 그 말로 모든 달에서 찾기
+  const location = useLocation()
+  const homeQuery = location.state?.query
+  const [find, setFind] = useState(() => (homeQuery ? { ...emptyFind, query: homeQuery, allMonths: true } : emptyFind))
+  const [showFind, setShowFind] = useState(Boolean(homeQuery))
   const [showFiles, setShowFiles] = useState(false)
   const [includePhotos, setIncludePhotos] = useState(false)
   const [isExporting, setIsExporting] = useState(false)

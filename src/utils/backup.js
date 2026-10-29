@@ -3,6 +3,7 @@ import { db } from '../db'
 import { rememberReplacedRecords } from '../db/mutations'
 import { clearWorkspaceLocal } from '../lib/workspace'
 import { getToday } from './format'
+import { markBackupDone } from '../lib/backupStatus'
 
 const BACKUP_VERSION = 1
 
@@ -42,6 +43,7 @@ export async function exportBackup() {
 
   const buffer = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
   downloadBlob(buffer, `사입노트_백업_${getToday()}.zip`)
+  markBackupDone()
 }
 
 /**

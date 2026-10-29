@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ItemRow from '../components/ItemRow'
 import Onboarding from '../components/Onboarding'
 import { needsOnboarding } from '../lib/onboarding'
-import { IconCamera } from '../components/Icons'
+import { IconCamera, IconSearch } from '../components/Icons'
+import BackupReminder from '../components/BackupReminder'
+import { getMonthBudget } from '../lib/budget'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
@@ -78,6 +80,15 @@ export default function HomePage() {
   const monthSummary = summarizeItems(itemsForMonth(items ?? []))
   const week = weekStats(items ?? [])
   const monthNumber = new Date().getMonth() + 1
+  const [budget] = useState(getMonthBudget)
+  const [search, setSearch] = useState('')
+  const navigate = useNavigate()
+
+  function handleSearch(event) {
+    event.preventDefault()
+    const query = search.trim()
+    if (query) navigate('/history', { state: { query } })
+  }
 
   return (
     <div>
@@ -88,6 +99,20 @@ export default function HomePage() {
       <PageHeader brand subtitle={formatHomeDate()} />
 
       <section className="px-4 pt-2">
+        <form onSubmit={handleSearch} role="search" className="mb-3 flex gap-2">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="상품·가게 찾기"
+            enterKeyHint="search"
+            className="field min-w-0 flex-1"
+            aria-label="상품·가게 찾기"
+          />
+          <button type="submit" className="btn btn-outline shrink-0 px-3.5" aria-label="찾기">
+            <IconSearch className="h-6 w-6" />
+          </button>
+        </form>
         <div className="hero px-5 pb-4 pt-4">
           <p className="text-[18px] font-semibold opacity-85">오늘 쓴 돈</p>
           <p className="mt-0.5 text-[clamp(30px,10vw,40px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
@@ -110,12 +135,15 @@ export default function HomePage() {
               {isLoading ? '…' : formatCurrency(monthSummary.total)} ›
             </b>
           </Link>
+          {budget > 0 && !isLoading && <BudgetBar spent={monthSummary.total} budget={budget} />}
         </div>
 
         <Link to="/capture" className="btn btn-accent mt-4 w-full text-[21px]" style={{ minHeight: '4rem' }}>
           <IconCamera className="h-7 w-7" />
           상품 입력
         </Link>
+
+        {!isLoading && <BackupReminder items={items ?? []} />}
 
         <div className="card mt-4 px-4 pb-3 pt-3.5">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
@@ -174,6 +202,34 @@ export default function HomePage() {
           </ul>
         )}
       </section>
+    </div>
+  )
+}
+
+function won(amount) {
+  const text = formatManwon(amount)
+  return text.endsWith('원') ? text : `${text}원`
+}
+
+/** 이번 달 예산 중 얼마나 썼는지 */
+function BudgetBar({ spent, budget }) {
+  const ratio = spent / budget
+  const pct = Math.round(ratio * 100)
+  const over = ratio > 1
+  return (
+    <div className="mt-3">
+      <div className="flex items-baseline justify-between text-[16px] font-semibold">
+        <span className="opacity-85">예산 {won(budget)}</span>
+        <b className={over ? 'text-[#fdba74]' : ''}>
+          {over ? `${won(spent - budget)} 넘었어요` : `${pct}% 썼어요`}
+        </b>
+      </div>
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/15" aria-hidden>
+        <div
+          className={`h-full rounded-full ${over ? 'bg-[#fb923c]' : 'bg-white'}`}
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+      </div>
     </div>
   )
 }
