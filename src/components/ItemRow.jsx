@@ -12,7 +12,14 @@ export default function ItemRow({ item, showDate = false }) {
       <Link to={`/items/${item.id}`} className="card flex items-center gap-3.5 px-3.5 py-3 active:bg-wash">
         <PhotoThumbnail blob={item.photo?.blob} alt={item.name} size="lg" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[19px] font-bold text-ink">{item.name || '이름 없는 물건'}</p>
+          <p className="truncate text-[19px] font-bold text-ink">
+            {item.starred ? (
+              <span className="mr-1 text-[#f59e0b]" aria-label="별표">
+                ★
+              </span>
+            ) : null}
+            {item.name || '이름 없는 물건'}
+          </p>
           <p className="truncate text-[16px] font-semibold text-ink-soft">{sub}</p>
           <p className="mt-0.5 truncate text-[16px] font-semibold text-ink-soft tabular">
             {showDate && `${formatDateLabel(item.date)} · `}

@@ -156,6 +156,12 @@ export async function deletePhoto(photoId) {
   void syncAfterWrite()
 }
 
+/** 별표 켜고 끄기 */
+export async function setItemStarred(itemId, starred) {
+  await db.items.update(itemId, { starred: starred ? 1 : 0, ...changed() })
+  void syncAfterWrite()
+}
+
 /** 기록 지우기. 「되돌리기」에 쓰도록 지운 기록과 사진을 돌려줌 */
 export async function deleteItem(itemId) {
   const item = await db.items.get(itemId)

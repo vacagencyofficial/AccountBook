@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState'
 import HistoryFilters from '../components/HistoryFilters'
 import ImportModeDialog from '../components/ImportModeDialog'
 import ItemRow from '../components/ItemRow'
+import PhotoGrid from '../components/PhotoGrid'
 import { IconExcel, IconSearch } from '../components/Icons'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
@@ -228,10 +229,11 @@ export default function HistoryPage() {
         )}
 
         {!searchAll && (
-          <div className="mt-4 grid grid-cols-2 gap-1 rounded-[12px] bg-line-soft p-1" role="tablist">
+          <div className="mt-4 grid grid-cols-3 gap-1 rounded-[12px] bg-line-soft p-1" role="tablist">
             {[
-              ['calendar', '달력으로'],
-              ['list', '목록으로'],
+              ['calendar', '달력'],
+              ['list', '목록'],
+              ['photos', '사진'],
             ].map(([key, label]) => (
               <button
                 key={key}
@@ -331,6 +333,10 @@ export default function HistoryPage() {
               <p className="mt-4 text-center text-[16px] font-semibold text-ink-soft">날짜를 누르면 그날 기록이 나와요</p>
             )}
           </>
+        ) : !searchAll && view === 'photos' ? (
+          <div className="mt-4">
+            <PhotoGrid items={filteredItems} emptyTitle="이 달에는 사진이 없어요" />
+          </div>
         ) : filteredItems.length === 0 ? (
           <div className="mt-4">
             <EmptyState

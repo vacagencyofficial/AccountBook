@@ -7,6 +7,7 @@ import SubPage from '../components/SubPage'
 import PhotoThumbnail from '../components/PhotoThumbnail'
 import RegisterForm from '../components/RegisterForm'
 import StatusBadge from '../components/StatusBadge'
+import StarButton from '../components/StarButton'
 import { IconCamera, IconClose, IconGallery } from '../components/Icons'
 import { db } from '../db'
 import { addItemPhotos, deleteItem, deletePhoto, restoreItem, updateItem } from '../db/mutations'
@@ -244,7 +245,14 @@ export default function ItemDetailPage() {
           <section className="card p-4">
             <div className="flex items-start justify-between gap-3">
               <h2 className="min-w-0 break-keep text-[23px] font-extrabold text-ink">{item.name || '이름 없는 물건'}</h2>
-              <StatusBadge status={item.status} />
+              <div className="flex shrink-0 items-center gap-2">
+                <StatusBadge status={item.status} />
+                <StarButton
+                  item={item}
+                  label
+                  className="min-h-[2.5rem] rounded-[10px] bg-line-soft px-2.5 text-[16px] font-bold text-ink-muted"
+                />
+              </div>
             </div>
             <p className="mt-1 text-[17px] font-bold text-ink-muted">
               {item.shop?.name ?? '가게 정보 없음'}
