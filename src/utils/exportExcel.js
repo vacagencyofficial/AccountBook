@@ -9,11 +9,14 @@ function downloadBlob(buffer, filename) {
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  // 화면에 붙여 눌러야 파일 이름이 지켜지고, 주소는 내려받기가 시작된 뒤에 정리
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
-export async function exportHistoryToExcel(items, { includePhotos = false } = {}) {
+export async function exportHistoryToExcel(items, { includePhotos = false, fileLabel = '' } = {}) {
   const workbook = new ExcelJS.Workbook()
   workbook.creator = '사입노트'
   workbook.created = new Date()
@@ -164,5 +167,5 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
   }
 
   const buffer = await workbook.xlsx.writeBuffer()
-  downloadBlob(buffer, `사입장부_${getToday()}.xlsx`)
+  downloadBlob(buffer, `사입장부_${fileLabel ? `${fileLabel}_` : ''}${getToday()}.xlsx`)
 }

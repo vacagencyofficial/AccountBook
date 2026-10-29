@@ -82,6 +82,13 @@ export default function HistoryPage() {
 
   const isThisMonth = monthRange.start <= today && today <= monthRange.end
   const canExport = filteredItems.length > 0 && !isExporting
+  const allItemsByDate = useMemo(
+    () =>
+      [...(items ?? [])].sort(
+        (a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0),
+      ),
+    [items],
+  )
 
   function moveMonth(diff) {
     const d = new Date(month.year, month.month + diff, 1)
@@ -91,13 +98,15 @@ export default function HistoryPage() {
     setSelectedDate(range.start <= today && today <= range.end ? today : null)
   }
 
-  async function handleExport() {
-    if (!canExport) return
-    setIsExporting(true)
+  // scope: 'shown'(보고 있는 달·찾은 기록) / 'all'(처음부터 모든 기록)
+  async function handleExport(scope = 'shown') {
+    const target = scope === 'all' ? allItemsByDate : filteredItems
+    if (isExporting || target.length === 0) return
+    setIsExporting(scope)
     setExportError(null)
     try {
       const { exportHistoryToExcel } = await import('../utils/exportExcel')
-      await exportHistoryToExcel(filteredItems, { includePhotos })
+      await exportHistoryToExcel(target, { includePhotos, fileLabel: scope === 'all' ? '전체' : '' })
     } catch (err) {
       setExportError(err instanceof Error ? err.message : '엑셀로 받지 못했어요')
     } finally {
@@ -444,11 +453,20 @@ export default function HistoryPage() {
                 />
                 엑셀에 사진도 같이 넣기
               </label>
-              <button type="button" onClick={handleExport} disabled={!canExport} className="btn btn-primary w-full">
+              <button type="button" onClick={() => handleExport()} disabled={!canExport} className="btn btn-primary w-full">
                 <IconExcel className="h-5 w-5" />
-                {isExporting
+                {isExporting === 'shown'
                   ? '만드는 중…'
                   : `${searchAll ? '찾은 기록' : `${month.month + 1}월 기록`} 엑셀로 받기 (${filteredItems.length}건)`}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport('all')}
+                disabled={Boolean(isExporting) || allItemsByDate.length === 0}
+                className="btn btn-soft w-full"
+              >
+                <IconExcel className="h-5 w-5" />
+                {isExporting === 'all' ? '만드는 중…' : `전체 기간 엑셀로 받기 (${allItemsByDate.length}건)`}
               </button>
               <button type="button" onClick={handleImportClick} disabled={isImporting} className="btn btn-soft w-full">
                 {isImporting ? '넣는 중…' : '엑셀 파일 넣기'}
