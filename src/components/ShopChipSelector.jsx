@@ -5,7 +5,7 @@ import { useLiveQuery } from '../hooks/useLiveQuery'
 import { getLastShopId } from '../utils/lastShop'
 import { IconPlus } from './Icons'
 
-export default function ShopChipSelector({ selectedShopId, onSelect }) {
+export default function ShopChipSelector({ selectedShopId, onSelect, showLabel = true }) {
   const [search, setSearch] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
   const [building, setBuilding] = useState('')
@@ -71,26 +71,29 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="label mb-0">어느 가게예요?</p>
-        {!noShops && (
-          <button
-            type="button"
-            onClick={() => (panelOpen ? closePanel() : setPanelOpen(true))}
-            className="flex min-h-[2.75rem] items-center gap-1 px-1 text-[17px] font-bold text-brand"
-            aria-expanded={panelOpen}
-          >
-            {panelOpen ? (
-              '닫기'
-            ) : (
-              <>
-                <IconPlus className="h-5 w-5" />
-                다른 가게
-              </>
-            )}
-          </button>
-        )}
-      </div>
+      {/* 제목이 따로 있는 화면에선 「다른 가게」를 가게 목록 끝 버튼으로 */}
+      {(showLabel || panelOpen) && (
+        <div className="mb-2 flex items-center justify-between gap-2">
+          {showLabel ? <p className="label mb-0">어느 가게예요?</p> : <span />}
+          {!noShops && (
+            <button
+              type="button"
+              onClick={() => (panelOpen ? closePanel() : setPanelOpen(true))}
+              className="flex min-h-[2.75rem] items-center gap-1 px-1 text-[17px] font-bold text-brand"
+              aria-expanded={panelOpen}
+            >
+              {panelOpen ? (
+                '닫기'
+              ) : (
+                <>
+                  <IconPlus className="h-5 w-5" />
+                  다른 가게
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
 
       {recentShops.length > 0 && !panelOpen && (
         <div className="flex flex-wrap gap-2">
@@ -107,6 +110,17 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
               {shop.building && <span className="text-[16px] font-semibold opacity-75">{shop.building}</span>}
             </button>
           ))}
+          {!showLabel && (
+            <button
+              type="button"
+              onClick={() => setPanelOpen(true)}
+              className="chip text-brand"
+              aria-expanded={false}
+            >
+              <IconPlus className="h-5 w-5" />
+              다른 가게
+            </button>
+          )}
         </div>
       )}
 
@@ -127,7 +141,9 @@ export default function ShopChipSelector({ selectedShopId, onSelect }) {
               {filteredShops.map((shop) => (
                 <button key={shop.id} type="button" onClick={() => pick(shop.id)} className="chip">
                   {shop.name}
-                  {shop.building && <span className="text-[16px] font-semibold opacity-75">{shop.building}</span>}
+                  {shop.building && (
+                    <span className="text-[16px] font-semibold opacity-75">{shop.building}</span>
+                  )}
                 </button>
               ))}
             </div>

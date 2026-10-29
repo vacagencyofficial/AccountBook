@@ -206,23 +206,16 @@ export default function HistoryPage() {
         )}
 
         <div className="hero px-5 pb-4 pt-4">
-          <div className="hero-deco" aria-hidden />
           <p className="text-[17px] font-semibold opacity-85">
             {searchAll ? '찾은 기록에서 쓴 돈' : `${month.month + 1}월에 쓴 돈`}
           </p>
           <p className="text-[clamp(28px,9vw,36px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
             {isLoading ? '…' : formatCurrency(summary.total)}
           </p>
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            <span className="hero-pill">
-              {summary.count ? `${summary.count}건 · ${summary.qty}개` : '아직 산 것이 없어요'}
-            </span>
-            {summary.pendingCount > 0 && (
-              <span className="hero-pill hero-pill-warn">
-                고민 중·안 사요 {summary.pendingCount}건 따로
-              </span>
-            )}
-          </div>
+          <p className="mt-1 text-[16px] font-semibold opacity-80">
+            {summary.count ? `${summary.count}건 · ${summary.qty}개` : '아직 산 것이 없어요'}
+            {summary.pendingCount > 0 && ` · 고민 중·안 사요 ${summary.pendingCount}건 제외`}
+          </p>
         </div>
 
         {hasFind && (
@@ -283,7 +276,7 @@ export default function HistoryPage() {
                       onClick={() => setSelectedDate(date)}
                       className={[
                         'flex min-h-[3.35rem] flex-col items-center justify-start rounded-[10px] pt-1',
-                        isSelected ? 'bg-brand text-white shadow-[0_6px_14px_rgb(30_58_138/0.3)]' : '',
+                        isSelected ? 'bg-brand text-white' : '',
                         !isSelected && date === today ? 'ring-2 ring-accent ring-inset' : '',
                       ].join(' ')}
                       aria-label={`${dayHeading(date)}${total ? ` ${formatCurrency(total)}` : ''}`}

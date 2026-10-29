@@ -45,7 +45,7 @@ export default function ShopsPage() {
       <PageHeader
         title="가게"
         action={
-          <Link to="/shops/new" className="btn btn-primary text-[17px]">
+          <Link to="/shops/new" className="btn btn-soft text-[17px]">
             <IconPlus className="h-5 w-5" />
             새 가게
           </Link>
