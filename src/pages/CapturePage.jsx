@@ -23,7 +23,8 @@ function loadMode() {
   }
 }
 
-const STEP_SECTIONS = [['date', 'shop'], ['price'], ['name', 'more']]
+// 날짜는 대부분 오늘이라 마지막 질문의 「더 적기」 안에 둠
+const STEP_SECTIONS = [['shop'], ['price'], ['name', 'more']]
 const STEP_TITLES = ['어느 가게예요?', '얼마예요?', '무엇을 샀어요?']
 
 /** 저장 버튼 아래에 보여 줄, 가장 먼저 채워야 할 칸 */
@@ -411,7 +412,7 @@ export default function CapturePage() {
               </div>
             )}
             {hint && (
-              <p className="mt-2 text-center text-[17px] font-bold leading-snug text-accent-dark">{hint}</p>
+              <p className="mt-2 text-center text-[17px] font-bold leading-snug text-ink-soft">{hint}</p>
             )}
           </div>
         </div>

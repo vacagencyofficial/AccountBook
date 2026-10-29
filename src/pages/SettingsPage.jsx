@@ -392,13 +392,13 @@ export default function SettingsPage() {
           />
         </SettingsSection>
 
-        <SettingsSection title="홈 화면에 붙여 두기">
+        <SettingsSection title="홈 화면에 추가">
           <SettingsRow
-            label={isInstalled ? '✓ 이미 붙여 두셨어요' : '아직 홈 화면에 없어요'}
+            label={isInstalled ? '홈 화면에 추가되어 있어요' : '아직 홈 화면에 없어요'}
             description={
               isInstalled
-                ? '아이콘을 눌러 바로 열 수 있어요'
-                : '아이폰: 아래 「공유」 → 「홈 화면에 추가」\n갤럭시: 오른쪽 위 ⋮ → 「홈 화면에 추가」'
+                ? '홈 화면 아이콘을 눌러 바로 열 수 있어요'
+                : '아이폰: 화면 아래 「공유」 → 「홈 화면에 추가」\n갤럭시: 오른쪽 위 ⋮ → 「홈 화면에 추가」'
             }
           />
         </SettingsSection>

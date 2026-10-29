@@ -52,7 +52,7 @@ export default function Layout() {
         <InstallPrompt />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 bg-paper shadow-[0_-4px_18px_rgb(15_23_42/0.08)] safe-bottom">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line-soft bg-paper safe-bottom">
         <ul className="mx-auto grid max-w-lg grid-cols-[1fr_1fr_1.3fr_1fr_1fr] items-end px-2 pt-1.5">
           {leftTabs.map((tab) => (
             <Tab key={tab.to} {...tab} />
@@ -60,9 +60,9 @@ export default function Layout() {
           <li>
             <Link
               to="/capture"
-              className="-mt-8 flex flex-col items-center gap-1 text-[16px] font-extrabold text-accent-dark"
+              className="-mt-6 flex flex-col items-center gap-1 text-[16px] font-extrabold text-accent-dark"
             >
-              <span className="flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-[#f97316] to-accent-dark text-white shadow-[0_8px_18px_rgb(234_88_12/0.35)]">
+              <span className="flex h-[3.75rem] w-[3.75rem] items-center justify-center rounded-full border-4 border-paper bg-accent text-white">
                 <IconCamera className="h-8 w-8" />
               </span>
               물건 적기

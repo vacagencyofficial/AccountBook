@@ -34,7 +34,11 @@ const SIZE_OPTIONS = ['FREE', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '26', '27', '28'
 // 한 개 가격은 1억 원 미만, 수량은 9,999개까지 (화면이 넘치거나 클라우드 숫자 범위를 넘지 않게)
 const MAX_PRICE = 99_999_999
 const MAX_QTY = 9999
-const onlyDigits = (value, maxLength) => value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '').slice(0, maxLength)
+const onlyDigits = (value, maxLength) =>
+  value
+    .replace(/[^\d]/g, '')
+    .replace(/^0+(?=\d)/, '')
+    .slice(0, maxLength)
 
 const PRICE_STEPS = [
   { value: 1000, label: '+1천' },
@@ -132,36 +136,45 @@ export default function RegisterForm({
     .filter(Boolean)
     .join(' · ')
 
+  const dateChips = (
+    <div className="grid grid-cols-3 gap-2">
+      <Chip active={date === today} onClick={() => updateField('date', today)}>
+        오늘
+      </Chip>
+      <Chip active={date === yesterday} onClick={() => updateField('date', yesterday)}>
+        어제
+      </Chip>
+      <label className={`chip relative ${isOtherDate ? 'chip-on' : ''}`}>
+        {isOtherDate ? formatDateLabel(date) : '날짜 고르기'}
+        <input
+          type="date"
+          value={date}
+          max={today}
+          onChange={(e) => e.target.value && updateField('date', e.target.value)}
+          className="absolute inset-0 opacity-0"
+          aria-label="산 날짜 고르기"
+        />
+      </label>
+    </div>
+  )
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {show('date') && (
         <section>
           <p className="label">언제 샀나요?</p>
-          <div className="grid grid-cols-3 gap-2">
-            <Chip active={date === today} onClick={() => updateField('date', today)}>
-              오늘
-            </Chip>
-            <Chip active={date === yesterday} onClick={() => updateField('date', yesterday)}>
-              어제
-            </Chip>
-            <label className={`chip relative ${isOtherDate ? 'chip-on' : ''}`}>
-              {isOtherDate ? formatDateLabel(date) : '날짜 고르기'}
-              <input
-                type="date"
-                value={date}
-                max={today}
-                onChange={(e) => e.target.value && updateField('date', e.target.value)}
-                className="absolute inset-0 opacity-0"
-                aria-label="산 날짜 고르기"
-              />
-            </label>
-          </div>
+          {dateChips}
         </section>
       )}
 
       {show('shop') && (
         <section>
-          <ShopChipSelector selectedShopId={form.shopId} onSelect={selectShop} />
+          <ShopChipSelector
+            selectedShopId={form.shopId}
+            onSelect={selectShop}
+            // 한 질문씩 적기에서는 화면 제목이 이미 「어느 가게예요?」
+            showLabel={show('price') || show('name')}
+          />
         </section>
       )}
 
@@ -237,9 +250,7 @@ export default function RegisterForm({
             </div>
 
             {form.price !== '' && (
-              <div
-                className="mt-4 flex items-center justify-between rounded-[16px] bg-accent-soft px-4 py-3"
-              >
+              <div className="mt-4 flex items-center justify-between rounded-[16px] bg-accent-soft px-4 py-3">
                 <div>
                   <p className="text-[16px] font-semibold text-ink-muted">합계</p>
                   <p className="text-[16px] font-semibold text-ink-muted tabular">
@@ -288,6 +299,12 @@ export default function RegisterForm({
 
           {moreOpen && (
             <div className="space-y-5 border-t border-line-soft px-4 pb-4 pt-4">
+              {!show('date') && (
+                <div>
+                  <p className="label">언제 샀나요?</p>
+                  {dateChips}
+                </div>
+              )}
               <div>
                 <p className="label">샀나요?</p>
                 <div className="grid grid-cols-3 gap-2">

@@ -81,24 +81,19 @@ export default function HomePage() {
 
       <section className="px-4 pt-2">
         <div className="hero px-5 pb-4 pt-4">
-          <div className="hero-deco" aria-hidden />
           <p className="text-[18px] font-semibold opacity-85">오늘 쓴 돈</p>
           <p className="mt-0.5 text-[clamp(30px,10vw,40px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
             {isLoading ? '…' : formatCurrency(todaySummary.total)}
           </p>
           {!isLoading && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="hero-pill">
-                {todaySummary.count ? `${todaySummary.count}건 · ${todaySummary.qty}개 샀어요` : '아직 산 것이 없어요'}
-              </span>
-              {todaySummary.pendingCount > 0 && (
-                <span className="hero-pill hero-pill-warn">고민 중 {todaySummary.pendingCount}건은 뺐어요</span>
-              )}
-            </div>
+            <p className="mt-1 text-[16px] font-semibold opacity-80">
+              {todaySummary.count ? `${todaySummary.count}건 · ${todaySummary.qty}개 샀어요` : '아직 산 것이 없어요'}
+              {todaySummary.pendingCount > 0 && ` · 고민 중 ${todaySummary.pendingCount}건 제외`}
+            </p>
           )}
           <Link
             to="/history"
-            className="mt-4 flex items-center justify-between border-t border-dashed border-white/30 pt-3 text-[17px]"
+            className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-[17px]"
           >
             <span>{monthNumber}월 전체</span>
             <b className="text-[21px] font-extrabold tabular">

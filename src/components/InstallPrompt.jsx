@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 const DISMISS_KEY = 'sailp-install-dismissed'
+// 「나중에」를 누르면 일주일 뒤에 다시 한 번만 알려 줌
+const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000
 
 function isStandalone() {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true
-  )
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
 }
 
 function isIosSafari() {
@@ -16,81 +16,122 @@ function isIosSafari() {
   return isIos && isSafari
 }
 
+function isSnoozed() {
+  try {
+    const raw = localStorage.getItem(DISMISS_KEY)
+    if (!raw) return false
+    const at = Number(raw)
+    // 예전 버전은 '1'로 저장했음 → 일주일 지난 것으로 보고 다시 알려 줌
+    return at > 1 && Date.now() - at < SNOOZE_MS
+  } catch {
+    return false
+  }
+}
+
+function IconShare(props) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      <path d="M12 3v12M7 8l5-5 5 5" />
+      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+    </svg>
+  )
+}
+
 export default function InstallPrompt() {
-  const [visible, setVisible] = useState(false)
+  const { pathname } = useLocation()
+  const [available, setAvailable] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [showIosHelp, setShowIosHelp] = useState(false)
+  const ios = isIosSafari()
 
   useEffect(() => {
-    if (isStandalone()) return
-    if (localStorage.getItem(DISMISS_KEY)) return
+    if (isStandalone() || isSnoozed()) return
 
-    if (isIosSafari()) {
-      setVisible(true)
+    if (ios) {
+      setAvailable(true)
       return
     }
 
     function handleBeforeInstall(event) {
       event.preventDefault()
       setDeferredPrompt(event)
-      setVisible(true)
+      setAvailable(true)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall)
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
-  }, [])
+  }, [ios])
 
   function dismiss() {
-    localStorage.setItem(DISMISS_KEY, '1')
-    setVisible(false)
+    try {
+      localStorage.setItem(DISMISS_KEY, String(Date.now()))
+    } catch {
+      // 저장이 막힌 브라우저면 이번에만 닫음
+    }
+    setAvailable(false)
   }
 
-  async function handleAndroidInstall() {
+  async function handleInstall() {
+    if (ios) {
+      setShowIosHelp((v) => !v)
+      return
+    }
     if (!deferredPrompt) return
     deferredPrompt.prompt()
     await deferredPrompt.userChoice
     setDeferredPrompt(null)
-    setVisible(false)
+    setAvailable(false)
   }
 
-  if (!visible) return null
+  // 홈 화면에서만, 하단 메뉴 바로 위에 작은 띠로
+  if (!available || pathname !== '/') return null
 
   return (
-    <div className="px-4 pt-6">
-      <div className="card p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[18px] font-extrabold text-brand">홈 화면에 붙여 두실래요?</p>
-            <p className="mt-1 text-[16px] font-semibold leading-relaxed text-ink-muted">
-              {isIosSafari() ? (
-                <>아래쪽 「공유」 버튼을 누른 뒤 「홈 화면에 추가」를 고르면, 앱처럼 편하게 열 수 있어요.</>
-              ) : (
-                <>한 번만 붙여 두면 아이콘으로 바로 열 수 있어요.</>
-              )}
-            </p>
+    <div
+      className="fixed inset-x-0 z-20 px-3"
+      style={{ bottom: 'calc(5.25rem + env(safe-area-inset-bottom))' }}
+      role="region"
+      aria-label="홈 화면에 추가"
+    >
+      <div className="mx-auto max-w-lg rounded-[14px] bg-ink px-3 py-3 text-white shadow-[0_4px_16px_rgb(15_23_42/0.18)]">
+        <div className="flex items-center gap-3">
+          <img src="/favicon.svg" alt="" className="h-10 w-10 shrink-0" />
+          <div className="min-w-0 flex-1 leading-snug">
+            <p className="text-[17px] font-extrabold">홈 화면에 추가</p>
+            <p className="text-[16px] font-semibold text-white/70">앱처럼 바로 열려요</p>
           </div>
-          <button type="button" onClick={dismiss} className="-mr-2 -mt-2 flex h-12 w-12 shrink-0 items-center justify-center text-[26px] font-bold text-ink-soft" aria-label="닫기">
-            ×
+          <button
+            type="button"
+            onClick={handleInstall}
+            className="btn min-h-[2.75rem] shrink-0 bg-white px-3 text-[16px] text-ink"
+          >
+            {ios ? '방법 보기' : '추가'}
           </button>
-        </div>
-
-        <div className="mt-3 flex gap-2">
-          {!isIosSafari() && deferredPrompt && (
-            <button
-              type="button"
-              onClick={handleAndroidInstall}
-              className="btn btn-primary flex-1"
-            >
-              홈에 붙이기
-            </button>
-          )}
           <button
             type="button"
             onClick={dismiss}
-            className="btn btn-outline flex-1"
+            className="-mr-1 flex h-11 w-9 shrink-0 items-center justify-center text-[24px] font-bold text-white/70"
+            aria-label="나중에 하기"
           >
-            나중에
+            ×
           </button>
         </div>
+        {showIosHelp && (
+          <p className="mt-3 border-t border-white/15 pt-3 text-[16px] font-semibold leading-relaxed">
+            화면 아래 <IconShare className="mx-0.5 inline h-5 w-5 align-[-3px]" /> 「공유」를 누르고
+            <br />
+            「홈 화면에 추가」를 골라 주세요.
+          </p>
+        )}
       </div>
     </div>
   )
