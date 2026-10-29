@@ -47,7 +47,7 @@ export default function CapturePage() {
   const [focusName, setFocusName] = useState(false)
   const [showLeave, setShowLeave] = useState(false)
   const [mode, setMode] = useState(loadMode)
-  // 가게 상세의 「이 가게 물건 적기」로 들어온 경우 그 가게를 골라 두고 가격부터
+  // 가게 상세의 「이 가게 상품 입력」로 들어온 경우 그 가게를 골라 두고 가격부터
   const presetShopId = location.state?.shopId
   // 지금 질문 번호는 주소 기록(history)에 둠 → 폰의 「뒤로」를 누르면 이전 질문으로 돌아감
   const step = location.state?.step ?? (presetShopId ? 1 : 0)
@@ -209,7 +209,7 @@ export default function CapturePage() {
             <IconClose className="h-6 w-6" />
             닫기
           </button>
-          <h1 className="text-[21px] font-extrabold">물건 적기</h1>
+          <h1 className="text-[21px] font-extrabold">상품 입력</h1>
           <span className="w-[5.5rem]" />
         </div>
         {!saved && (
@@ -270,7 +270,7 @@ export default function CapturePage() {
               className="btn btn-accent w-full text-[20px]"
               style={{ minHeight: '3.75rem' }}
             >
-              다음 물건 적기
+              다음 상품 입력
             </button>
             <button type="button" onClick={() => navigate('/history')} className="btn btn-outline w-full">
               장부 보기
@@ -423,7 +423,7 @@ export default function CapturePage() {
           <div className="card w-full max-w-sm p-5" role="dialog" aria-modal="true">
             <h3 className="text-[20px] font-extrabold text-ink">적던 내용이 있어요</h3>
             <p className="mt-2 text-[17px] font-medium leading-relaxed text-ink-muted">
-              남겨 두면 다음에 「물건 적기」를 누를 때 그대로 이어서 쓸 수 있어요.
+              남겨 두면 다음에 「상품 입력」을 누를 때 그대로 이어서 쓸 수 있어요.
             </p>
             <div className="mt-5 space-y-2">
               <button type="button" onClick={() => setShowLeave(false)} className="btn btn-primary w-full">

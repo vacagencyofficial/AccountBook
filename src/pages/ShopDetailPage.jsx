@@ -87,14 +87,22 @@ export default function ShopDetailPage() {
   return (
     <PageShell title={shop.name} subtitle={shopLocation(shop) || undefined}>
       {error && (
-        <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700">{error}</div>
+        <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700">
+          {error}
+        </div>
       )}
 
       {Boolean(shop.hidden) && (
         <div className="card mb-4 bg-warn-soft px-4 py-3">
           <p className="text-[18px] font-extrabold text-warn">숨긴 가게예요</p>
-          <p className="mt-1 text-[16px] font-semibold text-ink-muted">가게 목록과 고르기에서 보이지 않아요. 기록은 그대로예요.</p>
-          <button type="button" onClick={() => setShopHidden(id, false)} className="btn btn-outline mt-3 w-full">
+          <p className="mt-1 text-[16px] font-semibold text-ink-muted">
+            가게 목록과 고르기에서 보이지 않아요. 기록은 그대로예요.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShopHidden(id, false)}
+            className="btn btn-outline mt-3 w-full"
+          >
             다시 보이게 하기
           </button>
         </div>
@@ -108,8 +116,7 @@ export default function ShopDetailPage() {
             className="btn btn-accent text-[19px]"
             style={{ minHeight: '3.5rem' }}
           >
-            <IconCamera className="h-6 w-6" />
-            이 가게 물건 적기
+            <IconCamera className="h-6 w-6" />이 가게 상품 입력
           </button>
           {shop.phone && (
             <a href={`tel:${shop.phone.replace(/[^\d+]/g, '')}`} className="btn bg-good-soft text-good">
@@ -176,9 +183,13 @@ export default function ShopDetailPage() {
         {itemsLoading ? (
           <div className="skeleton h-24" />
         ) : (items?.length ?? 0) === 0 ? (
-          <EmptyState title="아직 기록이 없어요" description="위 「이 가게 물건 적기」로 적어 보세요." />
+          <EmptyState title="아직 기록이 없어요" description="위 「이 가게 상품 입력」으로 입력해 보세요." />
         ) : view === 'photos' ? (
-          <PhotoGrid items={items} emptyTitle="이 가게 사진이 없어요" />
+          <PhotoGrid
+            items={items.map((item) => ({ ...item, shop }))}
+            emptyTitle="이 가게 사진이 없어요"
+            hideShopGroup
+          />
         ) : (
           <ul className="space-y-2.5">
             {items.map((item) => (
@@ -197,7 +208,10 @@ export default function ShopDetailPage() {
                 onClick={() => {
                   setShopHidden(id, true)
                   navigate('/shops', { replace: true })
-                  toast('가게를 숨겼어요', { actionLabel: '되돌리기', onAction: () => setShopHidden(id, false) })
+                  toast('가게를 숨겼어요', {
+                    actionLabel: '되돌리기',
+                    onAction: () => setShopHidden(id, false),
+                  })
                 }}
                 className="btn btn-outline w-full"
               >
@@ -208,7 +222,11 @@ export default function ShopDetailPage() {
               </p>
             </>
           )}
-          <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-text-danger w-full">
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="btn btn-text-danger w-full"
+          >
             가게와 기록 모두 지우기
           </button>
         </div>
