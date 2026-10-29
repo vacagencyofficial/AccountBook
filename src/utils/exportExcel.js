@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import { getToday, itemTotal, shopLocation } from './format'
+import { isUnpaidCredit } from './analytics'
 
 function downloadBlob(buffer, filename) {
   const blob = new Blob([buffer], {
@@ -38,6 +39,8 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
     '합계',
     '상태',
     '별표',
+    '결제',
+    '외상갚음',
     '메모',
   ]
   if (includePhotos) headers.push('사진')
@@ -66,6 +69,8 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
     { width: 12 },
     { width: 8 },
     { width: 6 },
+    { width: 9 },
+    { width: 9 },
     { width: 24 },
     ...(includePhotos ? [{ width: 14 }] : []),
   ]
@@ -88,6 +93,8 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
       itemTotal(item),
       item.status || '구매',
       item.starred ? '★' : '',
+      item.payment || '',
+      item.payment === '외상' ? (item.settled ? 'O' : 'X') : '',
       item.memo || '',
     ]
     row.alignment = { vertical: 'middle' }
@@ -106,7 +113,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
           extension: 'jpeg',
         })
         sheet.addImage(imageId, {
-          tl: { col: 13, row: rowNumber - 1 },
+          tl: { col: 15, row: rowNumber - 1 },
           ext: { width: 72, height: 72 },
         })
       } catch {
@@ -123,6 +130,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
 
   const totalAmount = items.reduce((sum, item) => sum + itemTotal(item), 0)
   const totalQty = items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+  const creditTotal = items.filter(isUnpaidCredit).reduce((sum, item) => sum + itemTotal(item), 0)
 
   summary.addRows([
     ['내보낸 날짜', getToday()],
@@ -130,8 +138,10 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
     ['총 수량', totalQty],
     ['총 금액', totalAmount],
     ['별표', items.filter((item) => item.starred).length],
+    ['안 갚은 외상', creditTotal],
   ])
   summary.getCell('B5').numFmt = '#,##0'
+  summary.getCell('B7').numFmt = '#,##0'
 
   const shopMap = new Map()
   for (const item of items) {

@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ShopRow from '../components/ShopRow'
+import { isUnpaidCredit } from '../utils/analytics'
+import { itemTotal } from '../utils/format'
 import { IconPlus, IconSearch } from '../components/Icons'
 import { db } from '../db'
 import { useLiveQuery } from '../hooks/useLiveQuery'
@@ -20,7 +22,9 @@ export default function ShopsPage() {
     const items = await db.items.toArray()
     const counts = {}
     for (const item of items) {
-      counts[item.shopId] = (counts[item.shopId] ?? 0) + 1
+      const entry = (counts[item.shopId] ??= { count: 0, credit: 0 })
+      entry.count += 1
+      if (isUnpaidCredit(item)) entry.credit += itemTotal(item)
     }
     return counts
   }, [])
@@ -84,7 +88,12 @@ export default function ShopsPage() {
         ) : (
           <ul className="space-y-2.5">
             {filtered.map((shop) => (
-              <ShopRow key={shop.id} shop={shop} itemCount={itemCounts?.[shop.id] ?? 0} />
+              <ShopRow
+                key={shop.id}
+                shop={shop}
+                itemCount={itemCounts?.[shop.id]?.count ?? 0}
+                credit={itemCounts?.[shop.id]?.credit ?? 0}
+              />
             ))}
           </ul>
         )}

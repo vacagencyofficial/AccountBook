@@ -96,6 +96,7 @@ export async function saveItemWithPhotos({
   qty,
   memo,
   status,
+  payment,
   photoBlobs,
 }) {
   const now = Date.now()
@@ -111,6 +112,8 @@ export async function saveItemWithPhotos({
     qty: parseInt(String(qty).replace(/,/g, ''), 10) || 1,
     memo: memo?.trim() ?? '',
     status: status ?? '구매',
+    payment: payment ?? '',
+    settled: 0,
     createdAt: now,
     ...changed(now),
   })
@@ -137,6 +140,11 @@ export async function updateItem(itemId, data) {
   if (data.memo != null) patch.memo = data.memo.trim()
   if (data.status != null) patch.status = data.status
   if (data.date != null) patch.date = data.date
+  if (data.payment != null) {
+    patch.payment = data.payment
+    // 외상이 아니게 바꾸면 「갚음」 표시도 지움
+    if (data.payment !== '외상') patch.settled = 0
+  }
   await db.items.update(itemId, patch)
   void syncAfterWrite()
 }
@@ -153,6 +161,12 @@ export async function deletePhoto(photoId) {
     await rememberDeletion('photo', photo?.cloudId)
     await db.photos.delete(photoId)
   })
+  void syncAfterWrite()
+}
+
+/** 외상 갚음 표시 켜고 끄기 */
+export async function setItemSettled(itemId, settled) {
+  await db.items.update(itemId, { settled: settled ? 1 : 0, ...changed() })
   void syncAfterWrite()
 }
 

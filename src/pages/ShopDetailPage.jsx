@@ -7,7 +7,8 @@ import SubPage from '../components/SubPage'
 import ItemRow from '../components/ItemRow'
 import ShopForm, { shopToForm } from '../components/ShopForm'
 import { db } from '../db'
-import { deleteShop, setShopHidden, updateShop } from '../db/mutations'
+import { deleteShop, setItemSettled, setShopHidden, updateShop } from '../db/mutations'
+import { summarizeCredit } from '../utils/analytics'
 import { useToast } from '../components/Toast'
 import PhotoGrid from '../components/PhotoGrid'
 import { getItemsByShop } from '../db/queries'
@@ -35,6 +36,8 @@ export default function ShopDetailPage() {
     () => (Number.isFinite(id) ? getItemsByShop(id) : []),
     [id],
   )
+
+  const credit = summarizeCredit(items ?? [])
 
   const totalAmount = useMemo(() => {
     if (!items) return 0
@@ -124,6 +127,31 @@ export default function ShopDetailPage() {
             </a>
           )}
         </div>
+      )}
+
+      {credit.count > 0 && !isEditing && (
+        <section className="mb-6 rounded-[var(--radius-card)] bg-warn-soft p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[17px] font-bold text-warn">안 갚은 외상 {credit.count}건</p>
+              <p className="text-[24px] font-extrabold text-ink tabular">{formatCurrency(credit.total)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const ids = credit.items.map((item) => item.id)
+                ids.forEach((itemId) => void setItemSettled(itemId, true))
+                toast('외상을 모두 갚은 것으로 표시했어요', {
+                  actionLabel: '되돌리기',
+                  onAction: () => ids.forEach((itemId) => void setItemSettled(itemId, false)),
+                })
+              }}
+              className="btn btn-primary shrink-0 text-[17px]"
+            >
+              모두 갚았어요
+            </button>
+          </div>
+        </section>
       )}
 
       <section className="card mb-6 p-4">
