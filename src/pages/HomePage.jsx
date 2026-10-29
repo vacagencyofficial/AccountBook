@@ -114,7 +114,7 @@ export default function HomePage() {
 
         <Link to="/capture" className="btn btn-accent mt-4 w-full text-[21px]" style={{ minHeight: '4rem' }}>
           <IconCamera className="h-7 w-7" />
-          물건 적기
+          상품 입력
         </Link>
 
         <div className="card mt-4 px-4 pb-3 pt-3.5">
@@ -164,7 +164,7 @@ export default function HomePage() {
           <EmptyState
             icon="camera"
             title="아직 오늘 기록이 없어요"
-            description="「물건 적기」를 눌러 적으면 여기에 쌓여요."
+            description="「상품 입력」을 눌러 입력하면 여기에 쌓여요."
           />
         ) : (
           <ul className="space-y-2.5">

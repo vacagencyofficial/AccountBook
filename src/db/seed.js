@@ -187,12 +187,21 @@ async function runSeed() {
     { allKeys: true },
   )
 
-  const photoColors = ['#0f6e6a', '#d95b2b', '#3d4a5c', '#8b6b4a', '#1f4e5f', '#64748b']
-  const photoLabels = ['니트', '스커', '코트', '자켓', '티셔', '슬랙', '블라', '데님']
+  // 기록 순서대로: 오버핏 니트·플리츠 스커트·울 코트·크롭 자켓·기본 티셔츠·와이드 슬랙스·레이스 블라우스·데님 팬츠
+  const photoLooks = [
+    ['knit', '#d9c4a3'],
+    ['skirt', '#2f3033'],
+    ['coat', '#4b4f56'],
+    ['jacket', '#ece4d2'],
+    ['tee', '#f6f6f3'],
+    ['slacks', '#9a9ea5'],
+    ['blouse', '#f1bccb'],
+    ['denim', '#34466b'],
+  ]
 
   const photos = await Promise.all(
     itemIds.map((itemId, i) =>
-      createPlaceholderPhoto(photoLabels[i], photoColors[i % photoColors.length]).then((blob) => ({
+      createPlaceholderPhoto(...photoLooks[i % photoLooks.length]).then((blob) => ({
         itemId,
         blob,
       })),

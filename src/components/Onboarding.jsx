@@ -7,7 +7,7 @@ const SLIDES = [
     icon: IconCamera,
     color: 'bg-accent-soft text-accent',
     title: '산 물건을 바로 적어요',
-    body: '아래 가운데 「물건 적기」를 누르고\n가게 → 가격 → 이름만 고르면 끝이에요.',
+    body: '아래 가운데 「상품 입력」을 누르고\n가게 → 가격 → 이름만 고르면 끝이에요.',
   },
   {
     icon: IconLedger,

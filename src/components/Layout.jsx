@@ -65,7 +65,7 @@ export default function Layout() {
               <span className="flex h-[3.75rem] w-[3.75rem] items-center justify-center rounded-full border-4 border-paper bg-accent text-white">
                 <IconCamera className="h-8 w-8" />
               </span>
-              물건 적기
+              상품 입력
             </Link>
           </li>
           {rightTabs.map((tab) => (

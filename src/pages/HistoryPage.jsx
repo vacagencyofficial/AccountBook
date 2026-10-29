@@ -33,7 +33,12 @@ export default function HistoryPage() {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
   })
-  const [view, setView] = useState('calendar')
+  // 기록을 보고 돌아와도 보던 방법(달력·목록·사진) 그대로
+  const [view, setViewState] = useState(() => sessionStorage.getItem('sailp-history-view') || 'calendar')
+  const setView = (next) => {
+    setViewState(next)
+    sessionStorage.setItem('sailp-history-view', next)
+  }
   const [selectedDate, setSelectedDate] = useState(today)
   const [find, setFind] = useState(emptyFind)
   const [showFind, setShowFind] = useState(false)
@@ -341,7 +346,7 @@ export default function HistoryPage() {
           <div className="mt-4">
             <EmptyState
               title={hasFind ? '찾는 기록이 없어요' : '이 달에는 기록이 없어요'}
-              description={hasFind ? '「찾기」 조건을 바꿔 보세요.' : '「물건 적기」로 기록하면 여기에 쌓여요.'}
+              description={hasFind ? '「찾기」 조건을 바꿔 보세요.' : '「상품 입력」으로 기록하면 여기에 쌓여요.'}
             />
           </div>
         ) : (
