@@ -14,6 +14,7 @@ const HEADER_ALIASES = {
   price: ['단가', '가격', 'price'],
   qty: ['수량', '수량(장)', 'qty', 'quantity'],
   status: ['상태', 'status'],
+  starred: ['별표', '즐겨찾기', 'star', 'starred'],
   memo: ['메모', '비고', 'memo'],
 }
 
@@ -108,6 +109,7 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
         qty: record.qty,
         memo: record.memo,
         status: record.status,
+        starred: record.starred ? 1 : 0,
         createdAt: Date.now(),
       })
       itemCount += 1
@@ -168,6 +170,8 @@ function parseDataRow(values, headerMap) {
     price,
     qty,
     status,
+    // ★·O·1·Y·예처럼 무엇이든 적혀 있으면 별표
+    starred: /^(★|\*|o|y|yes|1|true|예|v|✓|✔)$/i.test(cellToString(values[headerMap.starred]).trim()),
     memo: cellToString(values[headerMap.memo]).trim(),
   }
 }

@@ -34,6 +34,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
     '수량',
     '합계',
     '상태',
+    '별표',
     '메모',
   ]
   if (includePhotos) headers.push('사진')
@@ -61,6 +62,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
     { width: 8 },
     { width: 12 },
     { width: 8 },
+    { width: 6 },
     { width: 24 },
     ...(includePhotos ? [{ width: 14 }] : []),
   ]
@@ -69,8 +71,8 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
     const item = items[i]
     const rowNumber = i + 2
     const row = sheet.getRow(rowNumber)
+    // 배열 첫 칸이 A열 (앞에 빈칸을 두면 한 칸씩 밀림)
     row.values = [
-      undefined,
       item.date,
       item.shop?.name ?? '',
       shopLocation(item.shop),
@@ -82,12 +84,15 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
       Number(item.qty) || 0,
       itemTotal(item),
       item.status || '구매',
+      item.starred ? '★' : '',
       item.memo || '',
     ]
     row.alignment = { vertical: 'middle' }
     row.getCell(8).numFmt = '#,##0'
     row.getCell(9).numFmt = '#,##0'
     row.getCell(10).numFmt = '#,##0'
+    row.getCell(12).alignment = { vertical: 'middle', horizontal: 'center' }
+    if (item.starred) row.getCell(12).font = { color: { argb: 'FFF59E0B' }, bold: true }
 
     if (includePhotos && item.photo?.blob) {
       try {
@@ -98,7 +103,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
           extension: 'jpeg',
         })
         sheet.addImage(imageId, {
-          tl: { col: 12, row: rowNumber - 1 },
+          tl: { col: 13, row: rowNumber - 1 },
           ext: { width: 72, height: 72 },
         })
       } catch {
@@ -121,6 +126,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false } = {}
     ['건수', items.length],
     ['총 수량', totalQty],
     ['총 금액', totalAmount],
+    ['별표', items.filter((item) => item.starred).length],
   ])
   summary.getCell('B5').numFmt = '#,##0'
 
