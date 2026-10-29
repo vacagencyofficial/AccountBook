@@ -9,6 +9,7 @@ import ShopForm, { shopToForm } from '../components/ShopForm'
 import { db } from '../db'
 import { deleteShop, setShopHidden, updateShop } from '../db/mutations'
 import { useToast } from '../components/Toast'
+import PhotoGrid from '../components/PhotoGrid'
 import { getItemsByShop } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { formatCurrency, itemTotal, shopLocation } from '../utils/format'
@@ -23,6 +24,7 @@ export default function ShopDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [error, setError] = useState(null)
+  const [view, setView] = useState('list')
 
   const { data: shop, isLoading: shopLoading } = useLiveQuery(
     () => (Number.isFinite(id) ? db.shops.get(id) : undefined),
@@ -149,10 +151,34 @@ export default function ShopDetailPage() {
           <b className="text-[18px] font-extrabold text-brand tabular">{formatCurrency(totalAmount)}</b>
         </div>
 
+        {(items?.length ?? 0) > 0 && (
+          <div className="mb-3 grid grid-cols-2 gap-1 rounded-[12px] bg-line-soft p-1" role="tablist">
+            {[
+              ['list', '목록'],
+              ['photos', '사진'],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={view === key}
+                onClick={() => setView(key)}
+                className={`min-h-[3rem] rounded-[9px] text-[18px] font-bold ${
+                  view === key ? 'bg-paper text-brand shadow-[var(--shadow-card)]' : 'text-ink-soft'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {itemsLoading ? (
           <div className="skeleton h-24" />
         ) : (items?.length ?? 0) === 0 ? (
           <EmptyState title="아직 기록이 없어요" description="위 「이 가게 물건 적기」로 적어 보세요." />
+        ) : view === 'photos' ? (
+          <PhotoGrid items={items} emptyTitle="이 가게 사진이 없어요" />
         ) : (
           <ul className="space-y-2.5">
             {items.map((item) => (
