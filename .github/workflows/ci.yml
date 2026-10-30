@@ -1,6 +1,6 @@
 name: CI
 
-# 고칠 때마다 자동으로: 코드 검사 → 빌드 → 시험(동기화·계산·서버 SQL)
+# 고칠 때마다 자동으로: 코드 검사 → 모양 검사 → 빌드 → 시험(동기화·계산·서버 SQL)
 on:
   push:
     branches: [main]
@@ -17,5 +17,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run format:check
       - run: npm run build
       - run: npm test

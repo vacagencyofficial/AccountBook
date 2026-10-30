@@ -14,7 +14,10 @@ const fake = {
     const keys = Object.keys(args)
     const sql = `select ${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(', ')}) as r`
     try {
-      const res = await pg.query(sql, keys.map((k) => args[k]))
+      const res = await pg.query(
+        sql,
+        keys.map((k) => args[k]),
+      )
       return { data: res.rows[0].r, error: null }
     } catch (e) {
       return { data: null, error: { message: e.message, code: e.code } }
@@ -35,7 +38,10 @@ const fake = {
       getPublicUrl: (path) => ({ data: { publicUrl: 'mem://' + path } }),
       async remove(paths) {
         // 실제 저장소처럼 정책(지운 사진만)을 거쳐 지움
-        const res = await pg.query(`delete from storage.objects where bucket_id='photos' and name = any($1) returning name`, [paths])
+        const res = await pg.query(
+          `delete from storage.objects where bucket_id='photos' and name = any($1) returning name`,
+          [paths],
+        )
         for (const row of res.rows) files.delete(row.name)
         return { data: res.rows, error: null }
       },
@@ -57,8 +63,12 @@ async function makePhone() {
   const store = {}
   const storage = {
     getItem: (k) => store[k] ?? null,
-    setItem: (k, v) => { store[k] = String(v) },
-    removeItem: (k) => { delete store[k] },
+    setItem: (k, v) => {
+      store[k] = String(v)
+    },
+    removeItem: (k) => {
+      delete store[k]
+    },
   }
   globalThis.localStorage = storage
   const phone = {
@@ -104,7 +114,12 @@ describe('여러 폰 동기화 (2단계)', () => {
     A = switchTo(await makePhone())
     const shopId = await A.mut.createShop({ name: '미소옷장', building: '청평화' })
     itemA = await A.mut.saveItemWithPhotos({
-      shopId, date: '2026-10-28', name: '니트', price: 15000, qty: 3, status: '구매',
+      shopId,
+      date: '2026-10-28',
+      name: '니트',
+      price: 15000,
+      qty: 3,
+      status: '구매',
       photoBlobs: [new Blob(['1']), new Blob(['2']), new Blob(['3'])],
     })
     ws = await A.sync.connectWorkspace()
@@ -247,7 +262,14 @@ describe('여러 폰 동기화 (2단계)', () => {
   it('D09: 가게 숨기기가 다른 폰에도 반영되고 기록은 남음', async () => {
     switchTo(A)
     const [shop] = await A.db.shops.toArray()
-    await A.mut.saveItemWithPhotos({ shopId: shop.id, date: '2026-10-28', name: '바지', price: 30000, qty: 1, status: '구매' })
+    await A.mut.saveItemWithPhotos({
+      shopId: shop.id,
+      date: '2026-10-28',
+      name: '바지',
+      price: 30000,
+      qty: 1,
+      status: '구매',
+    })
     await A.mut.setShopHidden(shop.id, true)
     await settle(A)
     await settle(B)
@@ -259,7 +281,17 @@ describe('여러 폰 동기화 (2단계)', () => {
   it('저장 직후 동기화가 겹쳐도 한 번만 올라감', async () => {
     switchTo(A)
     const [shop] = await A.db.shops.toArray()
-    await A.db.items.add({ shopId: shop.id, date: '2026-10-28', name: '겹침', price: 1, qty: 1, status: '구매', createdAt: Date.now(), dirty: 1, updatedAt: Date.now() })
+    await A.db.items.add({
+      shopId: shop.id,
+      date: '2026-10-28',
+      name: '겹침',
+      price: 1,
+      qty: 1,
+      status: '구매',
+      createdAt: Date.now(),
+      dirty: 1,
+      updatedAt: Date.now(),
+    })
     await Promise.all([A.sync.syncAfterWrite(), A.sync.syncAfterWrite(), A.sync.syncAfterWrite()])
     const r = await remoteOf(ws.code)
     expect(r.items.filter((i) => i.name === '겹침').length).toBe(1)
@@ -268,11 +300,25 @@ describe('여러 폰 동기화 (2단계)', () => {
   it('예전 방식으로 올라간 사진은 다시 올리지 않고 짝지음', async () => {
     switchTo(A)
     const [shop] = await A.db.shops.toArray()
-    const id = await A.mut.saveItemWithPhotos({ shopId: shop.id, date: '2026-10-28', name: '옛사진', price: 1, qty: 1, status: '구매', photoBlobs: [new Blob(['x']), new Blob(['y'])] })
+    const id = await A.mut.saveItemWithPhotos({
+      shopId: shop.id,
+      date: '2026-10-28',
+      name: '옛사진',
+      price: 1,
+      qty: 1,
+      status: '구매',
+      photoBlobs: [new Blob(['x']), new Blob(['y'])],
+    })
     await settle(A)
     const before = uploads
     // 업그레이드 직후 상태 흉내: 사진의 클라우드 연결 표시가 없고 legacy 표시만 있음
-    await A.db.photos.where('itemId').equals(id).modify((p) => { delete p.cloudId; p.legacy = 1 })
+    await A.db.photos
+      .where('itemId')
+      .equals(id)
+      .modify((p) => {
+        delete p.cloudId
+        p.legacy = 1
+      })
     await settle(A)
     expect(uploads).toBe(before)
     const linked = await A.db.photos.where('itemId').equals(id).toArray()
@@ -283,7 +329,14 @@ describe('여러 폰 동기화 (2단계)', () => {
   it('D05: 다른 장부로 바꿀 때 「지우고 보기」는 그 장부 내용만', async () => {
     const C = switchTo(await makePhone())
     const s = await C.mut.createShop({ name: 'C의가게' })
-    await C.mut.saveItemWithPhotos({ shopId: s, date: '2026-10-28', name: 'C기록', price: 5, qty: 1, status: '구매' })
+    await C.mut.saveItemWithPhotos({
+      shopId: s,
+      date: '2026-10-28',
+      name: 'C기록',
+      price: 5,
+      qty: 1,
+      status: '구매',
+    })
     const wsC = await C.sync.connectWorkspace()
     await settle(C)
     await C.sync.connectWorkspace(ws.code, { localMode: 'discard' })
@@ -297,7 +350,15 @@ describe('여러 폰 동기화 (2단계)', () => {
   it('D05: 「함께 옮기기」는 이 폰 기록을 새 장부에 새로 올리고, 옛 장부는 그대로', async () => {
     const D = switchTo(await makePhone())
     const s = await D.mut.createShop({ name: 'D의가게' })
-    await D.mut.saveItemWithPhotos({ shopId: s, date: '2026-10-28', name: 'D기록', price: 7, qty: 1, status: '구매', photoBlobs: [new Blob(['d'])] })
+    await D.mut.saveItemWithPhotos({
+      shopId: s,
+      date: '2026-10-28',
+      name: 'D기록',
+      price: 7,
+      qty: 1,
+      status: '구매',
+      photoBlobs: [new Blob(['d'])],
+    })
     const wsD = await D.sync.connectWorkspace()
     await settle(D)
     await D.sync.connectWorkspace(ws.code, { localMode: 'keep' })
@@ -313,7 +374,17 @@ describe('여러 폰 동기화 (2단계)', () => {
 
   it('「인터넷 내용으로 채우기」: 이 폰 기록을 클라우드 내용으로 바꿈', async () => {
     switchTo(B)
-    await B.db.items.add({ shopId: 999, date: '2026-10-28', name: '로컬만', price: 1, qty: 1, createdAt: 1, dirty: 0, updatedAt: 1, cloudId: 'x' })
+    await B.db.items.add({
+      shopId: 999,
+      date: '2026-10-28',
+      name: '로컬만',
+      price: 1,
+      qty: 1,
+      createdAt: 1,
+      dirty: 0,
+      updatedAt: 1,
+      cloudId: 'x',
+    })
     await B.sync.pullCloudToLocal({ replaceLocal: true })
     const names = (await B.db.items.toArray()).map((i) => i.name)
     expect(names).not.toContain('로컬만')
@@ -332,7 +403,14 @@ describe('여러 폰 동기화 (2단계)', () => {
       await A.db.shops.clear()
     })
     const s = await A.mut.createShop({ name: '엑셀가게' })
-    await A.mut.saveItemWithPhotos({ shopId: s, date: '2026-10-28', name: '엑셀기록', price: 1, qty: 1, status: '구매' })
+    await A.mut.saveItemWithPhotos({
+      shopId: s,
+      date: '2026-10-28',
+      name: '엑셀기록',
+      price: 1,
+      qty: 1,
+      status: '구매',
+    })
     await settle(A)
     await settle(B)
     await settle(A)
@@ -353,7 +431,15 @@ describe('여러 폰 동기화 (2단계)', () => {
   it('지운 사진 파일은 저장소에서도 정리되고, 남은 사진 파일은 그대로', async () => {
     switchTo(A)
     const [shop] = await A.db.shops.toArray()
-    const id = await A.mut.saveItemWithPhotos({ shopId: shop.id, date: '2026-10-28', name: '정리테스트', price: 1, qty: 1, status: '구매', photoBlobs: [new Blob(['k']), new Blob(['d'])] })
+    const id = await A.mut.saveItemWithPhotos({
+      shopId: shop.id,
+      date: '2026-10-28',
+      name: '정리테스트',
+      price: 1,
+      qty: 1,
+      status: '구매',
+      photoBlobs: [new Blob(['k']), new Blob(['d'])],
+    })
     await settle(A)
     const photos = await A.db.photos.where('itemId').equals(id).toArray()
     const [keep, gone] = photos

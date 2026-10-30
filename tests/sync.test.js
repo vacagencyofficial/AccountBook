@@ -6,7 +6,15 @@ import fs from 'fs'
 
 const P = new URL('../', import.meta.url).pathname
 const store = {}
-globalThis.localStorage = { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = String(v) }, removeItem: (k) => { delete store[k] } }
+globalThis.localStorage = {
+  getItem: (k) => store[k] ?? null,
+  setItem: (k, v) => {
+    store[k] = String(v)
+  },
+  removeItem: (k) => {
+    delete store[k]
+  },
+}
 
 const pg = new PGlite({ extensions: { pgcrypto } })
 const files = new Map()
@@ -16,19 +24,35 @@ const fake = {
     if (fn === 'sailp_pull' && failPull) return { data: null, error: { message: 'network down' } }
     const keys = Object.keys(args)
     const sql = `select ${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(', ')}) as r`
-    try { const res = await pg.query(sql, keys.map((k) => args[k])); return { data: res.rows[0].r, error: null } }
-    catch (e) { return { data: null, error: { message: e.message, code: e.code } } }
+    try {
+      const res = await pg.query(
+        sql,
+        keys.map((k) => args[k]),
+      )
+      return { data: res.rows[0].r, error: null }
+    } catch (e) {
+      return { data: null, error: { message: e.message, code: e.code } }
+    }
   },
-  storage: { from: () => ({
-    async upload(path, blob) {
-      try { await pg.query(`insert into storage.objects(bucket_id,name) values ('photos',$1)`, [path]) }
-      catch (e) { return { error: { message: e.message } } }
-      files.set(path, blob); return { error: null }
-    },
-    getPublicUrl: (path) => ({ data: { publicUrl: 'mem://' + path } }),
-  }) },
+  storage: {
+    from: () => ({
+      async upload(path, blob) {
+        try {
+          await pg.query(`insert into storage.objects(bucket_id,name) values ('photos',$1)`, [path])
+        } catch (e) {
+          return { error: { message: e.message } }
+        }
+        files.set(path, blob)
+        return { error: null }
+      },
+      getPublicUrl: (path) => ({ data: { publicUrl: 'mem://' + path } }),
+    }),
+  },
 }
-globalThis.fetch = async (url) => { const b = files.get(url.replace('mem://', '')); return b ? new Response(b) : new Response(null, { status: 404 }) }
+globalThis.fetch = async (url) => {
+  const b = files.get(url.replace('mem://', ''))
+  return b ? new Response(b) : new Response(null, { status: 404 })
+}
 vi.mock('../src/lib/supabase.js', () => ({ isCloudConfigured: true, supabase: fake }))
 
 let sync, db, ws
@@ -52,9 +76,32 @@ grant execute on function storage.foldername(text) to anon, authenticated;`)
 
 describe('클라우드 동기화 (secure.sql + 새 cloudSync)', () => {
   it('폰 A: 새 장부 만들고 가게·기록·사진 2장 올리기', async () => {
-    const shopId = await db.shops.add({ name: '미소옷장', building: '청평화', floor: '3F', unit: 'A-1', phone: '', memo: '', lastVisitedAt: 1 })
-    const itemId = await db.items.add({ shopId, date: '2026-10-28', name: '니트', category: '상의', color: '', size: '', price: 15000, qty: 3, memo: '', status: '구매', createdAt: 1761600000000 })
-    await db.photos.bulkAdd([{ itemId, blob: new Blob(['p1']) }, { itemId, blob: new Blob(['p2']) }])
+    const shopId = await db.shops.add({
+      name: '미소옷장',
+      building: '청평화',
+      floor: '3F',
+      unit: 'A-1',
+      phone: '',
+      memo: '',
+      lastVisitedAt: 1,
+    })
+    const itemId = await db.items.add({
+      shopId,
+      date: '2026-10-28',
+      name: '니트',
+      category: '상의',
+      color: '',
+      size: '',
+      price: 15000,
+      qty: 3,
+      memo: '',
+      status: '구매',
+      createdAt: 1761600000000,
+    })
+    await db.photos.bulkAdd([
+      { itemId, blob: new Blob(['p1']) },
+      { itemId, blob: new Blob(['p2']) },
+    ])
     ws = await sync.connectWorkspace()
     expect(ws.code).toMatch(/^SAILP-[A-Z2-9]{10}$/)
     await sync.syncBidirectional()
@@ -83,7 +130,11 @@ describe('클라우드 동기화 (secure.sql + 새 cloudSync)', () => {
   })
 
   it('폰 B: 초대 번호로 연결하면 같은 장부를 받음', async () => {
-    await db.transaction('rw', db.shops, db.items, db.photos, async () => { await db.photos.clear(); await db.items.clear(); await db.shops.clear() })
+    await db.transaction('rw', db.shops, db.items, db.photos, async () => {
+      await db.photos.clear()
+      await db.items.clear()
+      await db.shops.clear()
+    })
     for (const k of Object.keys(store)) delete store[k]
     await sync.connectWorkspace(ws.code.toLowerCase())
     await sync.pullCloudToLocal({ replaceLocal: true })

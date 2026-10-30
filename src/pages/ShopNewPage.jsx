@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import ShopForm from '../components/ShopForm'
 import SubPage from '../components/SubPage'
 import { createShop } from '../db/mutations'
-import { useToast } from '../components/Toast'
+import { useToast } from '../components/toastContext'
 
 export default function ShopNewPage() {
   const navigate = useNavigate()
@@ -27,7 +27,9 @@ export default function ShopNewPage() {
   return (
     <SubPage title="가게 추가" subtitle="가게 이름만 적어도 돼요" backTo="/shops" backLabel="가게 목록">
       {error && (
-        <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700">{error}</div>
+        <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700">
+          {error}
+        </div>
       )}
       <div className="card p-4">
         <ShopForm

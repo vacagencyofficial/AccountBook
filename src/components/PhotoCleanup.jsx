@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { deletePhotos } from '../db/mutations'
 import { findOldPhotos } from '../lib/storageStatus'
 import { formatFileSize } from '../utils/photoConfig'
-import { useToast } from './Toast'
+import { useToast } from './toastContext'
 
 const PERIODS = [
   { months: 12, label: '1년 넘은' },

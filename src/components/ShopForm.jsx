@@ -1,15 +1,13 @@
 import { useState } from 'react'
+import { emptyShop } from '../utils/shopForm'
 
-const emptyShop = {
-  name: '',
-  building: '',
-  floor: '',
-  unit: '',
-  phone: '',
-  memo: '',
-}
-
-export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '저장', isSubmitting = false }) {
+export default function ShopForm({
+  initial,
+  onSubmit,
+  onCancel,
+  submitLabel = '저장',
+  isSubmitting = false,
+}) {
   const [form, setForm] = useState(() => initial ?? emptyShop)
 
   function updateField(field, value) {
@@ -88,19 +86,11 @@ export default function ShopForm({ initial, onSubmit, onCancel, submitLabel = '�
 
       <div className="flex gap-2 pt-2">
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn btn-outline flex-1"
-          >
+          <button type="button" onClick={onCancel} className="btn btn-outline flex-1">
             취소
           </button>
         )}
-        <button
-          type="submit"
-          disabled={!form.name.trim() || isSubmitting}
-          className="btn btn-primary flex-1"
-        >
+        <button type="submit" disabled={!form.name.trim() || isSubmitting} className="btn btn-primary flex-1">
           {isSubmitting ? '저장 중…' : submitLabel}
         </button>
       </div>
@@ -120,17 +110,4 @@ function Field({ label, required, children }) {
   )
 }
 
-const inputClass =
-  'field'
-
-export function shopToForm(shop) {
-  if (!shop) return { ...emptyShop }
-  return {
-    name: shop.name ?? '',
-    building: shop.building ?? '',
-    floor: shop.floor ?? '',
-    unit: shop.unit ?? '',
-    phone: shop.phone ?? '',
-    memo: shop.memo ?? '',
-  }
-}
+const inputClass = 'field'

@@ -15,7 +15,13 @@ import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useToday } from '../hooks/useToday'
 import { formatCurrency, itemTotal } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
-import { isPurchased, itemsForMonth, itemsForToday, summarizeCredit, summarizeItems } from '../utils/analytics'
+import {
+  isPurchased,
+  itemsForMonth,
+  itemsForToday,
+  summarizeCredit,
+  summarizeItems,
+} from '../utils/analytics'
 import { formatManwon, formatWonShort } from '../utils/labels'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -155,9 +161,7 @@ export default function HomePage() {
             <span className="text-right text-[16px] font-semibold text-ink-soft">
               가게 {creditShops}곳 · {credit.count}건 ›
               {credit.oldCount > 0 && (
-                <span className="block font-bold text-red-700">
-                  한 달 넘은 것 {credit.oldCount}건
-                </span>
+                <span className="block font-bold text-red-700">한 달 넘은 것 {credit.oldCount}건</span>
               )}
             </span>
           </Link>

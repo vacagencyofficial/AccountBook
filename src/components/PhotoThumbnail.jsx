@@ -13,7 +13,9 @@ export default function PhotoThumbnail({ blob, alt = '', size = 'md' }) {
 
   if (!url) {
     return (
-      <div className={`flex ${box} shrink-0 items-center justify-center rounded-[10px] bg-brand-soft text-brand/60`}>
+      <div
+        className={`flex ${box} shrink-0 items-center justify-center rounded-[10px] bg-brand-soft text-brand/60`}
+      >
         <IconGallery className="h-7 w-7" />
       </div>
     )

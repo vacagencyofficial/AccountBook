@@ -57,8 +57,7 @@ export default function ShopsPage() {
               리포트
             </Link>
             <Link to="/shops/new" className="btn btn-soft px-3 text-[17px]">
-              <IconPlus className="h-5 w-5" />
-              새 가게
+              <IconPlus className="h-5 w-5" />새 가게
             </Link>
           </div>
         }
