@@ -212,6 +212,28 @@ const left = (await db.query('select name from storage.objects')).rows.map((r) =
 ok(left.includes(keepPath) && !left.includes(goPath), '지운 사진 파일만 지워지고, 안 지운 사진 파일은 남음')
 await db.exec('set role anon')
 
+console.log('\n[7-1] 외상 갚은 날')
+const creditId = (
+  await db.query('select sailp_upsert_item($1,null,$2) as id', [
+    A.code,
+    {
+      date: '2026-09-20',
+      name: '외상코트',
+      price: 1000,
+      qty: 1,
+      payment: '외상',
+      settled: true,
+      settled_date: '2026-10-05',
+      client_updated_at: 1,
+    },
+  ])
+).rows[0].id
+const creditRow = (await db.query('select sailp_pull($1) as p', [A.code])).rows[0].p.items.find(
+  (i) => i.id === creditId,
+)
+ok(creditRow?.settled === true && creditRow?.settled_date === '2026-10-05', '외상 갚은 날이 저장되고 내려옴')
+await db.query('select sailp_delete($1,$2,$3)', [A.code, 'item', creditId])
+
 console.log('\n[7-2] 가계부(지출·수입)')
 const entryId = (
   await db.query('select sailp_upsert_entry($1,null,$2) as id', [

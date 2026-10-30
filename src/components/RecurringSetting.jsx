@@ -1,45 +1,60 @@
 import { useState } from 'react'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../db'
+import { db } from '../db'
+import { useLiveQuery } from '../hooks/useLiveQuery'
+import { entryCategories } from '../lib/entryCategories'
 import {
+  WEEKDAYS,
   addRecurringRule,
   applyRecurringRules,
+  describeRule,
   getRecurringRules,
   removeRecurringRule,
 } from '../lib/recurring'
 import { formatCurrency } from '../utils/format'
 import { useToast } from './toastContext'
 
-const emptyForm = { type: 'expense', amount: '', category: '', memo: '', day: '1' }
+const emptyForm = {
+  type: 'expense',
+  every: 'month',
+  amount: '',
+  category: '',
+  memo: '',
+  day: '1',
+  weekday: '1',
+}
 
-/** 설정: 매달 나가는 돈·들어오는 돈 (월세, 통신비, 월급 등) */
+/** 설정: 매달·매주 나가는 돈·들어오는 돈 (월세, 통신비, 월급 등) */
 export default function RecurringSetting() {
   const [rules, setRules] = useState(getRecurringRules)
   const [form, setForm] = useState(null)
   const toast = useToast()
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
+  const { data: entries } = useLiveQuery(() => db.entries.toArray(), [])
 
   async function save() {
     setRules(addRecurringRule(form))
     setForm(null)
     const count = await applyRecurringRules()
     toast(
-      count > 0 ? `정해 두었어요. 이번 달 것도 장부에 적었어요` : '정해 두었어요. 그날이 되면 장부에 적어요',
+      count > 0
+        ? `정해 두었어요. 이번 ${form.every === 'week' ? '주' : '달'} 것도 장부에 적었어요`
+        : '정해 두었어요. 그날이 되면 장부에 적어요',
     )
   }
 
   function remove(rule) {
     setRules(removeRecurringRule(rule.id))
-    toast('매달 적기를 멈췄어요. 이미 적힌 기록은 그대로 있어요')
+    toast('반복을 멈췄어요. 이미 적힌 기록은 그대로 있어요')
   }
 
-  const categories = form?.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const categories = entryCategories(form?.type ?? 'expense', entries ?? [])
   const ready = form && Number(form.amount) > 0 && form.category
 
   return (
     <div className="space-y-3 p-4">
       {rules.length === 0 && !form && (
         <p className="text-[16px] font-semibold text-ink-soft">
-          월세·통신비·월급처럼 매달 같은 돈을 정해 두면, 그날이 되면 장부에 저절로 적어요
+          월세·통신비·월급처럼 매달(또는 매주) 같은 돈을 정해 두면, 그날이 되면 장부에 저절로 적어요
         </p>
       )}
       {rules.length > 0 && (
@@ -49,7 +64,7 @@ export default function RecurringSetting() {
               <div className="min-w-0">
                 <p className="truncate text-[18px] font-bold">{rule.memo}</p>
                 <p className="text-[16px] font-semibold text-ink-soft">
-                  매달 {rule.day}일 · {rule.type === 'income' ? '들어온 돈' : '나간 돈'} ·{' '}
+                  {describeRule(rule)} · {rule.type === 'income' ? '들어온 돈' : '나간 돈'} ·{' '}
                   <span className="tabular">{formatCurrency(rule.amount)}</span>
                 </p>
               </div>
@@ -122,22 +137,58 @@ export default function RecurringSetting() {
               </button>
             ))}
           </div>
-          <label className="flex items-center gap-2 text-[17px] font-bold">
-            매달
-            <select
-              value={form.day}
-              onChange={(e) => update('day', e.target.value)}
-              className="field w-24 py-2 text-center"
-              aria-label="날짜"
-            >
-              {Array.from({ length: 28 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1}
-                </option>
-              ))}
-            </select>
-            일에 적기
-          </label>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="얼마마다">
+            {[
+              ['month', '매달'],
+              ['week', '매주'],
+            ].map(([every, label]) => (
+              <button
+                key={every}
+                type="button"
+                role="radio"
+                aria-checked={form.every === every}
+                onClick={() => update('every', every)}
+                className={`chip ${form.every === every ? 'chip-on' : ''}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {form.every === 'week' ? (
+            <label className="flex items-center gap-2 text-[17px] font-bold">
+              매주
+              <select
+                value={form.weekday}
+                onChange={(e) => update('weekday', e.target.value)}
+                className="field w-24 py-2 text-center"
+                aria-label="요일"
+              >
+                {WEEKDAYS.map((name, i) => (
+                  <option key={name} value={i}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              요일에 적기
+            </label>
+          ) : (
+            <label className="flex items-center gap-2 text-[17px] font-bold">
+              매달
+              <select
+                value={form.day}
+                onChange={(e) => update('day', e.target.value)}
+                className="field w-24 py-2 text-center"
+                aria-label="날짜"
+              >
+                {Array.from({ length: 28 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+              일에 적기
+            </label>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setForm(null)} className="btn btn-outline">
               그만두기
@@ -149,7 +200,7 @@ export default function RecurringSetting() {
         </div>
       ) : (
         <button type="button" onClick={() => setForm(emptyForm)} className="btn btn-soft w-full">
-          + 매달 적을 돈 더하기
+          + 반복해서 적을 돈 더하기
         </button>
       )}
       {rules.length > 0 && (

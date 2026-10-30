@@ -182,11 +182,12 @@ describe('여러 폰 동기화 (2단계)', () => {
     const onB = (await B.db.items.toArray())[0]
     expect(onB.payment).toBe('외상')
     expect(onB.settled).toBe(0)
-    await B.mut.setItemSettled(onB.id, true)
+    await B.mut.setItemSettled(onB.id, true, '2026-10-30')
     await settle(B)
     switchTo(A)
     await settle(A)
     expect((await A.db.items.get(id)).settled).toBe(1)
+    expect((await A.db.items.get(id)).settledDate).toBe('2026-10-30')
     await A.mut.updateItem(id, { payment: '카드' })
     await settle(A)
     switchTo(B)
@@ -194,6 +195,7 @@ describe('여러 폰 동기화 (2단계)', () => {
     const after = (await B.db.items.toArray())[0]
     expect(after.payment).toBe('카드')
     expect(after.settled).toBe(0)
+    expect(after.settledDate).toBe('')
   })
 
   it('판매가가 다른 폰에도 맞춰짐', async () => {

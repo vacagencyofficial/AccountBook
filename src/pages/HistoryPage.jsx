@@ -23,7 +23,7 @@ import {
   summarizeProfit,
 } from '../utils/analytics'
 import { formatManwon, formatWonShort } from '../utils/labels'
-import { summarizeLedger } from '../utils/ledger'
+import { ledgerDate, summarizeLedger } from '../utils/ledger'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -100,10 +100,15 @@ export default function HistoryPage() {
   }, [entries, find, searchAll, monthRange])
 
   const summary = useMemo(() => summarizeItems(filteredItems), [filteredItems])
-  const ledger = useMemo(
-    () => summarizeLedger(filteredItems, filteredEntries),
-    [filteredItems, filteredEntries],
-  )
+  // 가계부 결산용 상품: 외상을 갚은 날로 옮긴 것은 갚은 날 기준
+  const ledgerItems = useMemo(() => {
+    if (searchAll) return filteredItems
+    return filterHistoryItems(items, { ...find, period: 'all' }, {}).filter((item) => {
+      const date = ledgerDate(item)
+      return monthRange.start <= date && date <= monthRange.end
+    })
+  }, [items, find, searchAll, monthRange, filteredItems])
+  const ledger = useMemo(() => summarizeLedger(ledgerItems, filteredEntries), [ledgerItems, filteredEntries])
   const profit = useMemo(() => summarizeProfit(filteredItems), [filteredItems])
   const shopBreakdown = useMemo(() => groupByShop(filteredItems).slice(0, 5), [filteredItems])
   const categoryBreakdown = useMemo(() => groupByCategory(filteredItems), [filteredItems])
@@ -114,6 +119,16 @@ export default function HistoryPage() {
     for (const item of filteredItems) (map[item.date] ??= []).push(item)
     return map
   }, [filteredItems])
+  const ledgerByDate = useMemo(() => {
+    const map = {}
+    for (const item of ledgerItems) (map[ledgerDate(item)] ??= []).push(item)
+    return map
+  }, [ledgerItems])
+  // 그날 산 상품 + 다른 날 산 외상을 그날 갚은 것
+  const rowsOf = (date) => [
+    ...(byDate[date] ?? []),
+    ...(ledgerByDate[date] ?? []).filter((item) => item.date !== date),
+  ]
   const entriesByDate = useMemo(() => {
     const map = {}
     for (const entry of filteredEntries) (map[entry.date] ??= []).push(entry)
@@ -219,12 +234,23 @@ export default function HistoryPage() {
     ...Array.from({ length: firstWeekday }, () => null),
     ...Array.from({ length: lastDay }, (_, i) => formatDateString(new Date(month.year, month.month, i + 1))),
   ]
-  const selectedItems = selectedDate ? (byDate[selectedDate] ?? []) : []
+  const selectedItems = selectedDate ? rowsOf(selectedDate) : []
   const selectedEntries = selectedDate ? (entriesByDate[selectedDate] ?? []) : []
   const selectedSummary = summarizeItems(selectedItems)
-  const selectedLedger = summarizeLedger(selectedItems, selectedEntries)
+  const selectedLedger = summarizeLedger(
+    selectedDate ? (ledgerByDate[selectedDate] ?? []) : [],
+    selectedEntries,
+  )
   const selectedCount = selectedItems.length + selectedEntries.length
-  const sortedDates = [...new Set([...Object.keys(byDate), ...Object.keys(entriesByDate)])].sort().reverse()
+  const sortedDates = [
+    ...new Set([
+      ...Object.keys(byDate),
+      ...Object.keys(entriesByDate),
+      ...(searchAll ? [] : Object.keys(ledgerByDate)),
+    ]),
+  ]
+    .sort()
+    .reverse()
 
   return (
     <div>
@@ -381,7 +407,9 @@ export default function HistoryPage() {
                   const dayItems = byDate[date] ?? []
                   const dayEntries = entriesByDate[date] ?? []
                   const total =
-                    dayItems.filter(isPurchased).reduce((sum, item) => sum + itemTotal(item), 0) +
+                    (ledgerByDate[date] ?? [])
+                      .filter(isPurchased)
+                      .reduce((sum, item) => sum + itemTotal(item), 0) +
                     dayEntries
                       .filter((entry) => entry.type !== 'income')
                       .reduce((sum, entry) => sum + entry.amount, 0)
@@ -459,7 +487,7 @@ export default function HistoryPage() {
                 {selectedCount > 0 && (
                   <ul className="space-y-2.5">
                     {selectedItems.map((item) => (
-                      <ItemRow key={item.id} item={item} />
+                      <ItemRow key={item.id} item={item} showDate={item.date !== selectedDate} />
                     ))}
                     {selectedEntries.map((entry) => (
                       <EntryRow key={`entry-${entry.id}`} entry={entry} />
@@ -490,9 +518,12 @@ export default function HistoryPage() {
         ) : (
           <div className="mt-4 space-y-5">
             {sortedDates.map((date) => {
-              const dayItems = byDate[date] ?? []
+              const dayItems = searchAll ? (byDate[date] ?? []) : rowsOf(date)
               const dayEntries = entriesByDate[date] ?? []
-              const daySummary = summarizeLedger(dayItems, dayEntries)
+              const daySummary = summarizeLedger(
+                searchAll ? dayItems : (ledgerByDate[date] ?? []),
+                dayEntries,
+              )
               return (
                 <section key={date}>
                   <div className="mb-2 flex items-baseline justify-between px-0.5">
@@ -505,7 +536,7 @@ export default function HistoryPage() {
                   </div>
                   <ul className="space-y-2.5">
                     {dayItems.map((item) => (
-                      <ItemRow key={item.id} item={item} showDate={searchAll} />
+                      <ItemRow key={item.id} item={item} showDate={searchAll || item.date !== date} />
                     ))}
                     {dayEntries.map((entry) => (
                       <EntryRow key={`entry-${entry.id}`} entry={entry} />

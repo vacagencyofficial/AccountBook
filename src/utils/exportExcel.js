@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs'
 import { getToday, itemTotal, shopLocation } from './format'
 import { isUnpaidCredit, itemProfit } from './analytics'
-import { summarizeLedger } from './ledger'
+import { ledgerByMonth, ledgerDate, monthKeyOf, summarizeLedger } from './ledger'
 
 function downloadBlob(buffer, filename) {
   const blob = new Blob([buffer], {
@@ -211,6 +211,73 @@ export async function exportHistoryToExcel(
     }
   }
 
+  if (entries) addMonthlySheet(workbook, items, entries)
+
   const buffer = await workbook.xlsx.writeBuffer()
   downloadBlob(buffer, `사입장부_${fileLabel ? `${fileLabel}_` : ''}${getToday()}.xlsx`)
+}
+
+/** 「월별 결산」 시트: 달마다 들어온 돈·나간 돈·남은 돈과 분류별 나간 돈 (보기용, 다시 넣을 때는 읽지 않음) */
+function addMonthlySheet(workbook, items, entries) {
+  const keys = [
+    ...new Set([
+      ...items.map((item) => monthKeyOf(ledgerDate(item))),
+      ...entries.map((entry) => monthKeyOf(entry.date)),
+    ]),
+  ]
+    .filter(Boolean)
+    .sort()
+  if (keys.length === 0) return
+  const months = ledgerByMonth(items, entries, keys)
+  const sheet = workbook.addWorksheet('월별 결산', { views: [{ state: 'frozen', ySplit: 1 }] })
+  const money = '#,##0'
+  const bold = { bold: true }
+
+  sheet.addRow(['달', '들어온 돈', '사입', '그 밖에 나간 돈', '나간 돈 합계', '남은 돈']).font = bold
+  sheet.columns = [{ width: 10 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 14 }, { width: 14 }]
+  const sum = { income: 0, purchase: 0, otherExpense: 0, expense: 0, balance: 0 }
+  for (const key of keys) {
+    const m = months[key]
+    const [y, mm] = key.split('-')
+    sheet.addRow([`${y}년 ${Number(mm)}월`, m.income, m.purchase, m.otherExpense, m.expense, m.balance])
+    for (const field of Object.keys(sum)) sum[field] += m[field]
+  }
+  const total = sheet.addRow(['합계', sum.income, sum.purchase, sum.otherExpense, sum.expense, sum.balance])
+  total.font = bold
+  if (keys.length > 1) {
+    sheet.addRow([
+      '한 달 평균',
+      ...['income', 'purchase', 'otherExpense', 'expense', 'balance'].map((field) =>
+        Math.round(sum[field] / keys.length),
+      ),
+    ])
+  }
+
+  // 분류별 나간 돈: 분류 × 달
+  sheet.addRow([])
+  sheet.addRow(['분류별 나간 돈']).font = bold
+  const all = summarizeLedger(
+    items.filter((item) => keys.includes(monthKeyOf(ledgerDate(item)))),
+    entries,
+  )
+  const header = sheet.addRow(['분류', '합계', '비율', ...keys.map((key) => `${Number(key.slice(5))}월`)])
+  header.font = bold
+  for (const row of all.byCategory) {
+    sheet
+      .addRow([
+        row.name,
+        row.amount,
+        all.expense ? row.amount / all.expense : 0,
+        ...keys.map((key) => months[key].byCategory.find((c) => c.name === row.name)?.amount ?? 0),
+      ])
+      .getCell(3).numFmt = '0%'
+  }
+  for (let col = 4; col <= 3 + keys.length; col++)
+    sheet.getColumn(col).width = Math.max(sheet.getColumn(col).width ?? 0, 10)
+
+  sheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      if (typeof cell.value === 'number' && cell.numFmt !== '0%') cell.numFmt = money
+    })
+  })
 }

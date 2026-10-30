@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import CameraInput from '../components/CameraInput'
 import ConfirmDialog from '../components/ConfirmDialog'
+import SettleDialog from '../components/SettleDialog'
 import EmptyState from '../components/EmptyState'
 import SubPage from '../components/SubPage'
 import PhotoThumbnail from '../components/PhotoThumbnail'
@@ -25,7 +26,7 @@ import { useToast } from '../components/toastContext'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useObjectUrl } from '../hooks/useObjectUrl'
 import { compressImage } from '../utils/compressImage'
-import { formatCurrency, formatDateLabel, itemTotal, shopLocation } from '../utils/format'
+import { formatCurrency, formatDateLabel, getToday, itemTotal, shopLocation } from '../utils/format'
 
 function itemToForm(item) {
   return {
@@ -55,9 +56,19 @@ export default function ItemDetailPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isAddingPhoto, setIsAddingPhoto] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
+  const [showSettle, setShowSettle] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const toast = useToast()
   const [error, setError] = useState(null)
+
+  function settle(settledDate) {
+    setShowSettle(false)
+    void setItemSettled(item.id, true, settledDate)
+    toast(settledDate ? '갚은 것으로 표시했어요. 오늘 나간 돈으로 셌어요' : '갚은 것으로 표시했어요', {
+      actionLabel: '되돌리기',
+      onAction: () => setItemSettled(item.id, false),
+    })
+  }
 
   const { data: item, isLoading } = useLiveQuery(async () => {
     if (!Number.isFinite(id)) return null
@@ -321,7 +332,10 @@ export default function ItemDetailPage() {
               {item.payment && (
                 <InfoRow label="결제">
                   {item.payment}
-                  {item.payment === '외상' && (item.settled ? ' · 갚았어요' : ' · 아직 안 갚았어요')}
+                  {item.payment === '외상' &&
+                    (item.settled
+                      ? ` · 갚았어요${item.settledDate ? ` (${formatDateLabel(item.settledDate)})` : ''}`
+                      : ' · 아직 안 갚았어요')}
                 </InfoRow>
               )}
               {item.color && <InfoRow label="색">{item.color}</InfoRow>}
@@ -340,13 +354,7 @@ export default function ItemDetailPage() {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  void setItemSettled(item.id, true)
-                  toast('갚은 것으로 표시했어요', {
-                    actionLabel: '되돌리기',
-                    onAction: () => setItemSettled(item.id, false),
-                  })
-                }}
+                onClick={() => setShowSettle(true)}
                 className="btn btn-primary shrink-0 text-[17px]"
               >
                 갚았어요
@@ -366,6 +374,15 @@ export default function ItemDetailPage() {
             </button>
           </div>
         </>
+      )}
+
+      {showSettle && (
+        <SettleDialog
+          buyDate={item.date}
+          onToday={() => settle(getToday())}
+          onBuyDate={() => settle('')}
+          onCancel={() => setShowSettle(false)}
+        />
       )}
 
       {showDelete && (

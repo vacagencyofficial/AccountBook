@@ -150,7 +150,10 @@ export async function updateItem(itemId, data) {
   if (data.payment != null) {
     patch.payment = data.payment
     // 외상이 아니게 바꾸면 「갚음」 표시도 지움
-    if (data.payment !== '외상') patch.settled = 0
+    if (data.payment !== '외상') {
+      patch.settled = 0
+      patch.settledDate = ''
+    }
   }
   await db.items.update(itemId, patch)
   void syncAfterWrite()
@@ -184,8 +187,13 @@ export async function deletePhotos(photoIds) {
 }
 
 /** 외상 갚음 표시 켜고 끄기 */
-export async function setItemSettled(itemId, settled) {
-  await db.items.update(itemId, { settled: settled ? 1 : 0, ...changed() })
+/** settledDate: 갚은 돈을 가계부에서 이날 나간 돈으로 셈 (비우면 산 날 그대로) */
+export async function setItemSettled(itemId, settled, settledDate = '') {
+  await db.items.update(itemId, {
+    settled: settled ? 1 : 0,
+    settledDate: settled ? settledDate : '',
+    ...changed(),
+  })
   void syncAfterWrite()
 }
 

@@ -9,6 +9,7 @@ import { formatManwon, formatWonShort } from '../utils/labels'
 import {
   compareByCategory,
   ledgerByMonth,
+  ledgerDate,
   monthKeyOf,
   previousMonthKey,
   recentMonthKeys,
@@ -59,10 +60,30 @@ export default function StatsPage() {
     const months = ledgerByMonth(data.items, data.entries, [...new Set([...keys, prevKey, lastYearKey])])
     const inSpan = (date) => keys.includes(monthKeyOf(date))
     const spanSummary = summarizeLedger(
-      data.items.filter((item) => inSpan(item.date)),
+      data.items.filter((item) => inSpan(ledgerDate(item))),
       data.entries.filter((entry) => inSpan(entry.date)),
     )
-    return { months, spanSummary }
+    // 한 해: 이 해 1월부터 보고 있는 달까지, 작년은 같은 기간
+    const year = Number(baseKey.slice(0, 4))
+    const upTo = baseKey.slice(5)
+    const inYear = (date, y) => date?.slice(0, 4) === String(y) && date.slice(5, 7) <= upTo
+    const yearOf = (y) =>
+      summarizeLedger(
+        data.items.filter((item) => inYear(ledgerDate(item), y)),
+        data.entries.filter((entry) => inYear(entry.date, y)),
+      )
+    // 평균은 이 해에 기록이 처음 있는 달부터 (쓰기 시작한 해에 빈 달까지 나누지 않게)
+    const firstMonth = [...data.items.map(ledgerDate), ...data.entries.map((entry) => entry.date)]
+      .filter((date) => inYear(date, year))
+      .sort()[0]
+    const activeMonths = firstMonth ? Number(upTo) - Number(firstMonth.slice(5, 7)) + 1 : 1
+    return {
+      months,
+      spanSummary,
+      yearSummary: yearOf(year),
+      lastYearSummary: yearOf(year - 1),
+      activeMonths,
+    }
     // keys는 base·span으로 정해짐
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, baseKey, span])
@@ -80,7 +101,10 @@ export default function StatsPage() {
     )
   }
 
-  const { months, spanSummary } = stats
+  const { months, spanSummary, yearSummary, lastYearSummary, activeMonths } = stats
+  const baseYear = baseKey.slice(0, 4)
+  const monthsInYear = Number(baseKey.slice(5))
+  const lastYearHasAny = lastYearSummary.expense + lastYearSummary.income > 0
   const thisMonth = months[baseKey]
   const lastMonth = months[prevKey]
   const lastYear = months[lastYearKey]
@@ -170,6 +194,57 @@ export default function StatsPage() {
                 <Signed value={thisMonth.income - lastMonth.income} good="up" />
               </li>
             </ul>
+          </section>
+
+          {/* 한 해 결산 */}
+          <section className="card p-4">
+            <h2 className="text-[19px] font-extrabold">{baseYear}년 한 해</h2>
+            <p className="mb-2 text-[16px] font-semibold text-ink-soft">
+              1월부터 {monthsInYear}월까지{lastYearHasAny ? ' · 작년 같은 기간과 비교' : ''}
+            </p>
+            <ul className="divide-y divide-line-soft text-[17px] font-semibold">
+              {[
+                ['들어온 돈', yearSummary.income, lastYearSummary.income, 'up'],
+                ['나간 돈', yearSummary.expense, lastYearSummary.expense, 'down'],
+                ['남은 돈', yearSummary.balance, lastYearSummary.balance, 'up'],
+              ].map(([label, value, before, good]) => (
+                <li key={label} className="flex items-center justify-between gap-2 py-2.5">
+                  <span className="text-ink-muted">{label}</span>
+                  <span className="text-right tabular">
+                    <b
+                      className={`text-[19px] ${label === '남은 돈' && value < 0 ? 'text-accent-dark' : 'text-ink'}`}
+                    >
+                      {value < 0 ? '−' : ''}
+                      {formatCurrency(Math.abs(value))}
+                    </b>
+                    {lastYearHasAny && (
+                      <span className="block text-[16px]">
+                        <Signed value={value - before} good={good} />
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 border-t border-line-soft pt-3 text-[16px] font-semibold text-ink-muted">
+              한 달에 평균{' '}
+              <b className="text-ink tabular">
+                {formatWonShort(Math.round(yearSummary.expense / activeMonths))}
+              </b>{' '}
+              나갔어요
+              {yearSummary.byCategory.length > 0 && (
+                <>
+                  {' '}
+                  · 가장 많이 쓴 곳{' '}
+                  <b className="text-ink">
+                    {yearSummary.byCategory
+                      .slice(0, 3)
+                      .map((row) => row.name)
+                      .join(', ')}
+                  </b>
+                </>
+              )}
+            </p>
           </section>
 
           {/* 분류별 지난달 비교 */}

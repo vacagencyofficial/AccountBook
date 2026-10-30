@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { IconCamera } from '../components/Icons'
 import ConfirmDialog from '../components/ConfirmDialog'
+import SettleDialog from '../components/SettleDialog'
 import EmptyState from '../components/EmptyState'
 import SubPage from '../components/SubPage'
 import ItemRow from '../components/ItemRow'
@@ -14,7 +15,7 @@ import { useToast } from '../components/toastContext'
 import PhotoGrid from '../components/PhotoGrid'
 import { getItemsByShop } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
-import { formatCurrency, formatDateLabel, itemTotal, shopLocation } from '../utils/format'
+import { formatCurrency, formatDateLabel, getToday, itemTotal, shopLocation } from '../utils/format'
 
 export default function ShopDetailPage() {
   const { shopId } = useParams()
@@ -27,6 +28,17 @@ export default function ShopDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [error, setError] = useState(null)
   const [view, setView] = useState('list')
+  const [settleIds, setSettleIds] = useState(null)
+
+  function settleAll(settledDate) {
+    const ids = settleIds
+    setSettleIds(null)
+    ids.forEach((itemId) => void setItemSettled(itemId, true, settledDate))
+    toast('외상을 모두 갚은 것으로 표시했어요', {
+      actionLabel: '되돌리기',
+      onAction: () => ids.forEach((itemId) => void setItemSettled(itemId, false)),
+    })
+  }
 
   const { data: shop, isLoading: shopLoading } = useLiveQuery(
     () => (Number.isFinite(id) ? db.shops.get(id) : undefined),
@@ -148,14 +160,7 @@ export default function ShopDetailPage() {
             </div>
             <button
               type="button"
-              onClick={() => {
-                const ids = credit.items.map((item) => item.id)
-                ids.forEach((itemId) => void setItemSettled(itemId, true))
-                toast('외상을 모두 갚은 것으로 표시했어요', {
-                  actionLabel: '되돌리기',
-                  onAction: () => ids.forEach((itemId) => void setItemSettled(itemId, false)),
-                })
-              }}
+              onClick={() => setSettleIds(credit.items.map((item) => item.id))}
               className="btn btn-primary shrink-0 text-[17px]"
             >
               모두 갚았어요
@@ -268,6 +273,15 @@ export default function ShopDetailPage() {
             가게와 기록 모두 지우기
           </button>
         </div>
+      )}
+
+      {settleIds && (
+        <SettleDialog
+          count={settleIds.length}
+          onToday={() => settleAll(getToday())}
+          onBuyDate={() => settleAll('')}
+          onCancel={() => setSettleIds(null)}
+        />
       )}
 
       {showDeleteConfirm && (
