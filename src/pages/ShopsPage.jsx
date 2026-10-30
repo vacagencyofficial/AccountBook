@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ShopRow from '../components/ShopRow'
-import { isUnpaidCredit } from '../utils/analytics'
+import { daysSince, isUnpaidCredit, OLD_CREDIT_DAYS } from '../utils/analytics'
 import { itemTotal } from '../utils/format'
 import { IconPlus, IconSearch } from '../components/Icons'
 import { db } from '../db'
@@ -22,9 +22,12 @@ export default function ShopsPage() {
     const items = await db.items.toArray()
     const counts = {}
     for (const item of items) {
-      const entry = (counts[item.shopId] ??= { count: 0, credit: 0 })
+      const entry = (counts[item.shopId] ??= { count: 0, credit: 0, oldCredit: false })
       entry.count += 1
-      if (isUnpaidCredit(item)) entry.credit += itemTotal(item)
+      if (isUnpaidCredit(item)) {
+        entry.credit += itemTotal(item)
+        if (daysSince(item.date) >= OLD_CREDIT_DAYS) entry.oldCredit = true
+      }
     }
     return counts
   }, [])
@@ -49,10 +52,15 @@ export default function ShopsPage() {
       <PageHeader
         title="가게"
         action={
-          <Link to="/shops/new" className="btn btn-soft text-[17px]">
-            <IconPlus className="h-5 w-5" />
-            새 가게
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/shops/report" className="btn btn-outline px-3 text-[17px]">
+              리포트
+            </Link>
+            <Link to="/shops/new" className="btn btn-soft px-3 text-[17px]">
+              <IconPlus className="h-5 w-5" />
+              새 가게
+            </Link>
+          </div>
         }
       >
         <div className="relative mt-3">
@@ -93,6 +101,7 @@ export default function ShopsPage() {
                 shop={shop}
                 itemCount={itemCounts?.[shop.id]?.count ?? 0}
                 credit={itemCounts?.[shop.id]?.credit ?? 0}
+                oldCredit={itemCounts?.[shop.id]?.oldCredit ?? false}
               />
             ))}
           </ul>

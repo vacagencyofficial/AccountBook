@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { shopLocation } from '../utils/format'
 import { formatWonShort } from '../utils/labels'
 
-export default function ShopRow({ shop, itemCount, credit = 0 }) {
+export default function ShopRow({ shop, itemCount, credit = 0, oldCredit = false }) {
   return (
     <li>
       <Link to={`/shops/${shop.id}`} className="card flex items-center gap-3.5 px-3.5 py-3 active:bg-wash">
@@ -17,7 +17,9 @@ export default function ShopRow({ shop, itemCount, credit = 0 }) {
           )}
           {shop.memo && <p className="truncate text-[16px] font-medium text-ink-soft">{shop.memo}</p>}
           {credit > 0 && (
-            <p className="truncate text-[16px] font-bold text-warn">외상 {formatWonShort(credit)} 남음</p>
+            <p className={`truncate text-[16px] font-bold ${oldCredit ? 'text-red-700' : 'text-warn'}`}>
+              외상 {formatWonShort(credit)} 남음{oldCredit && ' · 한 달 넘음'}
+            </p>
           )}
         </div>
 

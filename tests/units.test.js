@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  daysSince,
   isUnpaidCredit,
   itemProfit,
   profitRate,
@@ -33,6 +34,19 @@ describe('외상', () => {
   it('안 갚은 외상은 「샀어요」이면서 갚지 않은 것만', () => {
     expect(items.map(isUnpaidCredit)).toEqual([true, false, false, false])
     expect(summarizeCredit(items)).toMatchObject({ count: 1, total: 20000 })
+  })
+  it('한 달 넘은 외상과 가장 오래된 외상', () => {
+    const today = new Date(2026, 9, 30)
+    const credit = summarizeCredit(
+      [
+        { date: '2026-09-01', price: 10000, qty: 1, status: '구매', payment: '외상' },
+        { date: '2026-10-20', price: 5000, qty: 2, status: '구매', payment: '외상' },
+      ],
+      today,
+    )
+    expect(daysSince('2026-09-01', today)).toBe(59)
+    expect(credit).toMatchObject({ count: 2, total: 20000, oldCount: 1, oldTotal: 10000, oldestDays: 59 })
+    expect(credit.oldest.date).toBe('2026-09-01')
   })
   it('쓴 돈 합계는 결제 방법과 상관없이 「샀어요」만', () => {
     expect(summarizeItems(items).total).toBe(20000 + 5000 + 9000)
