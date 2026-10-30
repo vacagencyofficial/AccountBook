@@ -1,10 +1,13 @@
 const TEXT_SIZE_KEY = 'sailp-text-size'
 
-/** 화면 전체를 확대하는 배율 (글씨·버튼·간격이 함께 커져 배치가 깨지지 않음) */
+/**
+ * 화면 전체 배율 (글씨·버튼·간격이 함께 커짐).
+ * 예전 1.1 / 1.2 는 확대 시 흐릿해 보여 살짝만 올림.
+ */
 export const TEXT_SIZES = [
   { value: 'normal', label: '보통', zoom: 1 },
-  { value: 'large', label: '크게', zoom: 1.1 },
-  { value: 'xlarge', label: '아주 크게', zoom: 1.2 },
+  { value: 'large', label: '크게', zoom: 1.08 },
+  { value: 'xlarge', label: '아주 크게', zoom: 1.16 },
 ]
 
 export function getTextSize() {
@@ -19,6 +22,8 @@ export function getTextSize() {
 export function applyTextSize(value = getTextSize()) {
   const size = TEXT_SIZES.find((item) => item.value === value) ?? TEXT_SIZES[0]
   document.documentElement.style.setProperty('--app-zoom', String(size.zoom))
+  // 예전 rem 배율 실험 잔여값 제거
+  document.documentElement.style.removeProperty('--app-font-scale')
 }
 
 export function setTextSize(value) {

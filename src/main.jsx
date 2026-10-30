@@ -14,7 +14,7 @@ import './index.css'
 // 설정에서 고른 글씨 크기를 첫 화면부터 적용
 applyTextSize()
 
-// Windows PC에서는 SUIT가 흐릿하게 보여 또렷한 맑은 고딕으로 (폰은 SUIT 그대로)
+// Windows는 서브픽셀 렌더링이 더 또렷함 (index.css에서 smoothing 분기)
 if (/Windows/i.test(navigator.userAgent)) document.documentElement.classList.add('os-windows')
 
 initInstallPrompt()

@@ -7,15 +7,19 @@ export default function PageHeader({ title, subtitle, children, brand, action })
             <div className="flex items-center gap-3">
               <img src="/favicon.svg" alt="" className="h-11 w-11 shrink-0" />
               <div>
-                <p className="text-[24px] font-extrabold leading-tight text-brand-dark">사입노트</p>
-                {subtitle && <p className="text-[16px] font-semibold text-ink-soft">{subtitle}</p>}
+                <p className="text-[24px] font-bold leading-tight tracking-[-0.02em] text-brand-dark">
+                  사입노트
+                </p>
+                {subtitle && <p className="text-[16px] font-medium text-ink-soft">{subtitle}</p>}
               </div>
             </div>
           ) : (
             <>
-              <h1 className="text-[26px] font-extrabold leading-tight text-brand-dark">{title}</h1>
+              <h1 className="text-[26px] font-bold leading-tight tracking-[-0.02em] text-brand-dark">
+                {title}
+              </h1>
               {subtitle && (
-                <p className="mt-1 text-[16px] font-semibold leading-snug text-ink-soft">{subtitle}</p>
+                <p className="mt-1 text-[16px] font-medium leading-snug text-ink-soft">{subtitle}</p>
               )}
             </>
           )}
