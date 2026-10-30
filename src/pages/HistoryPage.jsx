@@ -14,7 +14,13 @@ import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useToday } from '../hooks/useToday'
 import { formatCurrency, itemTotal } from '../utils/format'
 import { formatDateString, getMonthRange } from '../utils/dateRange'
-import { groupByCategory, groupByShop, isPurchased, summarizeItems, summarizeProfit } from '../utils/analytics'
+import {
+  groupByCategory,
+  groupByShop,
+  isPurchased,
+  summarizeItems,
+  summarizeProfit,
+} from '../utils/analytics'
 import { formatManwon } from '../utils/labels'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -44,7 +50,9 @@ export default function HistoryPage() {
   // 홈의 「찾기」로 들어오면 그 말로 모든 달에서 찾기
   const location = useLocation()
   const homeQuery = location.state?.query
-  const [find, setFind] = useState(() => (homeQuery ? { ...emptyFind, query: homeQuery, allMonths: true } : emptyFind))
+  const [find, setFind] = useState(() =>
+    homeQuery ? { ...emptyFind, query: homeQuery, allMonths: true } : emptyFind,
+  )
   const [showFind, setShowFind] = useState(Boolean(homeQuery))
   const [showFiles, setShowFiles] = useState(false)
   const [includePhotos, setIncludePhotos] = useState(false)
@@ -69,7 +77,11 @@ export default function HistoryPage() {
 
   const filteredItems = useMemo(
     () =>
-      filterHistoryItems(items, { ...find, period: searchAll ? 'all' : 'month' }, searchAll ? {} : monthRange),
+      filterHistoryItems(
+        items,
+        { ...find, period: searchAll ? 'all' : 'month' },
+        searchAll ? {} : monthRange,
+      ),
     [items, find, searchAll, monthRange],
   )
 
@@ -179,7 +191,7 @@ export default function HistoryPage() {
     ...Array.from({ length: firstWeekday }, () => null),
     ...Array.from({ length: lastDay }, (_, i) => formatDateString(new Date(month.year, month.month, i + 1))),
   ]
-  const selectedItems = selectedDate ? byDate[selectedDate] ?? [] : []
+  const selectedItems = selectedDate ? (byDate[selectedDate] ?? []) : []
   const selectedSummary = summarizeItems(selectedItems)
   const sortedDates = Object.keys(byDate).sort().reverse()
 
@@ -215,13 +227,25 @@ export default function HistoryPage() {
 
         {!searchAll && (
           <div className="mb-3 flex items-center justify-between">
-            <button type="button" onClick={() => moveMonth(-1)} className="btn btn-outline px-0 text-[30px] leading-none" style={{ width: '3.5rem' }} aria-label="지난달">
+            <button
+              type="button"
+              onClick={() => moveMonth(-1)}
+              className="btn btn-outline px-0 text-[30px] leading-none"
+              style={{ width: '3.5rem' }}
+              aria-label="지난달"
+            >
               ‹
             </button>
             <p className="text-[23px] font-extrabold">
               {month.year}년 {month.month + 1}월
             </p>
-            <button type="button" onClick={() => moveMonth(1)} className="btn btn-outline px-0 text-[30px] leading-none" style={{ width: '3.5rem' }} aria-label="다음 달">
+            <button
+              type="button"
+              onClick={() => moveMonth(1)}
+              className="btn btn-outline px-0 text-[30px] leading-none"
+              style={{ width: '3.5rem' }}
+              aria-label="다음 달"
+            >
               ›
             </button>
           </div>
@@ -249,7 +273,11 @@ export default function HistoryPage() {
         {hasFind && (
           <div className="mt-3 flex items-center justify-between gap-2 rounded-[10px] bg-brand-soft px-3 py-2">
             <p className="text-[16px] font-bold text-brand">찾는 조건이 걸려 있어요</p>
-            <button type="button" onClick={() => setFind(emptyFind)} className="text-[16px] font-bold text-brand underline">
+            <button
+              type="button"
+              onClick={() => setFind(emptyFind)}
+              className="text-[16px] font-bold text-brand underline"
+            >
               조건 지우기
             </button>
           </div>
@@ -319,12 +347,17 @@ export default function HistoryPage() {
                         {Number(date.slice(8))}
                       </span>
                       {total > 0 && (
-                        <span className={`text-[16px] font-extrabold tracking-[-0.03em] ${isSelected ? 'text-white' : 'text-accent-dark'}`}>
+                        <span
+                          className={`text-[16px] font-extrabold tracking-[-0.03em] ${isSelected ? 'text-white' : 'text-accent-dark'}`}
+                        >
                           {formatManwon(total)}
                         </span>
                       )}
                       {total === 0 && dayItems.length > 0 && (
-                        <span className={`mt-1 h-2 w-2 rounded-full ${isSelected ? 'bg-white' : 'bg-warn'}`} aria-hidden />
+                        <span
+                          className={`mt-1 h-2 w-2 rounded-full ${isSelected ? 'bg-white' : 'bg-warn'}`}
+                          aria-hidden
+                        />
                       )}
                     </button>
                   )
@@ -344,7 +377,9 @@ export default function HistoryPage() {
                     </p>
                   </div>
                   {selectedItems.length > 0 && (
-                    <b className="text-[21px] font-extrabold text-brand tabular">{formatCurrency(selectedSummary.total)}</b>
+                    <b className="text-[21px] font-extrabold text-brand tabular">
+                      {formatCurrency(selectedSummary.total)}
+                    </b>
                   )}
                 </div>
                 {selectedItems.length > 0 && (
@@ -357,7 +392,9 @@ export default function HistoryPage() {
               </section>
             )}
             {!selectedDate && !isThisMonth && (
-              <p className="mt-4 text-center text-[16px] font-semibold text-ink-soft">날짜를 누르면 그날 기록이 나와요</p>
+              <p className="mt-4 text-center text-[16px] font-semibold text-ink-soft">
+                날짜를 누르면 그날 기록이 나와요
+              </p>
             )}
           </>
         ) : !searchAll && view === 'photos' ? (
@@ -368,7 +405,9 @@ export default function HistoryPage() {
           <div className="mt-4">
             <EmptyState
               title={hasFind ? '찾는 기록이 없어요' : '이 달에는 기록이 없어요'}
-              description={hasFind ? '「찾기」 조건을 바꿔 보세요.' : '「상품 입력」으로 기록하면 여기에 쌓여요.'}
+              description={
+                hasFind ? '「찾기」 조건을 바꿔 보세요.' : '「상품 입력」으로 기록하면 여기에 쌓여요.'
+              }
             />
           </div>
         ) : (
@@ -382,7 +421,9 @@ export default function HistoryPage() {
                     <h2 className="text-[18px] font-extrabold">
                       {dayHeading(date)} · {dayItems.length}건
                     </h2>
-                    <b className="text-[18px] font-extrabold text-brand tabular">{formatCurrency(daySummary.total)}</b>
+                    <b className="text-[18px] font-extrabold text-brand tabular">
+                      {formatCurrency(daySummary.total)}
+                    </b>
                   </div>
                   <ul className="space-y-2.5">
                     {dayItems.map((item) => (
@@ -411,7 +452,9 @@ export default function HistoryPage() {
                     aria-selected={breakdownBy === key}
                     onClick={() => setBreakdownBy(key)}
                     className={`min-h-[2.6rem] rounded-[8px] px-3 text-[16px] font-bold ${
-                      breakdownBy === key ? 'bg-paper text-brand shadow-[var(--shadow-card)]' : 'text-ink-soft'
+                      breakdownBy === key
+                        ? 'bg-paper text-brand shadow-[var(--shadow-card)]'
+                        : 'text-ink-soft'
                     }`}
                   >
                     {label}
@@ -422,7 +465,11 @@ export default function HistoryPage() {
             <BarList
               rows={
                 breakdownBy === 'category'
-                  ? categoryBreakdown.map((row) => ({ key: row.category, label: row.category, value: row.total }))
+                  ? categoryBreakdown.map((row) => ({
+                      key: row.category,
+                      label: row.category,
+                      value: row.total,
+                    }))
                   : shopBreakdown.map((row) => ({
                       key: row.shopId,
                       label: row.shop?.name ?? '가게 정보 없음',
@@ -464,7 +511,12 @@ export default function HistoryPage() {
                 />
                 엑셀에 사진도 같이 넣기
               </label>
-              <button type="button" onClick={() => handleExport()} disabled={!canExport} className="btn btn-primary w-full">
+              <button
+                type="button"
+                onClick={() => handleExport()}
+                disabled={!canExport}
+                className="btn btn-primary w-full"
+              >
                 <IconExcel className="h-5 w-5" />
                 {isExporting === 'shown'
                   ? '만드는 중…'
@@ -479,14 +531,25 @@ export default function HistoryPage() {
                 <IconExcel className="h-5 w-5" />
                 {isExporting === 'all' ? '만드는 중…' : `전체 기간 엑셀로 받기 (${allItemsByDate.length}건)`}
               </button>
-              <button type="button" onClick={handleImportClick} disabled={isImporting} className="btn btn-soft w-full">
+              <button
+                type="button"
+                onClick={handleImportClick}
+                disabled={isImporting}
+                className="btn btn-soft w-full"
+              >
                 {isImporting ? '넣는 중…' : '엑셀 파일 넣기'}
               </button>
-              <button type="button" onClick={handleBackup} disabled={isBackingUp} className="btn btn-outline w-full">
+              <button
+                type="button"
+                onClick={handleBackup}
+                disabled={isBackingUp}
+                className="btn btn-outline w-full"
+              >
                 {isBackingUp ? '만드는 중…' : '사진 포함 전체 백업하기'}
               </button>
               <p className="text-[16px] font-semibold leading-snug text-ink-soft">
-                엑셀은 표로 보는 파일이고, 전체 백업은 사진까지 담아 나중에 「설정」에서 되살릴 수 있는 파일이에요.
+                엑셀은 표로 보는 파일이고, 전체 백업은 사진까지 담아 나중에 「설정」에서 되살릴 수 있는
+                파일이에요.
               </p>
               {importMessage && <p className="text-[16px] font-bold text-good">{importMessage}</p>}
               {exportError && (

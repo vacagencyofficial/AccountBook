@@ -19,7 +19,7 @@ export function formatCompactCurrency(amount) {
 
 export function formatDateLabel(dateStr) {
   if (!dateStr) return ''
-  const [y, m, d] = dateStr.split('-')
+  const [, m, d] = dateStr.split('-')
   return `${Number(m)}월 ${Number(d)}일`
 }
 

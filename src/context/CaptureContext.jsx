@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { CaptureContext } from './captureContext'
 import { compressImage } from '../utils/compressImage'
-
-const CaptureContext = createContext(null)
 
 export function CaptureProvider({ children }) {
   const [photos, setPhotos] = useState([])
@@ -46,10 +45,4 @@ export function CaptureProvider({ children }) {
   )
 
   return <CaptureContext.Provider value={value}>{children}</CaptureContext.Provider>
-}
-
-export function useCapture() {
-  const ctx = useContext(CaptureContext)
-  if (!ctx) throw new Error('useCapture must be used within CaptureProvider')
-  return ctx
 }

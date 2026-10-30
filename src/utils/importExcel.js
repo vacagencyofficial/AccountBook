@@ -59,7 +59,10 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
   for (const { values: raw } of rows.slice(1)) {
     // 예전 앱이 내보낸 엑셀은 내용이 제목보다 한 칸 오른쪽에 있음 → 한 칸 당겨 읽기
     const shifted =
-      headerMap.date === 1 && headerMap.shop === 2 && cellToString(raw[1]).trim() === '' && parseDateCell(raw[2])
+      headerMap.date === 1 &&
+      headerMap.shop === 2 &&
+      cellToString(raw[1]).trim() === '' &&
+      parseDateCell(raw[2])
     const values = shifted ? raw.slice(1) : raw
     const record = parseDataRow(values, headerMap)
     if (record) parsed.push(record)
@@ -250,7 +253,16 @@ function parsePayment(raw) {
 }
 
 function itemKey(shopId, item) {
-  return [shopId, item.date, item.name, item.price, item.qty, item.color || '', item.size || '', item.memo || '']
+  return [
+    shopId,
+    item.date,
+    item.name,
+    item.price,
+    item.qty,
+    item.color || '',
+    item.size || '',
+    item.memo || '',
+  ]
     .map((v) => String(v ?? '').trim())
     .join('|')
 }
@@ -311,7 +323,13 @@ function normalizeHeader(text) {
 }
 
 function shopKey(name, building, floor, unit) {
-  return [name, building, floor, unit].map((v) => String(v || '').trim().toLowerCase()).join('|')
+  return [name, building, floor, unit]
+    .map((v) =>
+      String(v || '')
+        .trim()
+        .toLowerCase(),
+    )
+    .join('|')
 }
 
 function toYmd(date) {

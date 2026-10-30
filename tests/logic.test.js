@@ -23,7 +23,15 @@ describe('D01 합계', () => {
   })
 })
 describe('D08 날짜 필터', () => {
-  const base = { period: 'custom', customStart: '', customEnd: '', shopId: 'all', status: 'all', category: 'all', query: '' }
+  const base = {
+    period: 'custom',
+    customStart: '',
+    customEnd: '',
+    shopId: 'all',
+    status: 'all',
+    category: 'all',
+    query: '',
+  }
   it('날짜가 비어도 가게 조건은 적용', () => {
     const r = filterHistoryItems(items, { ...base, shopId: '2' }, { start: '', end: '' })
     expect(r.map((i) => i.name)).toEqual(['c', 'old (상태 없음=구매)'])

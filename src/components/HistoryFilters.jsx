@@ -31,7 +31,11 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
 
       <FilterGroup label="옷 종류">
         {CATEGORY_OPTIONS.map(({ value, label }) => (
-          <FilterChip key={value} active={filters.category === value} onClick={() => onChange('category', value)}>
+          <FilterChip
+            key={value}
+            active={filters.category === value}
+            onClick={() => onChange('category', value)}
+          >
             {value === 'all' ? '전부' : label}
           </FilterChip>
         ))}
@@ -75,7 +79,12 @@ function FilterGroup({ label, children }) {
 
 function FilterChip({ active, onClick, children }) {
   return (
-    <button type="button" onClick={onClick} className={`chip ${active ? 'chip-on' : ''}`} aria-pressed={active}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`chip ${active ? 'chip-on' : ''}`}
+      aria-pressed={active}
+    >
       {children}
     </button>
   )

@@ -1,10 +1,5 @@
 import { supabase, isCloudConfigured } from '../lib/supabase'
-import {
-  getWorkspaceCode,
-  getWorkspaceId,
-  normalizeWorkspaceCode,
-  setWorkspaceLocal,
-} from '../lib/workspace'
+import { getWorkspaceCode, getWorkspaceId, normalizeWorkspaceCode, setWorkspaceLocal } from '../lib/workspace'
 import { markSyncFailed, markSyncSucceeded } from '../lib/syncStatus'
 import { db } from './index'
 
@@ -163,7 +158,11 @@ async function markPushed(table, local, cloudId) {
 async function pushDeletions(workspace) {
   const deletions = await db.deletions.toArray()
   for (const entry of deletions) {
-    const paths = await rpc('sailp_delete', { p_code: workspace.code, p_kind: entry.kind, p_id: entry.cloudId })
+    const paths = await rpc('sailp_delete', {
+      p_code: workspace.code,
+      p_kind: entry.kind,
+      p_id: entry.cloudId,
+    })
     await db.deletions.delete(entry.id)
     if (paths?.length) {
       // 지운 사진 파일도 저장소에서 정리 (실패해도 기록 동기화에는 영향 없음)

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
 import { seedIfEmpty } from '../db/seed'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode } from '../lib/workspace'
@@ -70,12 +70,4 @@ export function DbProvider({ children }) {
   }
 
   return <DbContext.Provider value={{ ready, error, cloud }}>{children}</DbContext.Provider>
-}
-
-export function useDbReady() {
-  return useContext(DbContext).ready
-}
-
-export function useCloudInfo() {
-  return useContext(DbContext).cloud
 }

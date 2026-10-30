@@ -39,6 +39,13 @@ npm start    # preview on 0.0.0.0:43123
 | `/history` | 장부·필터·엑셀 |
 | `/settings` | 백업·복원·설정 |
 
+## 코드 모양
+
+```bash
+npm run format       # 모든 파일을 같은 모양으로 (prettier)
+npm run format:check # 모양만 검사 (CI에서도 확인)
+```
+
 ## 시험(테스트)
 
 ```bash

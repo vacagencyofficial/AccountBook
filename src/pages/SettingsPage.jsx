@@ -32,7 +32,9 @@ export default function SettingsPage() {
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false)
   const [showRotateConfirm, setShowRotateConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [message, setMessage] = useState(null)
+  const [message, setMessage] = useState(() =>
+    searchParams.get('joined') === '1' ? '초대받은 장부와 연결했어요' : null,
+  )
   const [error, setError] = useState(null)
   const [workspaceCode, setWorkspaceCode] = useState(getWorkspaceCode())
   const [codeInput, setCodeInput] = useState(getWorkspaceCode())
@@ -43,11 +45,10 @@ export default function SettingsPage() {
     loadStorage()
   }, [])
 
+  // 초대 주소로 연결하고 넘어오면(?joined=1) 안내만 남기고 주소에서는 지움
+  // (장부 번호는 연결할 때 이미 저장돼 처음 값으로 읽힘)
   useEffect(() => {
     if (searchParams.get('joined') === '1') {
-      setMessage('초대받은 장부와 연결했어요')
-      setWorkspaceCode(getWorkspaceCode())
-      setCodeInput(getWorkspaceCode())
       const next = new URLSearchParams(searchParams)
       next.delete('joined')
       setSearchParams(next, { replace: true })
@@ -119,7 +120,11 @@ export default function SettingsPage() {
     try {
       const { deleteAllData } = await import('../utils/backup')
       await deleteAllData()
-      setMessage(workspaceCode ? '이 폰의 기록을 모두 지우고 다른 폰과의 연결도 끊었어요' : '이 폰의 기록을 모두 지웠어요')
+      setMessage(
+        workspaceCode
+          ? '이 폰의 기록을 모두 지우고 다른 폰과의 연결도 끊었어요'
+          : '이 폰의 기록을 모두 지웠어요',
+      )
       setWorkspaceCode('')
       setCodeInput('')
       setShowDeleteConfirm(false)
@@ -238,7 +243,10 @@ export default function SettingsPage() {
 
       <section className="space-y-5 px-4 pb-6 pt-2">
         {message && (
-          <div className="rounded-[10px] bg-good-soft px-4 py-3 text-[17px] font-bold text-good" aria-live="polite">
+          <div
+            className="rounded-[10px] bg-good-soft px-4 py-3 text-[17px] font-bold text-good"
+            aria-live="polite"
+          >
             ✓ {message}
           </div>
         )}
@@ -276,7 +284,12 @@ export default function SettingsPage() {
                 <p className="text-[16px] font-semibold leading-relaxed text-ink-muted">
                   번호는 외우지 않아도 돼요. 시작한 뒤 카톡으로 보내면 다른 폰이 따라와요.
                 </p>
-                <button type="button" onClick={handleStartCloud} disabled={isSyncing} className="btn btn-primary w-full">
+                <button
+                  type="button"
+                  onClick={handleStartCloud}
+                  disabled={isSyncing}
+                  className="btn btn-primary w-full"
+                >
                   {isSyncing ? '준비 중…' : '다른 폰과 같이 쓰기 시작'}
                 </button>
                 <button
@@ -307,10 +320,17 @@ export default function SettingsPage() {
                   </div>
                 )}
                 <CloudInvitePanel code={workspaceCode} disabled={isSyncing} />
-                <button type="button" onClick={handleSyncNow} disabled={isSyncing} className="btn btn-primary w-full">
+                <button
+                  type="button"
+                  onClick={handleSyncNow}
+                  disabled={isSyncing}
+                  className="btn btn-primary w-full"
+                >
                   {isSyncing ? '맞추는 중…' : '지금 맞추기'}
                 </button>
-                <p className="text-[16px] font-semibold text-ink-soft">다른 폰과 최신 기록을 맞춰요. 평소에는 자동으로 맞춰져요.</p>
+                <p className="text-[16px] font-semibold text-ink-soft">
+                  다른 폰과 최신 기록을 맞춰요. 평소에는 자동으로 맞춰져요.
+                </p>
                 <div className="flex flex-wrap gap-x-4">
                   <button
                     type="button"
@@ -423,7 +443,9 @@ export default function SettingsPage() {
                 선명하게
               </button>
             </div>
-            <p className="mt-2 text-[16px] font-semibold text-ink-soft">선명하게 하면 사진이 공간을 더 차지해요</p>
+            <p className="mt-2 text-[16px] font-semibold text-ink-soft">
+              선명하게 하면 사진이 공간을 더 차지해요
+            </p>
           </div>
 
           <SettingsRow label="이 폰에 쓰인 공간" description={storageText} />
@@ -494,7 +516,9 @@ export default function SettingsPage() {
       {showRotateConfirm && (
         <ConfirmDialog
           title="장부 번호를 바꿀까요?"
-          description={'바꾸면 같이 쓰던 다른 폰은 연결이 끊겨요.\n바꾼 뒤 새 초대 주소를 다시 보내 주세요. 기록은 그대로예요.'}
+          description={
+            '바꾸면 같이 쓰던 다른 폰은 연결이 끊겨요.\n바꾼 뒤 새 초대 주소를 다시 보내 주세요. 기록은 그대로예요.'
+          }
           cancelLabel="그대로 두기"
           confirmLabel="바꾸기"
           onConfirm={handleRotateCode}
@@ -505,7 +529,9 @@ export default function SettingsPage() {
       {showReplaceConfirm && (
         <ConfirmDialog
           title="다른 폰 기록으로 바꿀까요?"
-          description={'이 폰의 기록을 지우고, 인터넷에 맞춰 둔 기록으로 채워요.\n이 폰에서만 적고 아직 안 맞춘 기록은 사라질 수 있어요.'}
+          description={
+            '이 폰의 기록을 지우고, 인터넷에 맞춰 둔 기록으로 채워요.\n이 폰에서만 적고 아직 안 맞춘 기록은 사라질 수 있어요.'
+          }
           cancelLabel="그대로 두기"
           confirmLabel="바꾸기"
           onConfirm={handlePullReplace}
@@ -569,7 +595,11 @@ function SyncStatusLine() {
     )
   }
   if (!lastSyncedAt) return null
-  return <p className="text-[16px] font-semibold text-ink-soft">마지막으로 맞춘 때: {formatSyncTime(lastSyncedAt)}</p>
+  return (
+    <p className="text-[16px] font-semibold text-ink-soft">
+      마지막으로 맞춘 때: {formatSyncTime(lastSyncedAt)}
+    </p>
+  )
 }
 
 function SettingsSection({ title, children }) {
@@ -604,7 +634,9 @@ function SettingsRow({ label, description }) {
   return (
     <div className="px-4 py-3">
       <p className="text-[18px] font-bold text-ink">{label}</p>
-      <p className="mt-0.5 whitespace-pre-line text-[16px] font-semibold leading-snug text-ink-soft">{description}</p>
+      <p className="mt-0.5 whitespace-pre-line text-[16px] font-semibold leading-snug text-ink-soft">
+        {description}
+      </p>
     </div>
   )
 }

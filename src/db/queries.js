@@ -27,7 +27,10 @@ export async function attachShopAndPhoto(items) {
   const shopMap = Object.fromEntries(shops.map((s) => [s.id, s]))
 
   // 사진은 한 번에 가져와 기록마다 첫 장만 붙임 (기록이 많을 때 기록 수만큼 조회하지 않게)
-  const photos = await db.photos.where('itemId').anyOf(items.map((i) => i.id)).sortBy('id')
+  const photos = await db.photos
+    .where('itemId')
+    .anyOf(items.map((i) => i.id))
+    .sortBy('id')
   const firstPhoto = {}
   for (const photo of photos) {
     if (!(photo.itemId in firstPhoto)) firstPhoto[photo.itemId] = photo

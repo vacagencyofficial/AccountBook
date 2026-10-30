@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { getMonthBudget, setMonthBudget } from '../lib/budget'
-import { useToast } from './Toast'
+import { useToast } from './toastContext'
 
 const QUICK = [1_000_000, 3_000_000, 5_000_000, 10_000_000]
 

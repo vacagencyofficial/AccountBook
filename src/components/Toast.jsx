@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ToastContext } from './toastContext'
 import { useLocation } from 'react-router-dom'
-
-const ToastContext = createContext(() => {})
 
 /** 화면 아래에 잠깐 뜨는 알림. 「되돌리기」 같은 버튼을 하나 붙일 수 있음 */
 export function ToastProvider({ children }) {
@@ -67,8 +66,4 @@ function ToastBar({ toast, onClose }) {
       </div>
     </div>
   )
-}
-
-export function useToast() {
-  return useContext(ToastContext)
 }

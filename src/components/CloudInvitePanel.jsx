@@ -71,12 +71,22 @@ export default function CloudInvitePanel({ code, disabled }) {
 
       {qrUrl && (
         <div className="flex flex-col items-center gap-2 pt-1">
-          <img src={qrUrl} alt="초대용 그림 코드(QR)" width={220} height={220} className="rounded-[12px] bg-paper p-2" />
-          <p className="text-center text-[16px] font-bold text-ink-muted">상대 폰 카메라로 이 그림을 찍어 주세요</p>
+          <img
+            src={qrUrl}
+            alt="초대용 그림 코드(QR)"
+            width={220}
+            height={220}
+            className="rounded-[12px] bg-paper p-2"
+          />
+          <p className="text-center text-[16px] font-bold text-ink-muted">
+            상대 폰 카메라로 이 그림을 찍어 주세요
+          </p>
         </div>
       )}
 
-      <p className="break-all rounded-[10px] bg-paper px-3 py-2 text-[16px] font-semibold text-ink-soft">{inviteUrl}</p>
+      <p className="break-all rounded-[10px] bg-paper px-3 py-2 text-[16px] font-semibold text-ink-soft">
+        {inviteUrl}
+      </p>
       {shareError && <p className="text-[16px] font-bold text-red-700">{shareError}</p>}
     </div>
   )

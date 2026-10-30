@@ -126,13 +126,12 @@ export default function JoinPage() {
         )}
 
         {joinedCode && status === 'done' && (
-          <p className="mt-3 rounded-[10px] bg-good-soft px-3 py-2 text-[16px] font-bold text-good">{joinedCode}</p>
+          <p className="mt-3 rounded-[10px] bg-good-soft px-3 py-2 text-[16px] font-bold text-good">
+            {joinedCode}
+          </p>
         )}
         {(status === 'error' || status === 'cancelled' || status === 'done') && (
-          <Link
-            to={status === 'done' ? '/' : '/settings'}
-            className="btn btn-primary mt-6 w-full"
-          >
+          <Link to={status === 'done' ? '/' : '/settings'} className="btn btn-primary mt-6 w-full">
             {status === 'done' ? '홈으로' : '설정으로 이동'}
           </Link>
         )}
