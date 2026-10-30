@@ -19,7 +19,7 @@ export default function PageHeader({ title, subtitle, children, brand, action })
                 {title}
               </h1>
               {subtitle && (
-                <p className="mt-1 text-[16px] font-semibold leading-snug text-ink-soft">{subtitle}</p>
+                <p className="mt-1 text-[16px] font-medium leading-snug text-ink-soft">{subtitle}</p>
               )}
             </>
           )}
