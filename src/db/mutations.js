@@ -25,15 +25,19 @@ async function rememberDeletion(kind, cloudId) {
 /**
  * 장부를 통째로 바꾸기 전에(엑셀·백업 덮어쓰기): 클라우드에 올라간 가게·기록 중
  * 새 내용에 없는 것은 지움 표시를 남겨, 다음 맞추기 때 되살아나지 않고 다른 폰에서도 지워지게 함.
- * db.shops·db.items·db.deletions 를 포함한 트랜잭션 안에서 부름
+ * db.shops·db.items·db.entries·db.deletions 를 포함한 트랜잭션 안에서 부름
  */
-export async function rememberReplacedRecords(keepCloudIds = new Set()) {
+export async function rememberReplacedRecords(keepCloudIds = new Set(), { entries = true } = {}) {
   for (const shop of await db.shops.toArray()) {
     if (shop.cloudId && !keepCloudIds.has(shop.cloudId)) await rememberDeletion('shop', shop.cloudId)
   }
   for (const item of await db.items.toArray()) {
     // 클라우드에서 기록을 지우면 그 사진도 함께 지워짐
     if (item.cloudId && !keepCloudIds.has(item.cloudId)) await rememberDeletion('item', item.cloudId)
+  }
+  // 가계부 없이 장부만 바꿀 때(옛 엑셀)는 가계부 기록을 그대로 둠
+  for (const entry of entries ? await db.entries.toArray() : []) {
+    if (entry.cloudId && !keepCloudIds.has(entry.cloudId)) await rememberDeletion('entry', entry.cloudId)
   }
 }
 
@@ -220,5 +224,49 @@ export async function restoreItem(snapshot) {
       await db.photos.put(rest)
     }
   })
+  void syncAfterWrite()
+}
+
+/** 가계부 기록(지출·수입) 값 정리 */
+function normalizeEntry(data) {
+  const type = data.type === 'income' ? 'income' : 'expense'
+  return {
+    type,
+    date: data.date,
+    amount: parseInt(String(data.amount ?? '').replace(/,/g, ''), 10) || 0,
+    category: data.category || (type === 'income' ? '판매' : '기타'),
+    memo: data.memo?.trim() ?? '',
+    payment: type === 'expense' ? (data.payment ?? '') : '',
+  }
+}
+
+export async function createEntry(data) {
+  const now = Date.now()
+  const id = await db.entries.add({ ...normalizeEntry(data), createdAt: now, ...changed(now) })
+  void syncAfterWrite()
+  return id
+}
+
+export async function updateEntry(entryId, data) {
+  await db.entries.update(entryId, { ...normalizeEntry(data), ...changed() })
+  void syncAfterWrite()
+}
+
+/** 가계부 기록 지우기. 「되돌리기」에 쓰도록 지운 기록을 돌려줌 */
+export async function deleteEntry(entryId) {
+  const entry = await db.entries.get(entryId)
+  await db.transaction('rw', db.entries, db.deletions, async () => {
+    await rememberDeletion('entry', entry?.cloudId)
+    await db.entries.delete(entryId)
+  })
+  void syncAfterWrite()
+  return entry ?? null
+}
+
+/** 방금 지운 가계부 기록 되살리기 (새 기록으로 다시 올림) */
+export async function restoreEntry(entry) {
+  if (!entry) return
+  const { cloudId: _cloudId, ...rest } = entry
+  await db.entries.put({ ...rest, ...changed() })
   void syncAfterWrite()
 }

@@ -217,6 +217,28 @@ async function runSeed() {
   )
 
   await db.photos.bulkAdd(photos)
+
+  // 가계부 예시: 사입 말고 다른 지출과 수입 (지난달 것도 조금 넣어 비교가 보이게)
+  const lastMonth = offsetDate(today, -30)
+  const entry = (type, date, amount, category, memo, payment = '') => ({
+    type,
+    date,
+    amount,
+    category,
+    memo,
+    payment,
+    createdAt: now,
+  })
+  await db.entries.bulkAdd([
+    entry('expense', today, 9000, '식비', '점심', '현금'),
+    entry('expense', today, 4500, '교통·택배', '택시', '카드'),
+    entry('expense', yesterday, 12000, '포장·부자재', '비닐봉투', '현금'),
+    entry('income', yesterday, 350000, '판매', '어제 판매 대금'),
+    entry('expense', twoDaysAgo, 55000, '공과금·통신', '휴대폰 요금', '계좌이체'),
+    entry('income', lastMonth, 1200000, '판매', '지난달 판매 대금'),
+    entry('expense', lastMonth, 300000, '가게 운영', '가게 월세', '계좌이체'),
+    entry('expense', lastMonth, 32000, '식비', '장보기', '카드'),
+  ])
 }
 
 function offsetDate(dateStr, days) {

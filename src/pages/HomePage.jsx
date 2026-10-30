@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ItemRow from '../components/ItemRow'
+import EntryRow from '../components/EntryRow'
 import Onboarding from '../components/Onboarding'
 import { needsOnboarding } from '../lib/onboarding'
 import { IconCamera, IconSearch } from '../components/Icons'
@@ -23,6 +24,7 @@ import {
   summarizeItems,
 } from '../utils/analytics'
 import { formatManwon, formatWonShort } from '../utils/labels'
+import { monthKeyOf, summarizeLedger } from '../utils/ledger'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -82,9 +84,17 @@ export default function HomePage() {
     return attachShopAndPhoto(rows)
   }, [])
 
+  const { data: entries } = useLiveQuery(() => db.entries.orderBy('createdAt').reverse().toArray(), [])
+
   const todayItems = itemsForToday(items ?? [], today)
+  const todayEntries = (entries ?? []).filter((entry) => entry.date === today)
   const todaySummary = summarizeItems(todayItems)
-  const monthSummary = summarizeItems(itemsForMonth(items ?? []))
+  const todayLedger = summarizeLedger(todayItems, todayEntries)
+  const monthItems = itemsForMonth(items ?? [])
+  const monthLedger = summarizeLedger(
+    monthItems,
+    (entries ?? []).filter((entry) => monthKeyOf(entry.date) === monthKeyOf(today)),
+  )
   const week = weekStats(items ?? [])
   const monthNumber = new Date().getMonth() + 1
   const [budget] = useState(getMonthBudget)
@@ -125,13 +135,15 @@ export default function HomePage() {
         <div className="hero px-5 pb-4 pt-4">
           <p className="text-[18px] font-semibold opacity-85">오늘 쓴 돈</p>
           <p className="mt-0.5 text-[clamp(30px,10vw,40px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
-            {isLoading ? '…' : formatCurrency(todaySummary.total)}
+            {isLoading ? '…' : formatCurrency(todayLedger.expense)}
           </p>
           {!isLoading && (
             <p className="mt-1 text-[16px] font-semibold opacity-80">
-              {todaySummary.count
-                ? `${todaySummary.count}건 · ${todaySummary.qty}개 샀어요`
-                : '아직 산 것이 없어요'}
+              {todayLedger.otherExpense > 0
+                ? `사입 ${formatWonShort(todayLedger.purchase)} · 그 밖에 ${formatWonShort(todayLedger.otherExpense)}`
+                : todaySummary.count
+                  ? `${todaySummary.count}건 · ${todaySummary.qty}개 샀어요`
+                  : '아직 산 것이 없어요'}
               {todaySummary.pendingCount > 0 && ` · 고민 중 ${todaySummary.pendingCount}건 제외`}
             </p>
           )}
@@ -141,15 +153,38 @@ export default function HomePage() {
           >
             <span>{monthNumber}월 전체</span>
             <b className="text-[21px] font-extrabold tabular">
-              {isLoading ? '…' : formatCurrency(monthSummary.total)} ›
+              {isLoading ? '…' : formatCurrency(monthLedger.expense)} ›
             </b>
           </Link>
-          {budget > 0 && !isLoading && <BudgetBar spent={monthSummary.total} budget={budget} />}
+          {!isLoading && monthLedger.income > 0 && (
+            <Link to="/stats" className="mt-1.5 flex items-center justify-between text-[16px] font-semibold">
+              <span className="opacity-85">들어온 돈 {formatWonShort(monthLedger.income)}</span>
+              <b className={monthLedger.balance < 0 ? 'text-[#fdba74]' : ''}>
+                남은 돈 {monthLedger.balance < 0 ? '−' : ''}
+                {formatWonShort(Math.abs(monthLedger.balance))}
+              </b>
+            </Link>
+          )}
+          {budget > 0 && !isLoading && <BudgetBar spent={monthLedger.expense} budget={budget} />}
         </div>
 
         <Link to="/capture" className="btn btn-accent mt-4 w-full text-[21px]" style={{ minHeight: '4rem' }}>
           <IconCamera className="h-7 w-7" />
           상품 입력
+        </Link>
+        <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+          <Link to="/money/new?type=expense" className="btn btn-outline text-[18px]">
+            − 돈 쓴 것
+          </Link>
+          <Link to="/money/new?type=income" className="btn btn-outline text-[18px]">
+            + 돈 들어온 것
+          </Link>
+        </div>
+        <Link
+          to="/stats"
+          className="mt-2.5 flex min-h-[3rem] items-center justify-center text-[17px] font-bold text-brand"
+        >
+          달마다 비교·통계 보기 ›
         </Link>
 
         {credit.count > 0 && (
@@ -201,7 +236,9 @@ export default function HomePage() {
 
       <section className="px-4 pt-5">
         <div className="mb-3 flex items-baseline justify-between px-0.5">
-          <h2 className="text-[20px] font-extrabold">오늘 적은 것 {todayItems.length}건</h2>
+          <h2 className="text-[20px] font-extrabold">
+            오늘 적은 것 {todayItems.length + todayEntries.length}건
+          </h2>
           <Link to="/history" className="text-[17px] font-bold text-brand">
             모두 보기 ›
           </Link>
@@ -213,7 +250,7 @@ export default function HomePage() {
               <div key={i} className="skeleton h-20" />
             ))}
           </div>
-        ) : todayItems.length === 0 ? (
+        ) : todayItems.length + todayEntries.length === 0 ? (
           <EmptyState
             icon="camera"
             title="아직 오늘 기록이 없어요"
@@ -223,6 +260,9 @@ export default function HomePage() {
           <ul className="space-y-2.5">
             {todayItems.map((item) => (
               <ItemRow key={item.id} item={item} />
+            ))}
+            {todayEntries.map((entry) => (
+              <EntryRow key={`entry-${entry.id}`} entry={entry} />
             ))}
           </ul>
         )}

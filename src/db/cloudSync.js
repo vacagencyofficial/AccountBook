@@ -59,7 +59,7 @@ async function ensureWorkspace() {
 /** 다른 장부로 옮길 때: 이 폰 기록을 새 장부에 새로 올리도록 클라우드 연결 표시를 지움 */
 async function resetCloudLinks() {
   const now = Date.now()
-  await db.transaction('rw', db.shops, db.items, db.photos, db.deletions, async () => {
+  await db.transaction('rw', db.shops, db.items, db.photos, db.entries, db.deletions, async () => {
     await db.shops.toCollection().modify((shop) => {
       delete shop.cloudId
       shop.dirty = 1
@@ -75,21 +75,27 @@ async function resetCloudLinks() {
       delete photo.storagePath
       delete photo.legacy
     })
+    await db.entries.toCollection().modify((entry) => {
+      delete entry.cloudId
+      entry.dirty = 1
+      entry.updatedAt = now
+    })
     await db.deletions.clear()
   })
 }
 
 async function clearLocal() {
-  await db.transaction('rw', db.shops, db.items, db.photos, db.deletions, async () => {
+  await db.transaction('rw', db.shops, db.items, db.photos, db.entries, db.deletions, async () => {
     await db.photos.clear()
     await db.items.clear()
     await db.shops.clear()
+    await db.entries.clear()
     await db.deletions.clear()
   })
 }
 
 export async function hasLocalRecords() {
-  return (await db.items.count()) > 0 || (await db.shops.count()) > 0
+  return (await db.items.count()) > 0 || (await db.shops.count()) > 0 || (await db.entries.count()) > 0
 }
 
 /**
@@ -229,7 +235,36 @@ async function pushChanges(workspace) {
     await markPushed(db.items, item, cloudId)
   }
 
+  await pushEntries(workspace)
   await pushPhotos(workspace)
+}
+
+/** 가계부 기록(지출·수입) 올리기. 서버에 가계부 설정(secure.sql)이 아직 없으면 이 폰에만 두고 넘어감 */
+async function pushEntries(workspace) {
+  const entries = await db.entries.filter((entry) => !entry.cloudId || entry.dirty === 1).toArray()
+  for (const entry of entries) {
+    let cloudId
+    try {
+      cloudId = await rpc('sailp_upsert_entry', {
+        p_code: workspace.code,
+        p_id: entry.cloudId || null,
+        p_data: {
+          type: entry.type,
+          date: entry.date,
+          amount: Number(entry.amount) || 0,
+          category: entry.category || '기타',
+          memo: entry.memo || '',
+          payment: entry.payment || '',
+          created_at: entry.createdAt || Date.now(),
+          client_updated_at: entry.updatedAt || 0,
+        },
+      })
+    } catch (err) {
+      if (String(err?.message).includes('secure.sql')) return
+      throw err
+    }
+    await markPushed(db.entries, entry, cloudId)
+  }
 }
 
 /** 아직 안 올라간 사진만 올림 (사진마다 확인하므로 여러 장도 모두 올라감) */
@@ -274,7 +309,29 @@ async function applyRemote(remote) {
   const deleted = remote.deleted ?? {}
   const pendingDeletes = new Set((await db.deletions.toArray()).map((entry) => entry.cloudId))
 
-  await db.transaction('rw', db.shops, db.items, db.photos, async () => {
+  await db.transaction('rw', db.shops, db.items, db.photos, db.entries, async () => {
+    for (const cloudId of deleted.entries ?? []) {
+      await db.entries.where('cloudId').equals(cloudId).delete()
+    }
+    for (const row of remote.entries ?? []) {
+      if (pendingDeletes.has(row.id)) continue
+      const remoteTs = Number(row.client_updated_at) || 0
+      const fields = {
+        cloudId: row.id,
+        type: row.type === 'income' ? 'income' : 'expense',
+        date: row.date,
+        amount: Number(row.amount) || 0,
+        category: row.category || '기타',
+        memo: row.memo || '',
+        payment: row.payment || '',
+        createdAt: Number(row.created_at) || Date.now(),
+        dirty: 0,
+        updatedAt: remoteTs,
+      }
+      const local = await db.entries.where('cloudId').equals(row.id).first()
+      if (!local) await db.entries.add(fields)
+      else if (remoteTs > (local.updatedAt || 0)) await db.entries.update(local.id, fields)
+    }
     for (const cloudId of deleted.photos ?? []) {
       await db.photos.where('cloudId').equals(cloudId).delete()
     }

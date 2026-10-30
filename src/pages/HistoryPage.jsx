@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import HistoryFilters from '../components/HistoryFilters'
 import ImportModeDialog from '../components/ImportModeDialog'
 import ItemRow from '../components/ItemRow'
+import EntryRow from '../components/EntryRow'
 import PhotoGrid from '../components/PhotoGrid'
 import { IconExcel, IconSearch } from '../components/Icons'
 import { db } from '../db'
@@ -21,7 +22,8 @@ import {
   summarizeItems,
   summarizeProfit,
 } from '../utils/analytics'
-import { formatManwon } from '../utils/labels'
+import { formatManwon, formatWonShort } from '../utils/labels'
+import { summarizeLedger } from '../utils/ledger'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -69,6 +71,7 @@ export default function HistoryPage() {
   }, [])
 
   const { data: shops } = useLiveQuery(() => db.shops.orderBy('name').toArray(), [])
+  const { data: entries } = useLiveQuery(() => db.entries.orderBy('createdAt').reverse().toArray(), [])
 
   const monthRange = useMemo(() => getMonthRange(month.year, month.month), [month])
   const hasFind =
@@ -85,20 +88,40 @@ export default function HistoryPage() {
     [items, find, searchAll, monthRange],
   )
 
+  // 가계부(사입 말고 다른 지출·수입): 가게·종류·상태로 찾을 때는 빼고, 찾는 말은 메모·분류에서
+  const filteredEntries = useMemo(() => {
+    if (find.shopId !== 'all' || find.category !== 'all' || find.status !== 'all') return []
+    const query = find.query.trim().toLowerCase()
+    return (entries ?? []).filter(
+      (entry) =>
+        (searchAll || (monthRange.start <= entry.date && entry.date <= monthRange.end)) &&
+        (!query || `${entry.memo ?? ''} ${entry.category ?? ''}`.toLowerCase().includes(query)),
+    )
+  }, [entries, find, searchAll, monthRange])
+
   const summary = useMemo(() => summarizeItems(filteredItems), [filteredItems])
+  const ledger = useMemo(
+    () => summarizeLedger(filteredItems, filteredEntries),
+    [filteredItems, filteredEntries],
+  )
   const profit = useMemo(() => summarizeProfit(filteredItems), [filteredItems])
   const shopBreakdown = useMemo(() => groupByShop(filteredItems).slice(0, 5), [filteredItems])
   const categoryBreakdown = useMemo(() => groupByCategory(filteredItems), [filteredItems])
-  const [breakdownBy, setBreakdownBy] = useState('category')
+  const [breakdownBy, setBreakdownBy] = useState('all')
 
   const byDate = useMemo(() => {
     const map = {}
     for (const item of filteredItems) (map[item.date] ??= []).push(item)
     return map
   }, [filteredItems])
+  const entriesByDate = useMemo(() => {
+    const map = {}
+    for (const entry of filteredEntries) (map[entry.date] ??= []).push(entry)
+    return map
+  }, [filteredEntries])
 
   const isThisMonth = monthRange.start <= today && today <= monthRange.end
-  const canExport = filteredItems.length > 0 && !isExporting
+  const canExport = filteredItems.length + filteredEntries.length > 0 && !isExporting
   const allItemsByDate = useMemo(
     () =>
       [...(items ?? [])].sort(
@@ -118,12 +141,17 @@ export default function HistoryPage() {
   // scope: 'shown'(보고 있는 달·찾은 기록) / 'all'(처음부터 모든 기록)
   async function handleExport(scope = 'shown') {
     const target = scope === 'all' ? allItemsByDate : filteredItems
-    if (isExporting || target.length === 0) return
+    const targetEntries = scope === 'all' ? (entries ?? []) : filteredEntries
+    if (isExporting || target.length + targetEntries.length === 0) return
     setIsExporting(scope)
     setExportError(null)
     try {
       const { exportHistoryToExcel } = await import('../utils/exportExcel')
-      await exportHistoryToExcel(target, { includePhotos, fileLabel: scope === 'all' ? '전체' : '' })
+      await exportHistoryToExcel(target, {
+        includePhotos,
+        fileLabel: scope === 'all' ? '전체' : '',
+        entries: scope === 'all' ? (entries ?? []) : filteredEntries,
+      })
     } catch (err) {
       setExportError(err instanceof Error ? err.message : '엑셀로 받지 못했어요')
     } finally {
@@ -172,8 +200,8 @@ export default function HistoryPage() {
       setPendingExcel(null)
       setImportMessage(
         mode === 'overwrite'
-          ? `엑셀 내용으로 바꿨어요 (기록 ${result.items}건)`
-          : `기록 ${result.items}건을 더했어요 (새 가게 ${result.shops}곳)${
+          ? `엑셀 내용으로 바꿨어요 (기록 ${result.items}건${result.entries ? ` · 가계부 ${result.entries}건` : ''})`
+          : `기록 ${result.items}건${result.entries ? ` · 가계부 ${result.entries}건` : ''}을 더했어요 (새 가게 ${result.shops}곳)${
               result.skipped ? ` · 이미 있는 ${result.skipped}건은 건너뛰었어요` : ''
             }`,
       )
@@ -192,23 +220,31 @@ export default function HistoryPage() {
     ...Array.from({ length: lastDay }, (_, i) => formatDateString(new Date(month.year, month.month, i + 1))),
   ]
   const selectedItems = selectedDate ? (byDate[selectedDate] ?? []) : []
+  const selectedEntries = selectedDate ? (entriesByDate[selectedDate] ?? []) : []
   const selectedSummary = summarizeItems(selectedItems)
-  const sortedDates = Object.keys(byDate).sort().reverse()
+  const selectedLedger = summarizeLedger(selectedItems, selectedEntries)
+  const selectedCount = selectedItems.length + selectedEntries.length
+  const sortedDates = [...new Set([...Object.keys(byDate), ...Object.keys(entriesByDate)])].sort().reverse()
 
   return (
     <div>
       <PageHeader
         title="장부"
         action={
-          <button
-            type="button"
-            onClick={() => setShowFind((v) => !v)}
-            className={`btn ${showFind || hasFind ? 'btn-primary' : 'btn-outline'} text-[17px]`}
-            aria-expanded={showFind}
-          >
-            <IconSearch className="h-5 w-5" />
-            찾기{hasFind ? ' 중' : ''}
-          </button>
+          <div className="flex gap-2">
+            <Link to="/stats" className="btn btn-outline px-3 text-[17px]">
+              통계
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowFind((v) => !v)}
+              className={`btn ${showFind || hasFind ? 'btn-primary' : 'btn-outline'} px-3 text-[17px]`}
+              aria-expanded={showFind}
+            >
+              <IconSearch className="h-5 w-5" />
+              찾기{hasFind ? ' 중' : ''}
+            </button>
+          </div>
         }
       />
 
@@ -253,15 +289,36 @@ export default function HistoryPage() {
 
         <div className="hero px-5 pb-4 pt-4">
           <p className="text-[17px] font-semibold opacity-85">
-            {searchAll ? '찾은 기록에서 쓴 돈' : `${month.month + 1}월에 쓴 돈`}
+            {searchAll ? '찾은 기록에서 나간 돈' : `${month.month + 1}월에 나간 돈`}
           </p>
           <p className="text-[clamp(28px,9vw,36px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
-            {isLoading ? '…' : formatCurrency(summary.total)}
+            {isLoading ? '…' : formatCurrency(ledger.expense)}
           </p>
           <p className="mt-1 text-[16px] font-semibold opacity-80">
-            {summary.count ? `${summary.count}건 · ${summary.qty}개` : '아직 산 것이 없어요'}
+            {ledger.otherExpense > 0
+              ? `사입 ${formatWonShort(ledger.purchase)} · 그 밖에 ${formatWonShort(ledger.otherExpense)}`
+              : summary.count
+                ? `${summary.count}건 · ${summary.qty}개`
+                : '아직 산 것이 없어요'}
             {summary.pendingCount > 0 && ` · 고민 중·안 사요 ${summary.pendingCount}건 제외`}
           </p>
+          {filteredEntries.length > 0 && (
+            <div className="mt-2 grid grid-cols-2 gap-2 border-t border-white/15 pt-2 text-[16px] font-semibold">
+              <p>
+                <span className="block opacity-80">들어온 돈</span>
+                <b className="text-[18px] font-extrabold tabular">{formatCurrency(ledger.income)}</b>
+              </p>
+              <p className="text-right">
+                <span className="block opacity-80">남은 돈</span>
+                <b
+                  className={`text-[18px] font-extrabold tabular ${ledger.balance < 0 ? 'text-[#fdba74]' : ''}`}
+                >
+                  {ledger.balance < 0 ? '−' : ''}
+                  {formatCurrency(Math.abs(ledger.balance))}
+                </b>
+              </p>
+            </div>
+          )}
           {profit.count > 0 && (
             <p className="mt-2 border-t border-white/15 pt-2 text-[16px] font-semibold">
               <span className="opacity-80">판매가 적은 {profit.count}건 · 남는 돈 </span>
@@ -322,7 +379,15 @@ export default function HistoryPage() {
                 {cells.map((date, index) => {
                   if (!date) return <span key={`blank-${index}`} />
                   const dayItems = byDate[date] ?? []
-                  const total = dayItems.filter(isPurchased).reduce((sum, item) => sum + itemTotal(item), 0)
+                  const dayEntries = entriesByDate[date] ?? []
+                  const total =
+                    dayItems.filter(isPurchased).reduce((sum, item) => sum + itemTotal(item), 0) +
+                    dayEntries
+                      .filter((entry) => entry.type !== 'income')
+                      .reduce((sum, entry) => sum + entry.amount, 0)
+                  const income = dayEntries
+                    .filter((entry) => entry.type === 'income')
+                    .reduce((sum, entry) => sum + entry.amount, 0)
                   const isSelected = date === selectedDate
                   const isFuture = date > today
                   const isSunday = index % 7 === 0
@@ -353,7 +418,14 @@ export default function HistoryPage() {
                           {formatManwon(total)}
                         </span>
                       )}
-                      {total === 0 && dayItems.length > 0 && (
+                      {total === 0 && income > 0 && (
+                        <span
+                          className={`text-[16px] font-extrabold tracking-[-0.03em] ${isSelected ? 'text-white' : 'text-good'}`}
+                        >
+                          +{formatManwon(income)}
+                        </span>
+                      )}
+                      {total === 0 && income === 0 && dayItems.length > 0 && (
                         <span
                           className={`mt-1 h-2 w-2 rounded-full ${isSelected ? 'bg-white' : 'bg-warn'}`}
                           aria-hidden
@@ -371,21 +443,26 @@ export default function HistoryPage() {
                   <div>
                     <h2 className="text-[20px] font-extrabold">{dayHeading(selectedDate)}</h2>
                     <p className="text-[16px] font-semibold text-ink-soft">
-                      {selectedItems.length === 0
+                      {selectedCount === 0
                         ? '이날은 기록이 없어요'
-                        : `${selectedItems.length}건 중 ${selectedSummary.count}건 샀어요`}
+                        : selectedEntries.length
+                          ? `${selectedCount}건`
+                          : `${selectedItems.length}건 중 ${selectedSummary.count}건 샀어요`}
                     </p>
                   </div>
-                  {selectedItems.length > 0 && (
+                  {selectedCount > 0 && (
                     <b className="text-[21px] font-extrabold text-brand tabular">
-                      {formatCurrency(selectedSummary.total)}
+                      {formatCurrency(selectedLedger.expense)}
                     </b>
                   )}
                 </div>
-                {selectedItems.length > 0 && (
+                {selectedCount > 0 && (
                   <ul className="space-y-2.5">
                     {selectedItems.map((item) => (
                       <ItemRow key={item.id} item={item} />
+                    ))}
+                    {selectedEntries.map((entry) => (
+                      <EntryRow key={`entry-${entry.id}`} entry={entry} />
                     ))}
                   </ul>
                 )}
@@ -401,7 +478,7 @@ export default function HistoryPage() {
           <div className="mt-4">
             <PhotoGrid items={filteredItems} emptyTitle="이 달에는 사진이 없어요" />
           </div>
-        ) : filteredItems.length === 0 ? (
+        ) : filteredItems.length + filteredEntries.length === 0 ? (
           <div className="mt-4">
             <EmptyState
               title={hasFind ? '찾는 기록이 없어요' : '이 달에는 기록이 없어요'}
@@ -413,21 +490,25 @@ export default function HistoryPage() {
         ) : (
           <div className="mt-4 space-y-5">
             {sortedDates.map((date) => {
-              const dayItems = byDate[date]
-              const daySummary = summarizeItems(dayItems)
+              const dayItems = byDate[date] ?? []
+              const dayEntries = entriesByDate[date] ?? []
+              const daySummary = summarizeLedger(dayItems, dayEntries)
               return (
                 <section key={date}>
                   <div className="mb-2 flex items-baseline justify-between px-0.5">
                     <h2 className="text-[18px] font-extrabold">
-                      {dayHeading(date)} · {dayItems.length}건
+                      {dayHeading(date)} · {dayItems.length + dayEntries.length}건
                     </h2>
                     <b className="text-[18px] font-extrabold text-brand tabular">
-                      {formatCurrency(daySummary.total)}
+                      {formatCurrency(daySummary.expense)}
                     </b>
                   </div>
                   <ul className="space-y-2.5">
                     {dayItems.map((item) => (
-                      <ItemRow key={item.id} item={item} />
+                      <ItemRow key={item.id} item={item} showDate={searchAll} />
+                    ))}
+                    {dayEntries.map((entry) => (
+                      <EntryRow key={`entry-${entry.id}`} entry={entry} />
                     ))}
                   </ul>
                 </section>
@@ -436,12 +517,13 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {categoryBreakdown.length > 0 && (
+        {ledger.byCategory.length > 0 && (
           <div className="card mt-6 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="text-[19px] font-extrabold text-ink">어디에 썼나요?</h3>
               <div className="flex gap-1 rounded-[10px] bg-line-soft p-1" role="tablist">
                 {[
+                  ['all', '전체'],
                   ['category', '옷 종류'],
                   ['shop', '가게'],
                 ].map(([key, label]) => (
@@ -451,7 +533,7 @@ export default function HistoryPage() {
                     role="tab"
                     aria-selected={breakdownBy === key}
                     onClick={() => setBreakdownBy(key)}
-                    className={`min-h-[2.6rem] rounded-[8px] px-3 text-[16px] font-bold ${
+                    className={`min-h-[2.6rem] rounded-[8px] px-2.5 text-[16px] font-bold ${
                       breakdownBy === key
                         ? 'bg-paper text-brand shadow-[var(--shadow-card)]'
                         : 'text-ink-soft'
@@ -464,19 +546,21 @@ export default function HistoryPage() {
             </div>
             <BarList
               rows={
-                breakdownBy === 'category'
-                  ? categoryBreakdown.map((row) => ({
-                      key: row.category,
-                      label: row.category,
-                      value: row.total,
-                    }))
-                  : shopBreakdown.map((row) => ({
-                      key: row.shopId,
-                      label: row.shop?.name ?? '가게 정보 없음',
-                      value: row.total,
-                    }))
+                breakdownBy === 'all'
+                  ? ledger.byCategory.map((row) => ({ key: row.name, label: row.name, value: row.amount }))
+                  : breakdownBy === 'category'
+                    ? categoryBreakdown.map((row) => ({
+                        key: row.category,
+                        label: row.category,
+                        value: row.total,
+                      }))
+                    : shopBreakdown.map((row) => ({
+                        key: row.shopId,
+                        label: row.shop?.name ?? '가게 정보 없음',
+                        value: row.total,
+                      }))
               }
-              total={summary.total}
+              total={breakdownBy === 'all' ? ledger.expense : summary.total}
             />
           </div>
         )}
@@ -520,16 +604,18 @@ export default function HistoryPage() {
                 <IconExcel className="h-5 w-5" />
                 {isExporting === 'shown'
                   ? '만드는 중…'
-                  : `${searchAll ? '찾은 기록' : `${month.month + 1}월 기록`} 엑셀로 받기 (${filteredItems.length}건)`}
+                  : `${searchAll ? '찾은 기록' : `${month.month + 1}월 기록`} 엑셀로 받기 (${filteredItems.length + filteredEntries.length}건)`}
               </button>
               <button
                 type="button"
                 onClick={() => handleExport('all')}
-                disabled={Boolean(isExporting) || allItemsByDate.length === 0}
+                disabled={Boolean(isExporting) || allItemsByDate.length + (entries ?? []).length === 0}
                 className="btn btn-soft w-full"
               >
                 <IconExcel className="h-5 w-5" />
-                {isExporting === 'all' ? '만드는 중…' : `전체 기간 엑셀로 받기 (${allItemsByDate.length}건)`}
+                {isExporting === 'all'
+                  ? '만드는 중…'
+                  : `전체 기간 엑셀로 받기 (${allItemsByDate.length + (entries ?? []).length}건)`}
               </button>
               <button
                 type="button"

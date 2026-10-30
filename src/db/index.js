@@ -62,7 +62,27 @@ db.version(4)
       })
   })
 
+// 가계부: 사입(상품) 말고 다른 지출·수입
+db.version(5).stores({
+  shops: '++id, name, building, lastVisitedAt, cloudId, dirty',
+  items: '++id, shopId, date, name, category, status, createdAt, cloudId, dirty',
+  photos: '++id, itemId, cloudId',
+  deletions: '++id, kind, cloudId',
+  entries: '++id, type, date, category, createdAt, cloudId, dirty',
+})
+
 export const CATEGORIES = ['상의', '하의', '아우터', '원피스', '잡화', '기타']
+// 가계부 분류. 사입(상품)은 따로 「사입」으로 묶여 보임
+export const EXPENSE_CATEGORIES = [
+  '식비',
+  '교통·택배',
+  '포장·부자재',
+  '가게 운영',
+  '공과금·통신',
+  '생활',
+  '기타',
+]
+export const INCOME_CATEGORIES = ['판매', '기타 수입']
 export const STATUSES = ['구매', '검토', '보류']
 // 어떻게 냈는지. 빈 값은 안 적음
 export const PAYMENTS = ['현금', '카드', '계좌이체', '외상']

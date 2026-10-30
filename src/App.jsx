@@ -12,6 +12,8 @@ import JoinPage from './pages/JoinPage'
 import HelpPage from './pages/HelpPage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
+import EntryPage from './pages/EntryPage'
+import StatsPage from './pages/StatsPage'
 
 export default function App() {
   return (
@@ -23,6 +25,9 @@ export default function App() {
       <Route path="/shops/report" element={<ShopReportPage />} />
       <Route path="/shops/:shopId" element={<ShopDetailPage />} />
       <Route path="/items/:itemId" element={<ItemDetailPage />} />
+      <Route path="/money/new" element={<EntryPage />} />
+      <Route path="/money/:entryId" element={<EntryPage />} />
+      <Route path="/stats" element={<StatsPage />} />
       <Route path="/help" element={<HelpPage />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />

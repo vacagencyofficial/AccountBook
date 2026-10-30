@@ -18,6 +18,23 @@ alter table items add column if not exists settled boolean not null default fals
 alter table items add column if not exists sale_price integer not null default 0;
 alter table photos add column if not exists deleted_at timestamptz;
 
+-- 가계부: 사입(상품) 말고 다른 지출과 수입
+create table if not exists entries (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  type text not null default 'expense',
+  date text not null,
+  amount integer not null default 0,
+  category text not null default '기타',
+  memo text not null default '',
+  payment text not null default '',
+  created_at bigint not null default 0,
+  client_updated_at bigint not null default 0,
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+create index if not exists entries_workspace_idx on entries(workspace_id);
+
 -- ─────────────────────────────────────────────
 -- 1. 표 직접 접근 차단
 -- ─────────────────────────────────────────────
@@ -25,13 +42,14 @@ alter table workspaces enable row level security;
 alter table shops enable row level security;
 alter table items enable row level security;
 alter table photos enable row level security;
+alter table entries enable row level security;
 
 drop policy if exists workspaces_all on workspaces;
 drop policy if exists shops_all on shops;
 drop policy if exists items_all on items;
 drop policy if exists photos_all on photos;
 
-revoke all on table workspaces, shops, items, photos from anon, authenticated;
+revoke all on table workspaces, shops, items, photos, entries from anon, authenticated;
 
 -- ─────────────────────────────────────────────
 -- 2. 내부 도우미 (앱에서 직접 호출 불가)
@@ -285,6 +303,59 @@ begin
 end;
 $$;
 
+
+-- 가계부 기록 저장 (더 최근 수정이 이김, 지운 기록은 되살리지 않음)
+create or replace function sailp_upsert_entry(p_code text, p_id uuid, p_data jsonb)
+returns uuid
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_ws uuid := sailp_require_ws(p_code);
+  v_ts bigint := coalesce((p_data->>'client_updated_at')::bigint, 0);
+  v_id uuid;
+begin
+  if p_id is not null then
+    update entries set
+      type = case when p_data->>'type' = 'income' then 'income' else 'expense' end,
+      date = coalesce(p_data->>'date', ''),
+      amount = coalesce((p_data->>'amount')::integer, 0),
+      category = coalesce(nullif(p_data->>'category', ''), '기타'),
+      memo = coalesce(p_data->>'memo', ''),
+      payment = coalesce(p_data->>'payment', ''),
+      created_at = coalesce((p_data->>'created_at')::bigint, created_at),
+      client_updated_at = v_ts,
+      updated_at = now()
+    where id = p_id and workspace_id = v_ws and deleted_at is null and client_updated_at <= v_ts
+    returning id into v_id;
+    if v_id is not null then
+      return v_id;
+    end if;
+    select id into v_id from entries where id = p_id and workspace_id = v_ws;
+    if v_id is not null then
+      return v_id;
+    end if;
+  end if;
+
+  insert into entries (workspace_id, type, date, amount, category, memo, payment, created_at, client_updated_at)
+  values (
+    v_ws,
+    case when p_data->>'type' = 'income' then 'income' else 'expense' end,
+    coalesce(p_data->>'date', ''),
+    coalesce((p_data->>'amount')::integer, 0),
+    coalesce(nullif(p_data->>'category', ''), '기타'),
+    coalesce(p_data->>'memo', ''),
+    coalesce(p_data->>'payment', ''),
+    coalesce((p_data->>'created_at')::bigint, (extract(epoch from now()) * 1000)::bigint),
+    v_ts
+  )
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
 -- 기록에 올라간 사진 수
 create or replace function sailp_item_photo_count(p_code text, p_item uuid)
 returns integer
@@ -348,11 +419,16 @@ begin
       select jsonb_agg(to_jsonb(p) order by p.created_at) from photos p
       where p.workspace_id = v_ws and p.deleted_at is null
     ), '[]'::jsonb),
+    'entries', coalesce((
+      select jsonb_agg(to_jsonb(e)) from entries e
+      where e.workspace_id = v_ws and e.deleted_at is null
+    ), '[]'::jsonb),
     -- 다른 폰에서 지운 것: 이 폰에서도 지우도록 id만 전달
     'deleted', jsonb_build_object(
       'shops', coalesce((select jsonb_agg(id) from shops where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb),
       'items', coalesce((select jsonb_agg(id) from items where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb),
-      'photos', coalesce((select jsonb_agg(id) from photos where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb)
+      'photos', coalesce((select jsonb_agg(id) from photos where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb),
+      'entries', coalesce((select jsonb_agg(id) from entries where workspace_id = v_ws and deleted_at is not null), '[]'::jsonb)
     )
   );
 end;
@@ -384,6 +460,9 @@ begin
       returning storage_path
     )
     select coalesce(array_agg(storage_path), '{}') into v_paths from d;
+  elsif p_kind = 'entry' then
+    update entries set deleted_at = coalesce(deleted_at, now()), updated_at = now()
+    where id = p_id and workspace_id = v_ws;
   elsif p_kind = 'photo' then
     with d as (
       update photos set deleted_at = coalesce(deleted_at, now())
@@ -405,6 +484,7 @@ grant execute on function
   sailp_open_workspace(text),
   sailp_upsert_shop(text, uuid, jsonb),
   sailp_upsert_item(text, uuid, jsonb),
+  sailp_upsert_entry(text, uuid, jsonb),
   sailp_item_photo_count(text, uuid),
   sailp_add_photo(text, uuid, text),
   sailp_pull(text),
