@@ -17,6 +17,7 @@ const HEADER_ALIASES = {
   starred: ['별표', '즐겨찾기', 'star', 'starred'],
   payment: ['결제', '결제방법', '결제 방법', 'payment'],
   settled: ['외상갚음', '외상 갚음', '갚음', 'settled'],
+  salePrice: ['판매가', '파는 가격', '판매 가격', 'sale price', 'saleprice'],
   memo: ['메모', '비고', 'memo'],
 }
 
@@ -129,6 +130,7 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
         starred: record.starred ? 1 : 0,
         payment: record.payment,
         settled: record.settled ? 1 : 0,
+        salePrice: record.salePrice,
         createdAt: Date.now(),
       })
       itemCount += 1
@@ -190,6 +192,7 @@ function parseDataRow(values, headerMap) {
     qty,
     status,
     payment: parsePayment(cellToString(values[headerMap.payment])),
+    salePrice: headerMap.salePrice == null ? 0 : parseNumber(values[headerMap.salePrice]),
     settled: /^(o|y|yes|1|true|예|v|✓|✔|갚음)$/i.test(cellToString(values[headerMap.settled]).trim()),
     // ★·O·1·Y·예처럼 무엇이든 적혀 있으면 별표
     starred: /^(★|\*|o|y|yes|1|true|예|v|✓|✔)$/i.test(cellToString(values[headerMap.starred]).trim()),

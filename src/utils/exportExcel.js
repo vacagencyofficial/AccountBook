@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs'
 import { getToday, itemTotal, shopLocation } from './format'
-import { isUnpaidCredit } from './analytics'
+import { isUnpaidCredit, itemProfit } from './analytics'
 
 function downloadBlob(buffer, filename) {
   const blob = new Blob([buffer], {
@@ -26,24 +26,36 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
     views: [{ state: 'frozen', ySplit: 1 }],
   })
 
-  const headers = [
-    '날짜',
-    '가게',
-    '상가위치',
-    '품명',
-    '카테고리',
-    '색상',
-    '사이즈',
-    '단가',
-    '수량',
-    '합계',
-    '상태',
-    '별표',
-    '결제',
-    '외상갚음',
-    '메모',
+  // 칸 목록: 제목·너비·값을 한곳에서 (칸을 더하거나 옮겨도 숫자 서식·사진 위치가 따라감)
+  const money = '#,##0'
+  const columns = [
+    { header: '날짜', width: 12, value: (item) => item.date },
+    { header: '가게', width: 14, value: (item) => item.shop?.name ?? '' },
+    { header: '상가위치', width: 18, value: (item) => shopLocation(item.shop) },
+    { header: '품명', width: 18, value: (item) => item.name },
+    { header: '카테고리', width: 10, value: (item) => item.category || '기타' },
+    { header: '색상', width: 10, value: (item) => item.color || '' },
+    { header: '사이즈', width: 8, value: (item) => item.size || '' },
+    { header: '단가', width: 12, numFmt: money, value: (item) => Number(item.price) || 0 },
+    { header: '수량', width: 8, numFmt: money, value: (item) => Number(item.qty) || 0 },
+    { header: '합계', width: 12, numFmt: money, value: (item) => itemTotal(item) },
+    { header: '판매가', width: 12, numFmt: money, value: (item) => Number(item.salePrice) || '' },
+    { header: '남는돈', width: 12, numFmt: money, value: (item) => (item.salePrice ? itemProfit(item) : '') },
+    { header: '상태', width: 8, value: (item) => item.status || '구매' },
+    { header: '별표', width: 6, center: true, value: (item) => (item.starred ? '★' : '') },
+    { header: '결제', width: 9, value: (item) => item.payment || '' },
+    {
+      header: '외상갚음',
+      width: 9,
+      center: true,
+      value: (item) => (item.payment === '외상' ? (item.settled ? 'O' : 'X') : ''),
+    },
+    { header: '메모', width: 24, value: (item) => item.memo || '' },
   ]
+  const headers = columns.map((column) => column.header)
   if (includePhotos) headers.push('사진')
+  const starCol = headers.indexOf('별표') + 1
+  const photoCol = headers.indexOf('사진')
 
   sheet.addRow(headers)
   const header = sheet.getRow(1)
@@ -57,21 +69,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
   header.height = 22
 
   sheet.columns = [
-    { width: 12 },
-    { width: 14 },
-    { width: 18 },
-    { width: 18 },
-    { width: 10 },
-    { width: 10 },
-    { width: 8 },
-    { width: 12 },
-    { width: 8 },
-    { width: 12 },
-    { width: 8 },
-    { width: 6 },
-    { width: 9 },
-    { width: 9 },
-    { width: 24 },
+    ...columns.map((column) => ({ width: column.width })),
     ...(includePhotos ? [{ width: 14 }] : []),
   ]
 
@@ -80,29 +78,14 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
     const rowNumber = i + 2
     const row = sheet.getRow(rowNumber)
     // 배열 첫 칸이 A열 (앞에 빈칸을 두면 한 칸씩 밀림)
-    row.values = [
-      item.date,
-      item.shop?.name ?? '',
-      shopLocation(item.shop),
-      item.name,
-      item.category || '기타',
-      item.color || '',
-      item.size || '',
-      Number(item.price) || 0,
-      Number(item.qty) || 0,
-      itemTotal(item),
-      item.status || '구매',
-      item.starred ? '★' : '',
-      item.payment || '',
-      item.payment === '외상' ? (item.settled ? 'O' : 'X') : '',
-      item.memo || '',
-    ]
+    row.values = columns.map((column) => column.value(item))
     row.alignment = { vertical: 'middle' }
-    row.getCell(8).numFmt = '#,##0'
-    row.getCell(9).numFmt = '#,##0'
-    row.getCell(10).numFmt = '#,##0'
-    row.getCell(12).alignment = { vertical: 'middle', horizontal: 'center' }
-    if (item.starred) row.getCell(12).font = { color: { argb: 'FFF59E0B' }, bold: true }
+    columns.forEach((column, index) => {
+      const cell = row.getCell(index + 1)
+      if (column.numFmt) cell.numFmt = column.numFmt
+      if (column.center) cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
+    if (item.starred) row.getCell(starCol).font = { color: { argb: 'FFF59E0B' }, bold: true }
 
     if (includePhotos && item.photo?.blob) {
       try {
@@ -113,7 +96,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
           extension: 'jpeg',
         })
         sheet.addImage(imageId, {
-          tl: { col: 15, row: rowNumber - 1 },
+          tl: { col: photoCol, row: rowNumber - 1 },
           ext: { width: 72, height: 72 },
         })
       } catch {
@@ -130,6 +113,7 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
 
   const totalAmount = items.reduce((sum, item) => sum + itemTotal(item), 0)
   const totalQty = items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+  const profitTotal = items.filter((item) => item.salePrice).reduce((sum, item) => sum + itemProfit(item), 0)
   const creditTotal = items.filter(isUnpaidCredit).reduce((sum, item) => sum + itemTotal(item), 0)
 
   summary.addRows([
@@ -139,9 +123,11 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
     ['총 금액', totalAmount],
     ['별표', items.filter((item) => item.starred).length],
     ['안 갚은 외상', creditTotal],
+    ['남는 돈(판매가 적은 것)', profitTotal],
   ])
   summary.getCell('B5').numFmt = '#,##0'
   summary.getCell('B7').numFmt = '#,##0'
+  summary.getCell('B8').numFmt = '#,##0'
 
   const shopMap = new Map()
   for (const item of items) {

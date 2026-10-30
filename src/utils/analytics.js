@@ -5,6 +5,25 @@ export function isPurchased(item) {
   return (item.status || '구매') === '구매'
 }
 
+/** 판매가를 적은 상품의 남는 돈(합계) = (판매가 − 사 온 값) × 수량 */
+export function itemProfit(item) {
+  if (!item.salePrice) return 0
+  return ((Number(item.salePrice) || 0) - (Number(item.price) || 0)) * (Number(item.qty) || 0)
+}
+
+/** 남는 돈 비율: 판매가 중 남는 몫(%). 판매가가 없으면 null */
+export function profitRate(item) {
+  const sale = Number(item.salePrice) || 0
+  if (!sale) return null
+  return Math.round(((sale - (Number(item.price) || 0)) / sale) * 100)
+}
+
+/** 판매가를 적은 「샀어요」 상품들의 남는 돈 */
+export function summarizeProfit(items = []) {
+  const priced = items.filter((item) => item.salePrice && isPurchased(item))
+  return { count: priced.length, total: priced.reduce((sum, item) => sum + itemProfit(item), 0) }
+}
+
 /** 아직 안 갚은 외상인지 (산 것만) */
 export function isUnpaidCredit(item) {
   return item.payment === '외상' && !item.settled && isPurchased(item)

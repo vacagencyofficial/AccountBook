@@ -12,8 +12,15 @@ import PhotoViewer from '../components/PhotoViewer'
 import { useViewerState } from '../hooks/useViewerState'
 import { IconCamera, IconClose, IconGallery } from '../components/Icons'
 import { db } from '../db'
-import { addItemPhotos, deleteItem, deletePhoto, restoreItem, setItemSettled, updateItem } from '../db/mutations'
-import { isUnpaidCredit } from '../utils/analytics'
+import {
+  addItemPhotos,
+  deleteItem,
+  deletePhoto,
+  restoreItem,
+  setItemSettled,
+  updateItem,
+} from '../db/mutations'
+import { isUnpaidCredit, itemProfit, profitRate } from '../utils/analytics'
 import { useToast } from '../components/Toast'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useObjectUrl } from '../hooks/useObjectUrl'
@@ -32,6 +39,7 @@ function itemToForm(item) {
     memo: item.memo ?? '',
     status: item.status || '구매',
     payment: item.payment || '',
+    salePrice: item.salePrice ? String(item.salePrice) : '',
     date: item.date,
   }
 }
@@ -79,8 +87,7 @@ export default function ItemDetailPage() {
     setForm((prev) => ({ ...prev, shopId }))
   }
 
-  const canSave =
-    form && form.shopId && form.price !== '' && (form.name.trim() || form.memo.trim())
+  const canSave = form && form.shopId && form.price !== '' && (form.name.trim() || form.memo.trim())
 
   async function handleSave() {
     if (!canSave || isSaving) return
@@ -161,7 +168,10 @@ export default function ItemDetailPage() {
         />
       )}
       {error && (
-        <div className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700" role="alert">
+        <div
+          className="mb-4 rounded-[10px] bg-red-50 px-4 py-3 text-[16px] font-bold text-red-700"
+          role="alert"
+        >
           {error}
         </div>
       )}
@@ -187,7 +197,10 @@ export default function ItemDetailPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedPhoto(index)}
-                  className={['rounded-[12px] border-4', currentPhoto?.id === photo.id ? 'border-brand' : 'border-transparent'].join(' ')}
+                  className={[
+                    'rounded-[12px] border-4',
+                    currentPhoto?.id === photo.id ? 'border-brand' : 'border-transparent',
+                  ].join(' ')}
                   aria-label={`사진 ${index + 1} 크게 보기`}
                 >
                   <PhotoThumbnail blob={photo.blob} alt={`사진 ${index + 1}`} size="md" />
@@ -250,11 +263,7 @@ export default function ItemDetailPage() {
             >
               {isSaving ? '저장하는 중…' : '고친 내용 저장하기'}
             </button>
-            <button
-              type="button"
-              onClick={() => setForm(null)}
-              className="btn btn-outline w-full"
-            >
+            <button type="button" onClick={() => setForm(null)} className="btn btn-outline w-full">
               고치지 않고 돌아가기
             </button>
           </div>
@@ -263,7 +272,9 @@ export default function ItemDetailPage() {
         <>
           <section className="card p-4">
             <div className="flex items-start justify-between gap-3">
-              <h2 className="min-w-0 break-keep text-[23px] font-extrabold text-ink">{item.name || '이름 없는 물건'}</h2>
+              <h2 className="min-w-0 break-keep text-[23px] font-extrabold text-ink">
+                {item.name || '이름 없는 물건'}
+              </h2>
               <div className="flex shrink-0 items-center gap-2">
                 <StatusBadge status={item.status} />
                 <StarButton
@@ -282,15 +293,31 @@ export default function ItemDetailPage() {
               <p className="text-[16px] font-bold text-ink-muted tabular">
                 {formatCurrency(item.price)} × {item.qty}개
               </p>
-              <p className="text-[30px] font-extrabold text-brand tabular [overflow-wrap:anywhere]">{formatCurrency(total)}</p>
+              <p className="text-[30px] font-extrabold text-brand tabular [overflow-wrap:anywhere]">
+                {formatCurrency(total)}
+              </p>
               {item.status && item.status !== '구매' && (
-                <p className="mt-1 text-[16px] font-bold text-warn">아직 안 산 것이라 쓴 돈 합계에는 들어가지 않아요</p>
+                <p className="mt-1 text-[16px] font-bold text-warn">
+                  아직 안 산 것이라 쓴 돈 합계에는 들어가지 않아요
+                </p>
               )}
             </div>
 
             <dl className="mt-4 space-y-3">
               <InfoRow label="산 날">{formatDateLabel(item.date)}</InfoRow>
               <InfoRow label="종류">{item.category || '기타'}</InfoRow>
+              {item.salePrice > 0 && (
+                <InfoRow label="팔 가격">
+                  {formatCurrency(item.salePrice)}
+                  <span
+                    className={`block text-[16px] font-bold ${itemProfit(item) >= 0 ? 'text-good' : 'text-red-700'}`}
+                  >
+                    {itemProfit(item) >= 0
+                      ? `남는 돈 ${formatCurrency(itemProfit(item))} (${profitRate(item)}%)`
+                      : `${formatCurrency(-itemProfit(item))} 손해`}
+                  </span>
+                </InfoRow>
+              )}
               {item.payment && (
                 <InfoRow label="결제">
                   {item.payment}
@@ -307,13 +334,18 @@ export default function ItemDetailPage() {
             <div className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-card)] bg-warn-soft px-4 py-3">
               <div>
                 <p className="text-[18px] font-extrabold text-warn">외상이에요</p>
-                <p className="text-[16px] font-semibold text-ink-muted tabular">{formatCurrency(total)} 아직 안 갚았어요</p>
+                <p className="text-[16px] font-semibold text-ink-muted tabular">
+                  {formatCurrency(total)} 아직 안 갚았어요
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   void setItemSettled(item.id, true)
-                  toast('갚은 것으로 표시했어요', { actionLabel: '되돌리기', onAction: () => setItemSettled(item.id, false) })
+                  toast('갚은 것으로 표시했어요', {
+                    actionLabel: '되돌리기',
+                    onAction: () => setItemSettled(item.id, false),
+                  })
                 }}
                 className="btn btn-primary shrink-0 text-[17px]"
               >
@@ -329,11 +361,7 @@ export default function ItemDetailPage() {
             >
               고치기
             </button>
-            <button
-              type="button"
-              onClick={() => setShowDelete(true)}
-              className="btn btn-text-danger w-full"
-            >
+            <button type="button" onClick={() => setShowDelete(true)} className="btn btn-text-danger w-full">
               이 기록 지우기
             </button>
           </div>
@@ -376,7 +404,9 @@ function InfoRow({ label, children }) {
   return (
     <div className="flex gap-3">
       <dt className="w-16 shrink-0 text-[16px] font-bold text-ink-soft">{label}</dt>
-      <dd className="min-w-0 whitespace-pre-wrap break-keep text-[17px] font-semibold text-ink">{children}</dd>
+      <dd className="min-w-0 whitespace-pre-wrap break-keep text-[17px] font-semibold text-ink">
+        {children}
+      </dd>
     </div>
   )
 }

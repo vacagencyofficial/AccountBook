@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { isUnpaidCredit, summarizeCredit, summarizeItems } from '../src/utils/analytics.js'
+import {
+  isUnpaidCredit,
+  itemProfit,
+  profitRate,
+  summarizeCredit,
+  summarizeItems,
+  summarizeProfit,
+} from '../src/utils/analytics.js'
 import { formatManwon, formatWonShort } from '../src/utils/labels.js'
 
 // 브라우저 저장소 흉내
@@ -29,6 +36,24 @@ describe('외상', () => {
   })
   it('쓴 돈 합계는 결제 방법과 상관없이 「샀어요」만', () => {
     expect(summarizeItems(items).total).toBe(20000 + 5000 + 9000)
+  })
+})
+
+describe('판매가·남는 돈', () => {
+  it('(판매가 − 사 온 값) × 수량, 비율은 판매가 기준', () => {
+    const item = { price: 15000, qty: 5, salePrice: 25000, status: '구매' }
+    expect(itemProfit(item)).toBe(50000)
+    expect(profitRate(item)).toBe(40)
+    expect(itemProfit({ price: 20000, qty: 2, salePrice: 15000 })).toBe(-10000)
+    expect(profitRate({ price: 1000, qty: 1 })).toBeNull()
+  })
+  it('남는 돈 합계는 판매가를 적은 「샀어요」만', () => {
+    const items = [
+      { price: 15000, qty: 5, salePrice: 25000, status: '구매' },
+      { price: 10000, qty: 1, salePrice: 20000, status: '검토' },
+      { price: 9000, qty: 1, status: '구매' },
+    ]
+    expect(summarizeProfit(items)).toEqual({ count: 1, total: 50000 })
   })
 })
 
