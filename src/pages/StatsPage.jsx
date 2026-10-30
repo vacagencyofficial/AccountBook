@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import SubPage from '../components/SubPage'
 import EmptyState from '../components/EmptyState'
 import { db } from '../db'
+import { categoryBudgetStatus } from '../lib/budget'
 import { useLiveQuery } from '../hooks/useLiveQuery'
 import { formatCurrency } from '../utils/format'
 import { formatManwon, formatWonShort } from '../utils/labels'
@@ -171,6 +172,42 @@ export default function StatsPage() {
             </p>
           </section>
 
+          {/* 분류별 예산 */}
+          {categoryBudgetStatus(thisMonth.byCategory).length > 0 && (
+            <section className="card p-4">
+              <h2 className="mb-3 text-[19px] font-extrabold">{monthLabel(baseKey)} 분류별 예산</h2>
+              <ul className="space-y-3">
+                {categoryBudgetStatus(thisMonth.byCategory).map((row) => (
+                  <li
+                    key={row.name}
+                    aria-label={`${row.name} 예산 ${formatCurrency(row.budget)} 중 ${formatCurrency(row.spent)}`}
+                  >
+                    <div className="mb-1 flex items-baseline justify-between gap-2">
+                      <span className="truncate text-[17px] font-bold">{row.name}</span>
+                      <span className="shrink-0 text-[16px] font-semibold text-ink-soft tabular">
+                        {formatManwon(row.spent)} / {formatManwon(row.budget)}{' '}
+                        <b className={row.over > 0 ? 'text-red-700' : 'text-ink'}>
+                          {row.over > 0
+                            ? `${formatWonShort(row.over)} 넘었어요`
+                            : `${Math.round(row.ratio * 100)}%`}
+                        </b>
+                      </span>
+                    </div>
+                    <div className="h-3 overflow-hidden rounded-full bg-line-soft" aria-hidden>
+                      <div
+                        className={`h-3 rounded-full ${row.over > 0 ? 'bg-red-600' : row.ratio >= 0.8 ? 'bg-warn' : 'bg-brand'}`}
+                        style={{ width: `${Math.min(100, Math.max(2, row.ratio * 100))}%` }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/settings" className="mt-3 block text-[16px] font-bold text-brand">
+                예산 바꾸기 ›
+              </Link>
+            </section>
+          )}
+
           {/* 지난달·작년과 비교 */}
           <section className="card p-4">
             <h2 className="mb-2 text-[19px] font-extrabold">나간 돈 비교</h2>
@@ -314,45 +351,55 @@ export default function StatsPage() {
               {[...keys].reverse().map((key) => {
                 const m = months[key]
                 return (
-                  <li
-                    key={key}
-                    aria-label={`${monthLabel(key, true)} 나간 돈 ${formatCurrency(m.expense)}, 들어온 돈 ${formatCurrency(m.income)}`}
-                  >
-                    <div className="mb-1 flex items-baseline justify-between gap-2">
-                      <span
-                        className={`text-[17px] font-bold ${key === baseKey ? 'text-brand' : 'text-ink'}`}
-                      >
-                        {monthLabel(key, key.slice(0, 4) !== baseKey.slice(0, 4))}
-                      </span>
-                      <span className="text-[16px] font-semibold text-ink-soft tabular">
-                        나간 <b className="text-ink">{formatManwon(m.expense)}</b>
-                        {m.income > 0 && (
-                          <>
-                            {' '}
-                            · 남은{' '}
-                            <b className={m.balance < 0 ? 'text-accent-dark' : 'text-good'}>
-                              {m.balance < 0 ? '−' : ''}
-                              {formatManwon(Math.abs(m.balance))}
-                            </b>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex h-3 overflow-hidden rounded-full bg-line-soft" aria-hidden>
-                      <div className="h-3 bg-brand" style={{ width: `${(m.purchase / maxMonth) * 100}%` }} />
-                      <div
-                        className="h-3 bg-accent"
-                        style={{ width: `${(m.otherExpense / maxMonth) * 100}%` }}
-                      />
-                    </div>
-                    {m.income > 0 && (
-                      <div className="mt-1 h-3 rounded-full bg-line-soft" aria-hidden>
+                  <li key={key}>
+                    <Link
+                      to="/history"
+                      state={{ month: key }}
+                      className="-mx-2 block rounded-[10px] px-2 py-1 active:bg-wash"
+                      aria-label={`${monthLabel(key, true)} 나간 돈 ${formatCurrency(m.expense)}, 들어온 돈 ${formatCurrency(m.income)}. 눌러서 장부 보기`}
+                    >
+                      <div className="mb-1 flex items-baseline justify-between gap-2">
+                        <span
+                          className={`text-[17px] font-bold ${key === baseKey ? 'text-brand' : 'text-ink'}`}
+                        >
+                          {monthLabel(key, key.slice(0, 4) !== baseKey.slice(0, 4))}{' '}
+                          <span className="text-ink-soft" aria-hidden>
+                            ›
+                          </span>
+                        </span>
+                        <span className="text-[16px] font-semibold text-ink-soft tabular">
+                          나간 <b className="text-ink">{formatManwon(m.expense)}</b>
+                          {m.income > 0 && (
+                            <>
+                              {' '}
+                              · 남은{' '}
+                              <b className={m.balance < 0 ? 'text-accent-dark' : 'text-good'}>
+                                {m.balance < 0 ? '−' : ''}
+                                {formatManwon(Math.abs(m.balance))}
+                              </b>
+                            </>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex h-3 overflow-hidden rounded-full bg-line-soft" aria-hidden>
                         <div
-                          className="h-3 rounded-full bg-good"
-                          style={{ width: `${(m.income / maxMonth) * 100}%` }}
+                          className="h-3 bg-brand"
+                          style={{ width: `${(m.purchase / maxMonth) * 100}%` }}
+                        />
+                        <div
+                          className="h-3 bg-accent"
+                          style={{ width: `${(m.otherExpense / maxMonth) * 100}%` }}
                         />
                       </div>
-                    )}
+                      {m.income > 0 && (
+                        <div className="mt-1 h-3 rounded-full bg-line-soft" aria-hidden>
+                          <div
+                            className="h-3 rounded-full bg-good"
+                            style={{ width: `${(m.income / maxMonth) * 100}%` }}
+                          />
+                        </div>
+                      )}
+                    </Link>
                   </li>
                 )
               })}
@@ -360,7 +407,7 @@ export default function StatsPage() {
             <p className="mt-4 border-t border-line-soft pt-3 text-[16px] font-semibold text-ink-muted">
               {span}달 동안 한 달에 평균{' '}
               <b className="text-ink tabular">{formatWonShort(Math.round(spanSummary.expense / span))}</b>{' '}
-              나갔어요
+              나갔어요 · 달을 누르면 그달 장부가 열려요
             </p>
           </section>
 

@@ -10,6 +10,7 @@ import InstallGuide from '../components/InstallGuide'
 import PhotoCleanup from '../components/PhotoCleanup'
 import { CLOUD_PHOTO_LIMIT, getPhotoUsage } from '../lib/storageStatus'
 import BudgetSetting from '../components/BudgetSetting'
+import CategoryBudgetSetting from '../components/CategoryBudgetSetting'
 import RecurringSetting from '../components/RecurringSetting'
 import EntryCategorySetting from '../components/EntryCategorySetting'
 import { isCloudConfigured } from '../lib/supabase'
@@ -272,6 +273,10 @@ export default function SettingsPage() {
 
         <SettingsSection title="한 달 예산">
           <BudgetSetting />
+        </SettingsSection>
+
+        <SettingsSection title="분류별 예산">
+          <CategoryBudgetSetting />
         </SettingsSection>
 
         <SettingsSection title="매달·매주 나가는 돈·들어오는 돈">

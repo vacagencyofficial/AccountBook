@@ -27,7 +27,14 @@ import { ledgerDate, summarizeLedger } from '../utils/ledger'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-const emptyFind = { shopId: 'all', category: 'all', status: 'all', query: '', allMonths: false }
+const emptyFind = {
+  shopId: 'all',
+  category: 'all',
+  status: 'all',
+  entryCategory: 'all',
+  query: '',
+  allMonths: false,
+}
 
 function dayHeading(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -38,7 +45,13 @@ function dayHeading(dateStr) {
 export default function HistoryPage() {
   const today = useToday()
   const excelInputRef = useRef(null)
+  const location = useLocation()
+  // 통계에서 달을 누르고 오면 그달 장부 ('2026-09')
+  const startMonth = location.state?.month
   const [month, setMonth] = useState(() => {
+    if (/^\d{4}-\d{2}$/.test(startMonth ?? '')) {
+      return { year: Number(startMonth.slice(0, 4)), month: Number(startMonth.slice(5)) - 1 }
+    }
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
   })
@@ -48,9 +61,10 @@ export default function HistoryPage() {
     setViewState(next)
     sessionStorage.setItem('sailp-history-view', next)
   }
-  const [selectedDate, setSelectedDate] = useState(today)
+  const [selectedDate, setSelectedDate] = useState(() =>
+    startMonth && !today.startsWith(startMonth) ? null : today,
+  )
   // 홈의 「찾기」로 들어오면 그 말로 모든 달에서 찾기
-  const location = useLocation()
   const homeQuery = location.state?.query
   const [find, setFind] = useState(() =>
     homeQuery ? { ...emptyFind, query: homeQuery, allMonths: true } : emptyFind,
@@ -75,17 +89,25 @@ export default function HistoryPage() {
 
   const monthRange = useMemo(() => getMonthRange(month.year, month.month), [month])
   const hasFind =
-    find.shopId !== 'all' || find.category !== 'all' || find.status !== 'all' || Boolean(find.query.trim())
+    find.shopId !== 'all' ||
+    find.category !== 'all' ||
+    find.status !== 'all' ||
+    find.entryCategory !== 'all' ||
+    Boolean(find.query.trim())
+  // 가계부 분류로 찾을 때는 상품은 빼고 그 분류 가계부 기록만
+  const onlyEntries = find.entryCategory !== 'all'
   const searchAll = find.allMonths && hasFind
 
   const filteredItems = useMemo(
     () =>
-      filterHistoryItems(
-        items,
-        { ...find, period: searchAll ? 'all' : 'month' },
-        searchAll ? {} : monthRange,
-      ),
-    [items, find, searchAll, monthRange],
+      onlyEntries
+        ? []
+        : filterHistoryItems(
+            items,
+            { ...find, period: searchAll ? 'all' : 'month' },
+            searchAll ? {} : monthRange,
+          ),
+    [items, find, searchAll, monthRange, onlyEntries],
   )
 
   // 가계부(사입 말고 다른 지출·수입): 가게·종류·상태로 찾을 때는 빼고, 찾는 말은 메모·분류에서
@@ -95,19 +117,20 @@ export default function HistoryPage() {
     return (entries ?? []).filter(
       (entry) =>
         (searchAll || (monthRange.start <= entry.date && entry.date <= monthRange.end)) &&
+        (!onlyEntries || entry.category === find.entryCategory) &&
         (!query || `${entry.memo ?? ''} ${entry.category ?? ''}`.toLowerCase().includes(query)),
     )
-  }, [entries, find, searchAll, monthRange])
+  }, [entries, find, searchAll, monthRange, onlyEntries])
 
   const summary = useMemo(() => summarizeItems(filteredItems), [filteredItems])
   // 가계부 결산용 상품: 외상을 갚은 날로 옮긴 것은 갚은 날 기준
   const ledgerItems = useMemo(() => {
-    if (searchAll) return filteredItems
+    if (searchAll || onlyEntries) return filteredItems
     return filterHistoryItems(items, { ...find, period: 'all' }, {}).filter((item) => {
       const date = ledgerDate(item)
       return monthRange.start <= date && date <= monthRange.end
     })
-  }, [items, find, searchAll, monthRange, filteredItems])
+  }, [items, find, searchAll, monthRange, filteredItems, onlyEntries])
   const ledger = useMemo(() => summarizeLedger(ledgerItems, filteredEntries), [ledgerItems, filteredEntries])
   const profit = useMemo(() => summarizeProfit(filteredItems), [filteredItems])
   const shopBreakdown = useMemo(() => groupByShop(filteredItems).slice(0, 5), [filteredItems])
@@ -279,6 +302,7 @@ export default function HistoryPage() {
           <div className="card mb-4 p-4">
             <HistoryFilters
               filters={find}
+              entryCategories={[...new Set((entries ?? []).map((entry) => entry.category).filter(Boolean))]}
               shops={shops}
               onChange={(key, value) => setFind((prev) => ({ ...prev, [key]: value }))}
               onReset={() => setFind(emptyFind)}

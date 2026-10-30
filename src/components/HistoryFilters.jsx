@@ -1,7 +1,14 @@
 import { CATEGORY_OPTIONS, STATUS_OPTIONS } from '../hooks/useHistoryFilters'
 import { statusLabel } from '../utils/labels'
 
-export default function HistoryFilters({ filters, shops, onChange, onReset, hasActiveFilters }) {
+export default function HistoryFilters({
+  filters,
+  shops,
+  entryCategories = [],
+  onChange,
+  onReset,
+  hasActiveFilters,
+}) {
   return (
     <div className="space-y-4">
       <label className="block">
@@ -48,6 +55,20 @@ export default function HistoryFilters({ filters, shops, onChange, onReset, hasA
           </FilterChip>
         ))}
       </FilterGroup>
+
+      {entryCategories.length > 0 && (
+        <FilterGroup label="가계부 분류 (고르면 그 분류 기록만)">
+          {['all', ...entryCategories].map((value) => (
+            <FilterChip
+              key={value}
+              active={filters.entryCategory === value}
+              onClick={() => onChange('entryCategory', value)}
+            >
+              {value === 'all' ? '전부' : value}
+            </FilterChip>
+          ))}
+        </FilterGroup>
+      )}
 
       <label className="flex min-h-[3rem] items-center gap-3 text-[17px] font-bold text-ink">
         <input

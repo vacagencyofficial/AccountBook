@@ -19,7 +19,10 @@ globalThis.localStorage = {
 }
 
 const { db } = await import('../src/db/index.js')
-const { addRecurringRule, applyRecurringRules, getRecurringRules } = await import('../src/lib/recurring.js')
+const { addRecurringRule, applyRecurringRules, getRecurringRules, updateRecurringRule } = await import(
+  '../src/lib/recurring.js'
+)
+const { categoryBudgetStatus, setCategoryBudget } = await import('../src/lib/budget.js')
 const { addCustomCategory, entryCategories, removeCustomCategory } = await import(
   '../src/lib/entryCategories.js'
 )
@@ -176,5 +179,38 @@ describe('가계부 분류 만들기', () => {
     expect(list[list.length - 1]).toBe('기타')
     removeCustomCategory('expense', '병원비')
     expect(entryCategories('expense')).not.toContain('병원비')
+  })
+})
+
+describe('반복 고치기·분류별 예산', () => {
+  beforeEach(async () => {
+    await db.entries.clear()
+    localStorage.removeItem('sailp-recurring')
+  })
+
+  it('금액을 고치면 다음 회차부터 새 금액, 요일을 바꿔도 같은 주에 두 번 적지 않음', async () => {
+    addRecurringRule(
+      { every: 'week', type: 'expense', amount: 20000, category: '식비', memo: '장보기' },
+      '2026-10-05',
+    )
+    const [rule] = getRecurringRules()
+    updateRecurringRule(rule.id, { amount: 25000, weekday: 3 })
+    expect(getRecurringRules()[0]).toMatchObject({ amount: 25000, weekday: 3, lastDate: '2026-10-07' })
+    expect(await applyRecurringRules(new Date(2026, 9, 15))).toBe(1)
+    const [row] = await db.entries.toArray()
+    expect(row).toMatchObject({ date: '2026-10-14', amount: 25000 })
+  })
+
+  it('분류별 예산: 넘은 금액과 비율', () => {
+    setCategoryBudget('식비', 100000)
+    setCategoryBudget('사입', 1000000)
+    const rows = categoryBudgetStatus([
+      { name: '식비', amount: 130000 },
+      { name: '사입', amount: 500000 },
+    ])
+    expect(rows[0]).toMatchObject({ name: '식비', over: 30000 })
+    expect(rows[1]).toMatchObject({ name: '사입', ratio: 0.5 })
+    setCategoryBudget('식비', 0)
+    expect(categoryBudgetStatus([]).map((row) => row.name)).toEqual(['사입'])
   })
 })

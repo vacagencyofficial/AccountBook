@@ -84,6 +84,37 @@ export function addRecurringRule(rule, startDate = null) {
   return rules
 }
 
+/**
+ * 규칙 고치기 (금액·이름·분류·날짜). 이미 적은 회차는 그대로 두고 다음 회차부터 바뀜.
+ * 종류(나간/들어온)와 매달/매주는 바꾸지 않음
+ */
+export function updateRecurringRule(id, patch) {
+  const rules = getRecurringRules().map((rule) => {
+    if (rule.id !== id) return rule
+    const next = {
+      ...rule,
+      amount: Number(patch.amount) || rule.amount,
+      category: patch.category || rule.category,
+      memo: patch.memo?.trim() || patch.category || rule.memo,
+      payment: rule.type === 'income' ? '' : (patch.payment ?? rule.payment ?? ''),
+    }
+    if (rule.every === 'week') {
+      next.weekday = Math.min(6, Math.max(0, Number(patch.weekday ?? rule.weekday) || 0))
+      if (next.weekday !== rule.weekday && rule.lastDate) {
+        // 마지막으로 적은 주 안에서 새 요일로 옮겨, 같은 주에 두 번 적지 않게
+        const d = parseYmd(rule.lastDate)
+        d.setDate(d.getDate() - d.getDay() + next.weekday)
+        next.lastDate = ymd(d)
+      }
+    } else {
+      next.day = Math.min(28, Math.max(1, Number(patch.day ?? rule.day) || 1))
+    }
+    return next
+  })
+  saveRecurringRules(rules)
+  return rules
+}
+
 export function removeRecurringRule(id) {
   const next = getRecurringRules().filter((rule) => rule.id !== id)
   saveRecurringRules(next)
