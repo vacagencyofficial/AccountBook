@@ -9,7 +9,7 @@ import { needsOnboarding } from '../lib/onboarding'
 import { IconCamera, IconSearch } from '../components/Icons'
 import BackupReminder from '../components/BackupReminder'
 import StorageWarning from '../components/StorageWarning'
-import { getMonthBudget } from '../lib/budget'
+import { categoryBudgetStatus, getMonthBudget } from '../lib/budget'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
@@ -26,14 +26,19 @@ function formatHomeDate(date = new Date()) {
   return `${date.getMonth() + 1}월 ${date.getDate()}일 ${WEEKDAYS[date.getDay()]}요일`
 }
 
-/** 이번 주(일~토) 날짜별 산 금액과, 지난주 같은 요일까지의 합계 */
-function weekStats(items) {
+/** 이번 주(일~토) 날짜별 나간 돈(사입 + 그 밖의 지출)과, 지난주 같은 요일까지의 합계 */
+function weekStats(items, entries) {
   const now = new Date()
   const todayIndex = now.getDay()
   const byDate = {}
   for (const item of items) {
     if (!isPurchased(item)) continue
-    byDate[item.date] = (byDate[item.date] ?? 0) + itemTotal(item)
+    const date = ledgerDate(item)
+    byDate[date] = (byDate[date] ?? 0) + itemTotal(item)
+  }
+  for (const entry of entries) {
+    if (entry.type === 'income') continue
+    byDate[entry.date] = (byDate[entry.date] ?? 0) + (Number(entry.amount) || 0)
   }
   const days = []
   let thisWeek = 0
@@ -92,7 +97,7 @@ export default function HomePage() {
     (items ?? []).filter((item) => monthKeyOf(ledgerDate(item)) === monthKeyOf(today)),
     (entries ?? []).filter((entry) => monthKeyOf(entry.date) === monthKeyOf(today)),
   )
-  const week = weekStats(items ?? [])
+  const week = weekStats(items ?? [], entries ?? [])
   const monthNumber = new Date().getMonth() + 1
   const [budget] = useState(getMonthBudget)
   const credit = summarizeCredit(items ?? [])
@@ -199,6 +204,7 @@ export default function HomePage() {
           </Link>
         )}
 
+        {!isLoading && <CategoryBudgetAlert byCategory={monthLedger.byCategory} />}
         <StorageWarning />
         {!isLoading && <BackupReminder items={items ?? []} />}
 
@@ -288,5 +294,26 @@ function BudgetBar({ spent, budget }) {
         />
       </div>
     </div>
+  )
+}
+
+/** 분류별 예산을 넘은 것이 있으면 알림 (통계로) */
+function CategoryBudgetAlert({ byCategory }) {
+  const over = categoryBudgetStatus(byCategory).filter((row) => row.over > 0)
+  if (over.length === 0) return null
+  return (
+    <Link to="/stats" className="card mt-4 flex items-center justify-between gap-3 px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="text-[16px] font-bold text-ink-muted">이번 달 예산을 넘었어요</p>
+        <p className="truncate text-[18px] font-extrabold text-red-700">
+          {over
+            .slice(0, 2)
+            .map((row) => `${row.name} ${formatWonShort(row.over)}`)
+            .join(' · ')}
+          {over.length > 2 ? ` 외 ${over.length - 2}개` : ''}
+        </p>
+      </div>
+      <span className="shrink-0 text-[16px] font-semibold text-ink-soft">보기 ›</span>
+    </Link>
   )
 }

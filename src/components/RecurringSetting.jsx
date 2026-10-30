@@ -9,6 +9,7 @@ import {
   describeRule,
   getRecurringRules,
   removeRecurringRule,
+  updateRecurringRule,
 } from '../lib/recurring'
 import { formatCurrency } from '../utils/format'
 import { useToast } from './toastContext'
@@ -32,6 +33,12 @@ export default function RecurringSetting() {
   const { data: entries } = useLiveQuery(() => db.entries.toArray(), [])
 
   async function save() {
+    if (form.id) {
+      setRules(updateRecurringRule(form.id, form))
+      setForm(null)
+      toast('고쳤어요. 다음 회차부터 바뀐 대로 적어요')
+      return
+    }
     setRules(addRecurringRule(form))
     setForm(null)
     const count = await applyRecurringRules()
@@ -40,6 +47,16 @@ export default function RecurringSetting() {
         ? `정해 두었어요. 이번 ${form.every === 'week' ? '주' : '달'} 것도 장부에 적었어요`
         : '정해 두었어요. 그날이 되면 장부에 적어요',
     )
+  }
+
+  function edit(rule) {
+    setForm({
+      ...emptyForm,
+      ...rule,
+      amount: String(rule.amount),
+      day: String(rule.day ?? 1),
+      weekday: String(rule.weekday ?? 1),
+    })
   }
 
   function remove(rule) {
@@ -68,13 +85,24 @@ export default function RecurringSetting() {
                   <span className="tabular">{formatCurrency(rule.amount)}</span>
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => remove(rule)}
-                className="btn btn-text-danger shrink-0 px-2"
-              >
-                멈추기
-              </button>
+              <div className="flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => edit(rule)}
+                  className="btn shrink-0 px-2 text-brand"
+                  aria-label={`${rule.memo} 고치기`}
+                >
+                  고치기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(rule)}
+                  className="btn btn-text-danger shrink-0 px-2"
+                  aria-label={`${rule.memo} 멈추기`}
+                >
+                  멈추기
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -82,8 +110,13 @@ export default function RecurringSetting() {
 
       {form ? (
         <div className="space-y-3 rounded-[12px] bg-wash p-3">
+          {form.id && (
+            <p className="text-[17px] font-extrabold text-ink">
+              {form.type === 'income' ? '들어오는 돈' : '나가는 돈'} 고치기
+            </p>
+          )}
           <div
-            className="grid grid-cols-2 gap-1 rounded-[10px] bg-line-soft p-1"
+            className={`grid grid-cols-2 gap-1 rounded-[10px] bg-line-soft p-1 ${form.id ? 'hidden' : ''}`}
             role="radiogroup"
             aria-label="종류"
           >
@@ -137,7 +170,11 @@ export default function RecurringSetting() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="얼마마다">
+          <div
+            className={`grid grid-cols-2 gap-2 ${form.id ? 'hidden' : ''}`}
+            role="radiogroup"
+            aria-label="얼마마다"
+          >
             {[
               ['month', '매달'],
               ['week', '매주'],
@@ -194,7 +231,7 @@ export default function RecurringSetting() {
               그만두기
             </button>
             <button type="button" onClick={save} disabled={!ready} className="btn btn-primary">
-              정해 두기
+              {form.id ? '고친 대로 저장' : '정해 두기'}
             </button>
           </div>
         </div>

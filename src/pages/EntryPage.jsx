@@ -82,6 +82,32 @@ function EntryForm({ entry }) {
   if (form.category && !categories.includes(form.category)) categories.unshift(form.category)
   const [y, m, d] = form.date.split('-').map(Number)
   const pickedDay = new Date(y, m - 1, d)
+  // 지난번과 같이: 같은 쪽(나간/들어온) 최근 기록 중 겹치지 않는 4개
+  const recent = []
+  if (!editing) {
+    const seen = new Set()
+    const sorted = [...(allEntries ?? [])]
+      .filter((row) => row.type === form.type)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    for (const row of sorted) {
+      const memo = (row.memo || '').replace(/ \((매달|매주)\)$/, '')
+      const key = `${row.category}|${memo}|${row.amount}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      recent.push({ ...row, memo })
+      if (recent.length === 4) break
+    }
+  }
+  function fillFrom(row) {
+    setForm((prev) => ({
+      ...prev,
+      amount: String(row.amount),
+      category: row.category,
+      memo: row.memo,
+      payment: row.payment || '',
+    }))
+  }
+
   const repeatLabel =
     repeat === 'week'
       ? describeRule({ every: 'week', weekday: pickedDay.getDay() })
@@ -157,6 +183,29 @@ function EntryForm({ entry }) {
             </button>
           ))}
         </div>
+
+        {recent.length > 0 && (
+          <section>
+            <p className="label">지난번과 같이 적기</p>
+            <div className="grid grid-cols-2 gap-2">
+              {recent.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => fillFrom(row)}
+                  className="card flex min-h-[3.5rem] flex-col items-start justify-center px-3 py-2 text-left active:bg-wash"
+                >
+                  <span className="w-full truncate text-[17px] font-bold text-ink">
+                    {row.memo || row.category}
+                  </span>
+                  <span className="text-[16px] font-semibold text-ink-soft tabular">
+                    {formatCurrency(row.amount)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section>
           <label className="label" htmlFor="entry-amount">

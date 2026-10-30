@@ -6,6 +6,7 @@ import { getToday } from './format'
 import { markBackupDone } from '../lib/backupStatus'
 import { getRecurringRules, saveRecurringRules } from '../lib/recurring'
 import { getCustomCategories, saveCustomCategories } from '../lib/entryCategories'
+import { getCategoryBudgets, getMonthBudget, saveCategoryBudgets, setMonthBudget } from '../lib/budget'
 
 const BACKUP_VERSION = 1
 
@@ -44,6 +45,7 @@ export async function exportBackup() {
     entries,
     recurring: getRecurringRules(),
     entryCategories: getCustomCategories(),
+    budget: { month: getMonthBudget(), categories: getCategoryBudgets() },
   }
 
   zip.file('data.json', JSON.stringify(data, null, 2))
@@ -76,6 +78,10 @@ export async function importBackup(file, mode) {
     await importOverwrite(zip, data)
     if (Array.isArray(data.recurring)) saveRecurringRules(data.recurring)
     if (data.entryCategories) saveCustomCategories(data.entryCategories)
+    if (data.budget) {
+      setMonthBudget(Number(data.budget.month) || 0)
+      saveCategoryBudgets(data.budget.categories)
+    }
   } else {
     await importMerge(zip, data)
     if (data.entryCategories) {
