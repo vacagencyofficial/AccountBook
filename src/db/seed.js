@@ -91,6 +91,7 @@ async function runSeed() {
         memo: '봄 메인 후보',
         status: '구매',
         payment: '현금',
+        salePrice: 25000,
         createdAt: now - 1000 * 60 * 10,
       },
       {
@@ -118,6 +119,7 @@ async function runSeed() {
         memo: '',
         status: '구매',
         payment: '외상',
+        salePrice: 79000,
         createdAt: now - 1000 * 60 * 45,
       },
       {
@@ -145,6 +147,7 @@ async function runSeed() {
         memo: '기본 재고',
         status: '구매',
         payment: '카드',
+        salePrice: 15000,
         createdAt: now - 1000 * 60 * 60 * 26,
       },
       {

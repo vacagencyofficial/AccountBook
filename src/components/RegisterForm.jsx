@@ -116,6 +116,7 @@ export default function RegisterForm({
   const isOtherDate = date !== today && date !== yesterday
   const qtyNumber = Math.max(1, parseInt(form.qty, 10) || 1)
   const priceNumber = parseInt(form.price, 10) || 0
+  const saleNumber = parseInt(form.salePrice, 10) || 0
 
   function changeQty(diff) {
     updateField('qty', String(Math.min(MAX_QTY, Math.max(1, qtyNumber + diff))))
@@ -129,6 +130,7 @@ export default function RegisterForm({
     date === today ? '오늘' : formatDateLabel(date),
     statusLabel(form.status),
     form.payment || null,
+    form.salePrice ? `판매 ${Number(form.salePrice).toLocaleString('ko-KR')}원` : null,
     form.category !== '기타' ? form.category : null,
     form.color,
     form.size,
@@ -422,6 +424,37 @@ export default function RegisterForm({
                   aria-label="크기 직접 쓰기"
                 />
               )}
+
+              <div>
+                <label className="label" htmlFor="register-sale-price">
+                  팔 가격 <span className="font-semibold text-ink-soft">(한 개, 없어도 돼요)</span>
+                </label>
+                <div className="field flex items-center gap-1">
+                  <input
+                    id="register-sale-price"
+                    inputMode="numeric"
+                    value={form.salePrice ? Number(form.salePrice).toLocaleString('ko-KR') : ''}
+                    onChange={(e) => updateField('salePrice', onlyDigits(e.target.value, 8))}
+                    placeholder="예: 25,000"
+                    autoComplete="off"
+                    className="min-w-0 flex-1 bg-transparent text-right text-[19px] font-bold outline-none tabular"
+                  />
+                  <span className="shrink-0 text-[18px] font-bold text-ink-muted">원</span>
+                </div>
+                {saleNumber > 0 && priceNumber > 0 && (
+                  <p
+                    className={`mt-2 text-[16px] font-bold tabular ${
+                      saleNumber >= priceNumber ? 'text-good' : 'text-red-700'
+                    }`}
+                  >
+                    {saleNumber >= priceNumber
+                      ? `한 개에 ${formatCurrency(saleNumber - priceNumber)} 남아요 (${Math.round(
+                          ((saleNumber - priceNumber) / saleNumber) * 100,
+                        )}%)`
+                      : `한 개에 ${formatCurrency(priceNumber - saleNumber)} 손해예요`}
+                  </p>
+                )}
+              </div>
 
               <label className="block">
                 <span className="label">메모</span>

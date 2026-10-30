@@ -181,6 +181,16 @@ describe('여러 폰 동기화 (2단계)', () => {
     expect(after.settled).toBe(0)
   })
 
+  it('판매가가 다른 폰에도 맞춰짐', async () => {
+    switchTo(A)
+    const id = (await A.db.items.toArray())[0].id
+    await A.mut.updateItem(id, { salePrice: '25000' })
+    await settle(A)
+    switchTo(B)
+    await settle(B)
+    expect((await B.db.items.toArray())[0].salePrice).toBe(25000)
+  })
+
   it('지운 기록 되돌리기: 다른 폰에도 다시 생기고 사진도 함께', async () => {
     switchTo(A)
     const item = (await A.db.items.toArray())[0]

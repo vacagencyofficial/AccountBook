@@ -14,7 +14,7 @@ import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useToday } from '../hooks/useToday'
 import { formatCurrency, itemTotal } from '../utils/format'
 import { formatDateString, getMonthRange } from '../utils/dateRange'
-import { groupByCategory, groupByShop, isPurchased, summarizeItems } from '../utils/analytics'
+import { groupByCategory, groupByShop, isPurchased, summarizeItems, summarizeProfit } from '../utils/analytics'
 import { formatManwon } from '../utils/labels'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -74,6 +74,7 @@ export default function HistoryPage() {
   )
 
   const summary = useMemo(() => summarizeItems(filteredItems), [filteredItems])
+  const profit = useMemo(() => summarizeProfit(filteredItems), [filteredItems])
   const shopBreakdown = useMemo(() => groupByShop(filteredItems).slice(0, 5), [filteredItems])
   const categoryBreakdown = useMemo(() => groupByCategory(filteredItems), [filteredItems])
   const [breakdownBy, setBreakdownBy] = useState('category')
@@ -237,6 +238,12 @@ export default function HistoryPage() {
             {summary.count ? `${summary.count}건 · ${summary.qty}개` : '아직 산 것이 없어요'}
             {summary.pendingCount > 0 && ` · 고민 중·안 사요 ${summary.pendingCount}건 제외`}
           </p>
+          {profit.count > 0 && (
+            <p className="mt-2 border-t border-white/15 pt-2 text-[16px] font-semibold">
+              <span className="opacity-80">판매가 적은 {profit.count}건 · 남는 돈 </span>
+              <b className="text-[18px] font-extrabold tabular">{formatCurrency(profit.total)}</b>
+            </p>
+          )}
         </div>
 
         {hasFind && (

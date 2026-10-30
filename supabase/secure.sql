@@ -15,6 +15,7 @@ alter table items add column if not exists client_updated_at bigint not null def
 alter table items add column if not exists starred boolean not null default false;
 alter table items add column if not exists payment text not null default '';
 alter table items add column if not exists settled boolean not null default false;
+alter table items add column if not exists sale_price integer not null default 0;
 alter table photos add column if not exists deleted_at timestamptz;
 
 -- ─────────────────────────────────────────────
@@ -244,6 +245,7 @@ begin
       starred = coalesce((p_data->>'starred')::boolean, false),
       payment = coalesce(p_data->>'payment', ''),
       settled = coalesce((p_data->>'settled')::boolean, false),
+      sale_price = coalesce((p_data->>'sale_price')::integer, 0),
       created_at = coalesce((p_data->>'created_at')::bigint, created_at),
       client_updated_at = v_ts,
       updated_at = now()
@@ -258,7 +260,7 @@ begin
     end if;
   end if;
 
-  insert into items (workspace_id, shop_id, date, name, category, color, size, price, qty, memo, status, starred, payment, settled, created_at, client_updated_at)
+  insert into items (workspace_id, shop_id, date, name, category, color, size, price, qty, memo, status, starred, payment, settled, sale_price, created_at, client_updated_at)
   values (
     v_ws,
     v_shop,
@@ -274,6 +276,7 @@ begin
     coalesce((p_data->>'starred')::boolean, false),
     coalesce(p_data->>'payment', ''),
     coalesce((p_data->>'settled')::boolean, false),
+    coalesce((p_data->>'sale_price')::integer, 0),
     coalesce((p_data->>'created_at')::bigint, (extract(epoch from now()) * 1000)::bigint),
     v_ts
   )
