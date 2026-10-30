@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs'
 import { getToday, itemTotal, shopLocation } from './format'
 import { isUnpaidCredit, itemProfit } from './analytics'
+import { summarizeLedger } from './ledger'
 
 function downloadBlob(buffer, filename) {
   const blob = new Blob([buffer], {
@@ -17,7 +18,11 @@ function downloadBlob(buffer, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
-export async function exportHistoryToExcel(items, { includePhotos = false, fileLabel = '' } = {}) {
+/** entries: 가계부(사입 말고 다른 지출·수입). 주면 「가계부」 시트를 만듦 */
+export async function exportHistoryToExcel(
+  items,
+  { includePhotos = false, fileLabel = '', entries = null } = {},
+) {
   const workbook = new ExcelJS.Workbook()
   workbook.creator = '사입노트'
   workbook.created = new Date()
@@ -129,6 +134,21 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
   summary.getCell('B7').numFmt = '#,##0'
   summary.getCell('B8').numFmt = '#,##0'
 
+  if (entries) {
+    const ledger = summarizeLedger(items, entries)
+    summary.addRow([])
+    summary.addRow(['가계부', '']).font = { bold: true }
+    for (const [label, amount] of [
+      ['들어온 돈', ledger.income],
+      ['나간 돈', ledger.expense],
+      ['  사입', ledger.purchase],
+      ['  그 밖에', ledger.otherExpense],
+      ['남은 돈', ledger.balance],
+    ]) {
+      summary.addRow([label, amount]).getCell(2).numFmt = '#,##0'
+    }
+  }
+
   const shopMap = new Map()
   for (const item of items) {
     const name = item.shop?.name ?? '미지정'
@@ -160,6 +180,35 @@ export async function exportHistoryToExcel(items, { includePhotos = false, fileL
       shop.memo || '',
       shop.hidden ? 'O' : '',
     ])
+  }
+
+  // 가계부: 사입 말고 다른 지출·수입 (다시 넣을 때 그대로 되살림)
+  if (entries) {
+    const ledgerSheet = workbook.addWorksheet('가계부', { views: [{ state: 'frozen', ySplit: 1 }] })
+    ledgerSheet.addRow(['날짜', '구분', '분류', '금액', '결제', '메모'])
+    ledgerSheet.getRow(1).font = { bold: true }
+    ledgerSheet.columns = [
+      { width: 12 },
+      { width: 8 },
+      { width: 14 },
+      { width: 12 },
+      { width: 9 },
+      { width: 24 },
+    ]
+    const sorted = [...entries].sort(
+      (a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0),
+    )
+    for (const entry of sorted) {
+      const row = ledgerSheet.addRow([
+        entry.date,
+        entry.type === 'income' ? '수입' : '지출',
+        entry.category || '기타',
+        Number(entry.amount) || 0,
+        entry.payment || '',
+        entry.memo || '',
+      ])
+      row.getCell(4).numFmt = '#,##0'
+    }
   }
 
   const buffer = await workbook.xlsx.writeBuffer()

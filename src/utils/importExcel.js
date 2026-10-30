@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import { db, CATEGORIES, STATUSES } from '../db'
+import { db, CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, STATUSES } from '../db'
 import { rememberReplacedRecords } from '../db/mutations'
 import { getToday } from './format'
 
@@ -24,7 +24,7 @@ const HEADER_ALIASES = {
 /**
  * @param {File} file
  * @param {'overwrite' | 'merge'} mode
- * @returns {Promise<{ shops: number, items: number }>}
+ * @returns {Promise<{ shops: number, items: number, entries: number, skipped: number }>}
  */
 export async function importHistoryFromExcel(file, mode = 'merge') {
   const workbook = new ExcelJS.Workbook()
@@ -33,9 +33,12 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
 
   const sheet =
     workbook.getWorksheet('사입장부') ||
-    workbook.worksheets.find((ws) => ws.name !== '요약' && ws.name !== '가게') ||
+    workbook.worksheets.find((ws) => !['요약', '가게', '가계부'].includes(ws.name)) ||
     workbook.worksheets[0]
   const shopInfo = readShopSheet(workbook.getWorksheet('가게'))
+  // 앱이 내보낸 엑셀의 「가계부」 시트 (없으면 가계부 기록은 건드리지 않음)
+  const ledgerSheet = workbook.getWorksheet('가계부')
+  const ledgerRows = readLedgerSheet(ledgerSheet)
 
   if (!sheet) {
     throw new Error('엑셀 시트를 찾을 수 없습니다')
@@ -46,17 +49,17 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
     rows.push({ rowNumber, values: row.values })
   })
 
-  if (rows.length < 2) {
+  if (rows.length < 2 && ledgerRows.length === 0) {
     throw new Error('불러올 데이터가 없습니다')
   }
 
-  const headerMap = buildHeaderMap(rows[0].values)
-  if (headerMap.name == null && headerMap.shop == null) {
+  const headerMap = buildHeaderMap(rows[0]?.values ?? [])
+  if (headerMap.name == null && headerMap.shop == null && ledgerRows.length === 0) {
     throw new Error('엑셀 첫 줄에 「품명」 또는 「가게」 열이 필요합니다')
   }
 
   const parsed = []
-  for (const { values: raw } of rows.slice(1)) {
+  for (const { values: raw } of headerMap.name == null && headerMap.shop == null ? [] : rows.slice(1)) {
     // 예전 앱이 내보낸 엑셀은 내용이 제목보다 한 칸 오른쪽에 있음 → 한 칸 당겨 읽기
     const shifted =
       headerMap.date === 1 &&
@@ -68,20 +71,35 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
     if (record) parsed.push(record)
   }
 
-  if (parsed.length === 0) {
+  if (parsed.length === 0 && ledgerRows.length === 0) {
     throw new Error('유효한 행이 없습니다. 품명 또는 가게가 있는 행이 필요합니다')
   }
 
   let shopCount = 0
   let itemCount = 0
   let skipped = 0
+  let entryCount = 0
 
-  await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
+  await db.transaction('rw', [db.shops, db.items, db.photos, db.entries, db.deletions], async () => {
     if (mode === 'overwrite') {
-      await rememberReplacedRecords()
+      await rememberReplacedRecords(new Set(), { entries: Boolean(ledgerSheet) })
       await db.photos.clear()
       await db.items.clear()
       await db.shops.clear()
+      if (ledgerSheet) await db.entries.clear()
+    }
+
+    const existingEntries = new Set()
+    if (mode === 'merge') for (const entry of await db.entries.toArray()) existingEntries.add(entryKey(entry))
+    for (const entry of ledgerRows) {
+      if (existingEntries.has(entryKey(entry))) {
+        skipped += 1
+        continue
+      }
+      existingEntries.add(entryKey(entry))
+      const now = Date.now()
+      await db.entries.add({ ...entry, createdAt: now, dirty: 1, updatedAt: now })
+      entryCount += 1
     }
 
     const shopCache = new Map()
@@ -146,7 +164,37 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
   } catch {
     // offline / unconfigured cloud — local import still succeeded
   }
-  return { shops: shopCount, items: itemCount, skipped }
+  return { shops: shopCount, items: itemCount, entries: entryCount, skipped }
+}
+
+/** 「가계부」 시트: 날짜·구분·분류·금액·결제·메모 */
+function readLedgerSheet(sheet) {
+  const rows = []
+  if (!sheet) return rows
+  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return
+    const amount = parseNumber(row.getCell(4).value)
+    if (!amount) return
+    const type = /수입|들어온|income/i.test(cellToString(row.getCell(2).value)) ? 'income' : 'expense'
+    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+    const rawCategory = cellToString(row.getCell(3).value).trim()
+    const payment = type === 'expense' ? parsePayment(cellToString(row.getCell(5).value)) : ''
+    rows.push({
+      type,
+      date: parseDateCell(row.getCell(1).value) || getToday(),
+      amount,
+      category: categories.includes(rawCategory) ? rawCategory : categories[categories.length - 1],
+      payment: payment === '외상' ? '' : payment,
+      memo: cellToString(row.getCell(6).value).trim(),
+    })
+  })
+  return rows
+}
+
+function entryKey(entry) {
+  return [entry.type, entry.date, entry.amount, entry.category, entry.memo || '']
+    .map((v) => String(v ?? '').trim())
+    .join('|')
 }
 
 function buildHeaderMap(values) {

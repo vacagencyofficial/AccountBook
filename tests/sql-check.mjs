@@ -212,6 +212,54 @@ const left = (await db.query('select name from storage.objects')).rows.map((r) =
 ok(left.includes(keepPath) && !left.includes(goPath), '지운 사진 파일만 지워지고, 안 지운 사진 파일은 남음')
 await db.exec('set role anon')
 
+console.log('\n[7-2] 가계부(지출·수입)')
+const entryId = (
+  await db.query('select sailp_upsert_entry($1,null,$2) as id', [
+    A.code,
+    {
+      type: 'expense',
+      date: '2026-10-01',
+      amount: 9000,
+      category: '식비',
+      memo: '점심',
+      client_updated_at: 10,
+    },
+  ])
+).rows[0].id
+await db.query('select sailp_upsert_entry($1,$2,$3)', [
+  A.code,
+  entryId,
+  { type: 'expense', date: '2026-10-01', amount: 7000, category: '식비', client_updated_at: 5 },
+])
+let pulledEntries = (await db.query('select sailp_pull($1) as p', [A.code])).rows[0].p.entries
+ok(
+  pulledEntries.length === 1 && Number(pulledEntries[0].amount) === 9000,
+  '오래된 수정은 최신 금액을 덮지 않음',
+)
+const otherId = (
+  await db.query('select sailp_upsert_entry($1,$2,$3) as id', [
+    B.code,
+    entryId,
+    { type: 'income', amount: 1, client_updated_at: 99 },
+  ])
+).rows[0].id
+pulledEntries = (await db.query('select sailp_pull($1) as p', [A.code])).rows[0].p.entries
+ok(
+  otherId !== entryId && Number(pulledEntries[0].amount) === 9000,
+  '다른 장부 번호로는 이 장부 가계부를 고칠 수 없음',
+)
+ok(
+  (await db.query('select sailp_pull($1) as p', [B.code])).rows[0].p.entries.every((e) => e.id !== entryId),
+  '다른 장부에서는 이 장부 가계부가 안 보임',
+)
+await db.query('select sailp_delete($1,$2,$3)', [A.code, 'entry', entryId])
+const afterDelete = (await db.query('select sailp_pull($1) as p', [A.code])).rows[0].p
+ok(
+  afterDelete.entries.length === 0 && afterDelete.deleted.entries.includes(entryId),
+  '가계부 기록 지우기 → 지움 표시가 내려감',
+)
+await expectErr('select * from entries', [], '가계부 표는 직접 못 봄', 'permission denied')
+
 console.log('\n[8] 장부 번호 바꾸기')
 const rotated = (await db.query('select sailp_rotate_code($1) as w', ['SAILP-OLD123'])).rows[0].w
 ok(/^SAILP-[A-Z2-9]{10}$/.test(rotated.code), `옛 6자리 → 새 10자리: ${rotated.code}`)

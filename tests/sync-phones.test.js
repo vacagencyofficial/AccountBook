@@ -259,6 +259,37 @@ describe('여러 폰 동기화 (2단계)', () => {
     expect((await remoteOf(ws.code)).items.length).toBe(0)
   })
 
+  it('가계부: 적기·고치기·지우기가 다른 폰에도 맞춰지고 되살아나지 않음', async () => {
+    switchTo(A)
+    const id = await A.mut.createEntry({
+      type: 'expense',
+      date: '2026-10-01',
+      amount: 9000,
+      category: '식비',
+    })
+    await A.mut.createEntry({ type: 'income', date: '2026-10-02', amount: 50000, category: '판매' })
+    await settle(A)
+    await settle(B)
+    expect(await B.db.entries.count()).toBe(2)
+
+    switchTo(B)
+    const fromA = (await B.db.entries.toArray()).find((entry) => entry.type === 'expense')
+    await B.mut.updateEntry(fromA.id, { ...fromA, amount: 12000, memo: '점심' })
+    await settle(B)
+    await settle(A)
+    expect((await A.db.entries.get(id)).amount).toBe(12000)
+    expect((await A.db.entries.get(id)).memo).toBe('점심')
+
+    switchTo(A)
+    await A.mut.deleteEntry(id)
+    await settle(A)
+    await settle(B)
+    await settle(A)
+    expect(await A.db.entries.count()).toBe(1)
+    expect(await B.db.entries.count()).toBe(1)
+    expect((await remoteOf(ws.code)).entries.length).toBe(1)
+  })
+
   it('D09: 가게 숨기기가 다른 폰에도 반영되고 기록은 남음', async () => {
     switchTo(A)
     const [shop] = await A.db.shops.toArray()
@@ -396,12 +427,16 @@ describe('여러 폰 동기화 (2단계)', () => {
     await settle(A)
     const before = (await remoteOf(ws.code)).items.length
     expect(before).toBeGreaterThan(0)
-    await A.db.transaction('rw', A.db.shops, A.db.items, A.db.photos, A.db.deletions, async () => {
-      await A.mut.rememberReplacedRecords(new Set())
-      await A.db.photos.clear()
-      await A.db.items.clear()
-      await A.db.shops.clear()
-    })
+    await A.db.transaction(
+      'rw',
+      [A.db.shops, A.db.items, A.db.photos, A.db.entries, A.db.deletions],
+      async () => {
+        await A.mut.rememberReplacedRecords(new Set())
+        await A.db.photos.clear()
+        await A.db.items.clear()
+        await A.db.shops.clear()
+      },
+    )
     const s = await A.mut.createShop({ name: '엑셀가게' })
     await A.mut.saveItemWithPhotos({
       shopId: s,

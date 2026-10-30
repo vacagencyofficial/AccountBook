@@ -10,6 +10,7 @@ import InstallGuide from '../components/InstallGuide'
 import PhotoCleanup from '../components/PhotoCleanup'
 import { CLOUD_PHOTO_LIMIT, getPhotoUsage } from '../lib/storageStatus'
 import BudgetSetting from '../components/BudgetSetting'
+import RecurringSetting from '../components/RecurringSetting'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
 import { formatSyncTime, getSyncStatus } from '../lib/syncStatus'
@@ -270,6 +271,10 @@ export default function SettingsPage() {
 
         <SettingsSection title="한 달 예산">
           <BudgetSetting />
+        </SettingsSection>
+
+        <SettingsSection title="매달 나가는 돈·들어오는 돈">
+          <RecurringSetting />
         </SettingsSection>
 
         <SettingsSection title="다른 폰과 같이 쓰기">

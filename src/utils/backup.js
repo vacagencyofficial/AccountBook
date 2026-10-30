@@ -4,14 +4,16 @@ import { rememberReplacedRecords } from '../db/mutations'
 import { clearWorkspaceLocal } from '../lib/workspace'
 import { getToday } from './format'
 import { markBackupDone } from '../lib/backupStatus'
+import { getRecurringRules, saveRecurringRules } from '../lib/recurring'
 
 const BACKUP_VERSION = 1
 
 export async function exportBackup() {
-  const [shops, items, photos] = await Promise.all([
+  const [shops, items, photos, entries] = await Promise.all([
     db.shops.toArray(),
     db.items.toArray(),
     db.photos.toArray(),
+    db.entries.toArray(),
   ])
 
   const zip = new JSZip()
@@ -37,6 +39,9 @@ export async function exportBackup() {
     shops,
     items,
     photos: photoEntries,
+    // 가계부(지출·수입)와 매달 반복 규칙 — 예전 백업에는 없음
+    entries,
+    recurring: getRecurringRules(),
   }
 
   zip.file('data.json', JSON.stringify(data, null, 2))
@@ -67,6 +72,7 @@ export async function importBackup(file, mode) {
 
   if (mode === 'overwrite') {
     await importOverwrite(zip, data)
+    if (Array.isArray(data.recurring)) saveRecurringRules(data.recurring)
   } else {
     await importMerge(zip, data)
   }
@@ -75,14 +81,22 @@ export async function importBackup(file, mode) {
 async function importOverwrite(zip, data) {
   // 백업에 있는 클라우드 기록은 그대로 두고, 백업에 없는 것만 다른 폰에서도 지워지게 표시
   const keep = new Set(
-    [...data.shops, ...data.items, ...data.photos].map((row) => row.cloudId).filter(Boolean),
+    [...data.shops, ...data.items, ...data.photos, ...(data.entries ?? [])]
+      .map((row) => row.cloudId)
+      .filter(Boolean),
   )
-  await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
+  await db.transaction('rw', [db.shops, db.items, db.photos, db.entries, db.deletions], async () => {
     await db.deletions.clear()
-    await rememberReplacedRecords(keep)
+    // 가계부가 생기기 전 백업이면 지금 가계부 기록은 그대로 둠
+    const hasEntries = Array.isArray(data.entries)
+    await rememberReplacedRecords(keep, { entries: hasEntries })
     await db.shops.clear()
     await db.items.clear()
     await db.photos.clear()
+    if (hasEntries) {
+      await db.entries.clear()
+      if (data.entries.length) await db.entries.bulkPut(data.entries)
+    }
 
     if (data.shops.length) await db.shops.bulkPut(data.shops)
     if (data.items.length) await db.items.bulkPut(data.items)
@@ -108,7 +122,11 @@ async function importMerge(zip, data) {
   const now = Date.now()
   const asNew = ({ cloudId: _cloudId, dirty: _dirty, ...rest }) => ({ ...rest, dirty: 1, updatedAt: now })
 
-  await db.transaction('rw', [db.shops, db.items, db.photos], async () => {
+  await db.transaction('rw', [db.shops, db.items, db.photos, db.entries], async () => {
+    for (const entry of data.entries ?? []) {
+      const { id: _id, ...entryData } = entry
+      await db.entries.add(asNew(entryData))
+    }
     for (const shop of data.shops) {
       const { id: oldId, ...shopData } = shop
       const newId = await db.shops.add(asNew(shopData))
@@ -143,12 +161,14 @@ async function readPhotoBlob(zip, entry) {
 
 /** 이 폰의 기록을 모두 지움. 다른 폰과 같이 쓰던 중이면 연결도 끊음 (다시 맞출 때 되살아나지 않게) */
 export async function deleteAllData() {
-  await db.transaction('rw', [db.shops, db.items, db.photos, db.deletions], async () => {
+  await db.transaction('rw', [db.shops, db.items, db.photos, db.entries, db.deletions], async () => {
     await db.photos.clear()
     await db.items.clear()
     await db.shops.clear()
+    await db.entries.clear()
     await db.deletions.clear()
   })
+  saveRecurringRules([])
   clearWorkspaceLocal()
 }
 
