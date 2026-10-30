@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   compareByCategory,
   ledgerByMonth,
+  ledgerDate,
   previousMonthKey,
   recentMonthKeys,
   summarizeLedger,
@@ -19,6 +20,9 @@ globalThis.localStorage = {
 
 const { db } = await import('../src/db/index.js')
 const { addRecurringRule, applyRecurringRules, getRecurringRules } = await import('../src/lib/recurring.js')
+const { addCustomCategory, entryCategories, removeCustomCategory } = await import(
+  '../src/lib/entryCategories.js'
+)
 
 const item = (date, price, qty = 1, status = '구매') => ({ date, price, qty, status })
 const entry = (type, date, amount, category) => ({ type, date, amount, category })
@@ -55,6 +59,16 @@ describe('가계부 결산', () => {
     expect(rows[1]).toEqual({ name: '식비', now: 2000, before: 8000, diff: -6000, rate: -75 })
   })
 
+  it('외상을 「갚은 날 나간 돈으로」 고르면 갚은 달에 셈', () => {
+    const credit = { ...item('2026-09-20', 100000), payment: '외상', settled: 1, settledDate: '2026-10-05' }
+    const sameDay = { ...item('2026-09-20', 50000), payment: '외상', settled: 1, settledDate: '' }
+    expect(ledgerDate(credit)).toBe('2026-10-05')
+    expect(ledgerDate({ ...credit, payment: '현금' })).toBe('2026-09-20')
+    const months = ledgerByMonth([credit, sameDay], [], ['2026-09', '2026-10'])
+    expect(months['2026-09'].purchase).toBe(50000)
+    expect(months['2026-10'].purchase).toBe(100000)
+  })
+
   it('달 키: 해가 바뀌어도 맞음', () => {
     expect(previousMonthKey('2026-01')).toBe('2025-12')
     expect(recentMonthKeys(3, new Date(2026, 0, 15))).toEqual(['2025-11', '2025-12', '2026-01'])
@@ -87,5 +101,80 @@ describe('매달 나가는 돈', () => {
     expect((await db.entries.toArray()).every((e) => e.type === 'income' && e.memo === '월급 (매달)')).toBe(
       true,
     )
+  })
+})
+
+describe('반복 더 보기', () => {
+  beforeEach(async () => {
+    await db.entries.clear()
+    localStorage.removeItem('sailp-recurring')
+  })
+
+  it('같은 날 같은 기록이 이미 있으면(다른 폰이 먼저 적음) 다시 적지 않음', async () => {
+    addRecurringRule({ type: 'expense', amount: 55000, category: '공과금·통신', memo: '통신비', day: 1 })
+    const rules = getRecurringRules()
+    rules[0].lastMonth = '2026-08'
+    localStorage.setItem('sailp-recurring', JSON.stringify(rules))
+    await db.entries.add({
+      type: 'expense',
+      date: '2026-09-01',
+      amount: 55000,
+      category: '공과금·통신',
+      memo: '통신비 (매달)',
+    })
+    expect(await applyRecurringRules(new Date(2026, 9, 2))).toBe(1)
+    expect((await db.entries.toArray()).map((e) => e.date).sort()).toEqual(['2026-09-01', '2026-10-01'])
+  })
+
+  it('동시에 두 번 불려도 한 번만 적음', async () => {
+    addRecurringRule({ type: 'expense', amount: 1000, category: '식비', memo: '우유', day: 1 })
+    const [a, b] = await Promise.all([
+      applyRecurringRules(new Date(2026, 9, 2)),
+      applyRecurringRules(new Date(2026, 9, 2)),
+    ])
+    // 두 번째 부름은 첫 번째 결과를 같이 받음
+    expect([a, b]).toEqual([1, 1])
+    expect(await db.entries.count()).toBe(1)
+  })
+
+  it('매주: 적은 날 다음 주부터 같은 요일에', async () => {
+    // 2026-10-05는 월요일. 그날 것은 이미 적었다고 보고 다음 주부터
+    addRecurringRule(
+      { every: 'week', type: 'expense', amount: 20000, category: '식비', memo: '장보기' },
+      '2026-10-05',
+    )
+    expect(getRecurringRules()[0]).toMatchObject({ every: 'week', weekday: 1, lastDate: '2026-10-05' })
+    expect(await applyRecurringRules(new Date(2026, 9, 21))).toBe(2)
+    const rows = await db.entries.toArray()
+    expect(rows.map((e) => e.date).sort()).toEqual(['2026-10-12', '2026-10-19'])
+    expect(rows.every((e) => e.memo === '장보기 (매주)')).toBe(true)
+    expect(await applyRecurringRules(new Date(2026, 9, 25))).toBe(0)
+  })
+
+  it('매달: 31일에 적으면 다음 달부터 28일에', async () => {
+    addRecurringRule({ type: 'expense', amount: 300000, category: '가게 운영', memo: '월세' }, '2026-08-31')
+    expect(getRecurringRules()[0]).toMatchObject({ every: 'month', day: 28, lastMonth: '2026-08' })
+    expect(await applyRecurringRules(new Date(2026, 9, 29))).toBe(2)
+    expect((await db.entries.toArray()).map((e) => e.date).sort()).toEqual(['2026-09-28', '2026-10-28'])
+  })
+})
+
+describe('가계부 분류 만들기', () => {
+  beforeEach(() => localStorage.removeItem('sailp-entry-categories'))
+
+  it('만든 분류와 다른 폰 기록의 분류가 목록에 보이고, 기타는 맨 뒤', () => {
+    expect(addCustomCategory('expense', ' 병원비 ')).toBe('병원비')
+    expect(addCustomCategory('expense', '병원비')).toBeNull()
+    expect(addCustomCategory('expense', '식비')).toBeNull()
+    const list = entryCategories('expense', [
+      { type: 'expense', category: '경조사' },
+      { type: 'income', category: '용돈' },
+    ])
+    expect(list).toContain('병원비')
+    expect(list).toContain('경조사')
+    expect(list).not.toContain('용돈')
+    expect(list[list.length - 1]).toBe('기타')
+    removeCustomCategory('expense', '병원비')
+    expect(entryCategories('expense')).not.toContain('병원비')
   })
 })

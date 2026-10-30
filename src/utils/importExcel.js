@@ -33,7 +33,7 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
 
   const sheet =
     workbook.getWorksheet('사입장부') ||
-    workbook.worksheets.find((ws) => !['요약', '가게', '가계부'].includes(ws.name)) ||
+    workbook.worksheets.find((ws) => !['요약', '가게', '가계부', '월별 결산'].includes(ws.name)) ||
     workbook.worksheets[0]
   const shopInfo = readShopSheet(workbook.getWorksheet('가게'))
   // 앱이 내보낸 엑셀의 「가계부」 시트 (없으면 가계부 기록은 건드리지 않음)
@@ -183,7 +183,8 @@ function readLedgerSheet(sheet) {
       type,
       date: parseDateCell(row.getCell(1).value) || getToday(),
       amount,
-      category: categories.includes(rawCategory) ? rawCategory : categories[categories.length - 1],
+      // 직접 만든 분류도 그대로 (비었으면 기타)
+      category: rawCategory.slice(0, 10) || categories[categories.length - 1],
       payment: payment === '외상' ? '' : payment,
       memo: cellToString(row.getCell(6).value).trim(),
     })

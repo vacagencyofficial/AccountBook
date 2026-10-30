@@ -16,15 +16,9 @@ import { useLiveQuery } from '../hooks/useLiveQuery'
 import { useToday } from '../hooks/useToday'
 import { formatCurrency, itemTotal } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
-import {
-  isPurchased,
-  itemsForMonth,
-  itemsForToday,
-  summarizeCredit,
-  summarizeItems,
-} from '../utils/analytics'
+import { isPurchased, itemsForToday, summarizeCredit, summarizeItems } from '../utils/analytics'
 import { formatManwon, formatWonShort } from '../utils/labels'
-import { monthKeyOf, summarizeLedger } from '../utils/ledger'
+import { ledgerDate, monthKeyOf, summarizeLedger } from '../utils/ledger'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -89,10 +83,13 @@ export default function HomePage() {
   const todayItems = itemsForToday(items ?? [], today)
   const todayEntries = (entries ?? []).filter((entry) => entry.date === today)
   const todaySummary = summarizeItems(todayItems)
-  const todayLedger = summarizeLedger(todayItems, todayEntries)
-  const monthItems = itemsForMonth(items ?? [])
+  // 결산은 외상을 갚은 날로 옮긴 것까지 (가계부 기준 날짜)
+  const todayLedger = summarizeLedger(
+    (items ?? []).filter((item) => ledgerDate(item) === today),
+    todayEntries,
+  )
   const monthLedger = summarizeLedger(
-    monthItems,
+    (items ?? []).filter((item) => monthKeyOf(ledgerDate(item)) === monthKeyOf(today)),
     (entries ?? []).filter((entry) => monthKeyOf(entry.date) === monthKeyOf(today)),
   )
   const week = weekStats(items ?? [])

@@ -5,6 +5,7 @@ import { clearWorkspaceLocal } from '../lib/workspace'
 import { getToday } from './format'
 import { markBackupDone } from '../lib/backupStatus'
 import { getRecurringRules, saveRecurringRules } from '../lib/recurring'
+import { getCustomCategories, saveCustomCategories } from '../lib/entryCategories'
 
 const BACKUP_VERSION = 1
 
@@ -42,6 +43,7 @@ export async function exportBackup() {
     // 가계부(지출·수입)와 매달 반복 규칙 — 예전 백업에는 없음
     entries,
     recurring: getRecurringRules(),
+    entryCategories: getCustomCategories(),
   }
 
   zip.file('data.json', JSON.stringify(data, null, 2))
@@ -73,8 +75,16 @@ export async function importBackup(file, mode) {
   if (mode === 'overwrite') {
     await importOverwrite(zip, data)
     if (Array.isArray(data.recurring)) saveRecurringRules(data.recurring)
+    if (data.entryCategories) saveCustomCategories(data.entryCategories)
   } else {
     await importMerge(zip, data)
+    if (data.entryCategories) {
+      const mine = getCustomCategories()
+      saveCustomCategories({
+        expense: [...new Set([...mine.expense, ...(data.entryCategories.expense ?? [])])],
+        income: [...new Set([...mine.income, ...(data.entryCategories.income ?? [])])],
+      })
+    }
   }
 }
 
@@ -169,6 +179,7 @@ export async function deleteAllData() {
     await db.deletions.clear()
   })
   saveRecurringRules([])
+  saveCustomCategories(null)
   clearWorkspaceLocal()
 }
 

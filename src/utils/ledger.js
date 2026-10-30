@@ -8,6 +8,14 @@ export function monthKeyOf(date) {
   return (date || '').slice(0, 7)
 }
 
+/**
+ * 가계부에서 이 상품 돈이 나간 날: 외상을 갚을 때 「갚은 날 나간 돈으로」를 고르면 갚은 날,
+ * 아니면 산 날
+ */
+export function ledgerDate(item) {
+  return item.payment === '외상' && item.settled && item.settledDate ? item.settledDate : item.date
+}
+
 /** 오늘 기준 최근 n달 키 ['2026-05', …, '2026-10'] (오래된 달부터) */
 export function recentMonthKeys(n, today = new Date()) {
   const keys = []
@@ -59,7 +67,7 @@ export function summarizeLedger(items = [], entries = []) {
 /** 달마다 결산: { '2026-10': summary, … } */
 export function ledgerByMonth(items = [], entries = [], keys) {
   const groups = Object.fromEntries(keys.map((key) => [key, { items: [], entries: [] }]))
-  for (const item of items) groups[monthKeyOf(item.date)]?.items.push(item)
+  for (const item of items) groups[monthKeyOf(ledgerDate(item))]?.items.push(item)
   for (const entry of entries) groups[monthKeyOf(entry.date)]?.entries.push(entry)
   return Object.fromEntries(keys.map((key) => [key, summarizeLedger(groups[key].items, groups[key].entries)]))
 }
