@@ -8,12 +8,12 @@ import ItemRow from '../components/ItemRow'
 import ShopForm, { shopToForm } from '../components/ShopForm'
 import { db } from '../db'
 import { deleteShop, setItemSettled, setShopHidden, updateShop } from '../db/mutations'
-import { summarizeCredit } from '../utils/analytics'
+import { OLD_CREDIT_DAYS, summarizeCredit } from '../utils/analytics'
 import { useToast } from '../components/Toast'
 import PhotoGrid from '../components/PhotoGrid'
 import { getItemsByShop } from '../db/queries'
 import { useLiveQuery } from '../hooks/useLiveQuery'
-import { formatCurrency, itemTotal, shopLocation } from '../utils/format'
+import { formatCurrency, formatDateLabel, itemTotal, shopLocation } from '../utils/format'
 
 export default function ShopDetailPage() {
   const { shopId } = useParams()
@@ -135,6 +135,15 @@ export default function ShopDetailPage() {
             <div>
               <p className="text-[17px] font-bold text-warn">안 갚은 외상 {credit.count}건</p>
               <p className="text-[24px] font-extrabold text-ink tabular">{formatCurrency(credit.total)}</p>
+              {credit.oldest && (
+                <p
+                  className={`text-[16px] font-semibold ${
+                    credit.oldestDays >= OLD_CREDIT_DAYS ? 'font-bold text-red-700' : 'text-ink-muted'
+                  }`}
+                >
+                  가장 오래된 것 {formatDateLabel(credit.oldest.date)} · {credit.oldestDays}일 지남
+                </p>
+              )}
             </div>
             <button
               type="button"

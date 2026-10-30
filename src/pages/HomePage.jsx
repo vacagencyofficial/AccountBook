@@ -151,8 +151,13 @@ export default function HomePage() {
               <p className="text-[16px] font-bold text-ink-muted">안 갚은 외상</p>
               <p className="text-[22px] font-extrabold text-warn tabular">{formatCurrency(credit.total)}</p>
             </div>
-            <span className="text-[16px] font-semibold text-ink-soft">
+            <span className="text-right text-[16px] font-semibold text-ink-soft">
               가게 {creditShops}곳 · {credit.count}건 ›
+              {credit.oldCount > 0 && (
+                <span className="block font-bold text-red-700">
+                  한 달 넘은 것 {credit.oldCount}건
+                </span>
+              )}
             </span>
           </Link>
         )}

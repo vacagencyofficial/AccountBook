@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import ShopsPage from './pages/ShopsPage'
 import ShopDetailPage from './pages/ShopDetailPage'
+import ShopReportPage from './pages/ShopReportPage'
 import ShopNewPage from './pages/ShopNewPage'
 import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/join" element={<JoinPage />} />
       <Route path="/capture" element={<CapturePage />} />
       <Route path="/shops/new" element={<ShopNewPage />} />
+      <Route path="/shops/report" element={<ShopReportPage />} />
       <Route path="/shops/:shopId" element={<ShopDetailPage />} />
       <Route path="/items/:itemId" element={<ItemDetailPage />} />
       <Route path="/help" element={<HelpPage />} />
