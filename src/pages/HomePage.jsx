@@ -7,6 +7,7 @@ import Onboarding from '../components/Onboarding'
 import { needsOnboarding } from '../lib/onboarding'
 import { IconCamera, IconSearch } from '../components/Icons'
 import BackupReminder from '../components/BackupReminder'
+import StorageWarning from '../components/StorageWarning'
 import { getMonthBudget } from '../lib/budget'
 import { db } from '../db'
 import { attachShopAndPhoto } from '../db/queries'
@@ -162,6 +163,7 @@ export default function HomePage() {
           </Link>
         )}
 
+        <StorageWarning />
         {!isLoading && <BackupReminder items={items ?? []} />}
 
         <div className="card mt-4 px-4 pb-3 pt-3.5">

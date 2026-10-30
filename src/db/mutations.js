@@ -167,6 +167,18 @@ export async function deletePhoto(photoId) {
   void syncAfterWrite()
 }
 
+/** 사진 여러 장 한 번에 지우기(오래된 사진 정리). 기록은 그대로 */
+export async function deletePhotos(photoIds) {
+  await db.transaction('rw', db.photos, db.deletions, async () => {
+    for (const photo of await db.photos.bulkGet(photoIds)) {
+      if (!photo) continue
+      await rememberDeletion('photo', photo.cloudId)
+      await db.photos.delete(photo.id)
+    }
+  })
+  void syncAfterWrite()
+}
+
 /** 외상 갚음 표시 켜고 끄기 */
 export async function setItemSettled(itemId, settled) {
   await db.items.update(itemId, { settled: settled ? 1 : 0, ...changed() })

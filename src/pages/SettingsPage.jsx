@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ImportModeDialog from '../components/ImportModeDialog'
 import CloudInvitePanel from '../components/CloudInvitePanel'
-import { getPhotoQuality, setPhotoQuality } from '../utils/photoConfig'
+import { formatFileSize, getPhotoQuality, setPhotoQuality } from '../utils/photoConfig'
 import { formatStorageEstimate } from '../utils/storage'
 import InstallGuide from '../components/InstallGuide'
+import PhotoCleanup from '../components/PhotoCleanup'
+import { CLOUD_PHOTO_LIMIT, getPhotoUsage } from '../lib/storageStatus'
 import BudgetSetting from '../components/BudgetSetting'
 import { isCloudConfigured } from '../lib/supabase'
 import { getWorkspaceCode, normalizeWorkspaceCode } from '../lib/workspace'
@@ -17,6 +19,11 @@ export default function SettingsPage() {
   const fileInputRef = useRef(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const [storageText, setStorageText] = useState('확인 중…')
+  const [photoUsage, setPhotoUsage] = useState(null)
+  // 홈의 「사진 정리하기」로 들어오면 바로 열기
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [showCleanup, setShowCleanup] = useState(() => Boolean(location.state?.openCleanup))
   const [photoQuality, setPhotoQualityState] = useState(getPhotoQuality())
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -52,6 +59,7 @@ export default function SettingsPage() {
       const { getStorageEstimate } = await import('../utils/backup')
       const { usage, quota } = await getStorageEstimate()
       setStorageText(formatStorageEstimate(usage, quota))
+      setPhotoUsage(await getPhotoUsage())
     } catch {
       setStorageText('확인 불가')
     }
@@ -419,6 +427,22 @@ export default function SettingsPage() {
           </div>
 
           <SettingsRow label="이 폰에 쓰인 공간" description={storageText} />
+          {photoUsage && (
+            <SettingsRow
+              label="사진"
+              description={`${photoUsage.count}장 · ${formatFileSize(photoUsage.bytes)}${
+                workspaceCode
+                  ? `\n같이 쓰는 무료 사진 공간 1GB 중 ${Math.round((photoUsage.bytes / CLOUD_PHOTO_LIMIT) * 100)}%`
+                  : ''
+              }`}
+            />
+          )}
+          <SettingsButton
+            label="오래된 사진 정리"
+            description="사진까지 백업한 뒤 오래된 상품 사진만 지워요"
+            onClick={() => setShowCleanup(true)}
+            trailing="›"
+          />
 
           <SettingsButton
             label="이 폰의 모든 기록 지우기"
@@ -446,6 +470,16 @@ export default function SettingsPage() {
         </SettingsSection>
       </section>
 
+      {showCleanup && (
+        <PhotoCleanup
+          onClose={() => {
+            setShowCleanup(false)
+            // 새로고침해도 다시 열리지 않게 「바로 열기」 표시를 지움
+            if (location.state?.openCleanup) navigate('/settings', { replace: true })
+          }}
+          onDone={loadStorage}
+        />
+      )}
       {pendingFile && (
         <ImportModeDialog
           title="백업에서 되살리기"
