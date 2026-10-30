@@ -136,7 +136,7 @@ export default function HomePage() {
         </form>
         <div className="hero px-5 pb-4 pt-4">
           <p className="text-[18px] font-semibold opacity-85">오늘 쓴 돈</p>
-          <p className="mt-0.5 text-[clamp(30px,10vw,40px)] font-extrabold leading-tight tracking-[-0.03em] tabular [overflow-wrap:anywhere]">
+          <p className="mt-0.5 text-[clamp(30px,10vw,40px)] font-bold leading-tight tracking-[-0.025em] tabular [overflow-wrap:anywhere]">
             {isLoading ? '…' : formatCurrency(todayLedger.expense)}
           </p>
           {!isLoading && (

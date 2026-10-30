@@ -1,6 +1,44 @@
 @import 'tailwindcss';
-/* SUIT 가변 글꼴 — 앱에 포함되어 오프라인에서도 같은 글꼴 */
-@import '@sun-typeface/suit/fonts/variable/woff2/SUIT-Variable.css';
+
+/*
+ * 정적 SUIT (가변 글꼴 대신) — 화면에서 덜 깨지고 덜 투박함.
+ * 쓰는 굵기만 실어 용량·합성 굵기를 줄임. font-display: swap.
+ */
+@font-face {
+  font-family: 'SUIT';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('@sun-typeface/suit/fonts/static/woff2/SUIT-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SUIT';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('@sun-typeface/suit/fonts/static/woff2/SUIT-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SUIT';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('@sun-typeface/suit/fonts/static/woff2/SUIT-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SUIT';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('@sun-typeface/suit/fonts/static/woff2/SUIT-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SUIT';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('@sun-typeface/suit/fonts/static/woff2/SUIT-ExtraBold.woff2') format('woff2');
+}
 
 /*
  * 2차 시안(B안) 색 체계
@@ -39,21 +77,22 @@
   --color-surface: #ffffff;
   --color-border: #cbd5e1;
 
-  --font-sans: 'SUIT Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-sans: 'SUIT', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', sans-serif;
+
+  /* extrabold/black을 한 단계 내려 투박·깨짐 완화 */
+  --font-weight-extrabold: 700;
+  --font-weight-black: 800;
 
   --radius-card: 16px;
   --radius-ctl: 10px;
-  /* 그림자 대신 회색 바탕 위 흰 카드로 구분 (대기업 앱 방식) */
+  /* 그림자 대신 회색 바탕 위 흰색 카드로 구분 (대기업 앱 방식) */
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04);
-}
-
-/* Windows PC 전용 글꼴 (main.jsx에서 os-windows 표시) */
-:root.os-windows {
-  --font-sans: 'Malgun Gothic', '맑은 고딕', 'SUIT Variable', sans-serif;
 }
 
 html {
   font-size: 19px;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 html,
@@ -62,7 +101,11 @@ body,
   height: 100%;
 }
 
-/* 설정 → 글씨 크기 (보통 1 / 크게 1.1 / 아주 크게 1.2) */
+/*
+ * 글씨 크기(설정): 화면 전체 배율.
+ * px 단위 UI가 많아 rem만으로는 부족해 zoom을 유지하되,
+ * 배율을 살짝만 올려 확대 시 흐림을 줄임.
+ */
 #root {
   zoom: var(--app-zoom, 1);
 }
@@ -70,13 +113,24 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  -webkit-font-smoothing: antialiased;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.55;
   color: var(--color-ink);
   background: var(--color-wash);
-  line-height: 1.5;
   word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Windows: antialiased가 오히려 얇게 깨져 보여 서브픽셀 기본값 사용 */
+:root.os-windows body {
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  letter-spacing: -0.01em;
 }
 
 /* 기본값은 base 층에 둬야 버튼·입력칸의 글씨 크기 클래스(text-[..])가 적용됨 */
@@ -134,8 +188,9 @@ body {
     min-height: 3.15rem;
     padding: 0 1rem;
     border-radius: var(--radius-ctl);
-    font-weight: 800;
-    font-size: 18px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
     white-space: nowrap;
     transition: transform 0.05s;
   }
@@ -186,8 +241,9 @@ body {
     background: var(--color-paper);
     border: 2px solid var(--color-line-soft);
     color: var(--color-ink);
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: -0.015em;
     outline: none;
   }
   .field:focus {
@@ -209,8 +265,9 @@ body {
   .label {
     display: block;
     margin-bottom: 0.4rem;
-    font-size: 17px;
-    font-weight: 800;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     color: var(--color-ink);
   }
 
@@ -224,8 +281,9 @@ body {
     border-radius: var(--radius-ctl);
     background: var(--color-paper);
     box-shadow: inset 0 0 0 2px var(--color-line-soft);
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
     color: var(--color-ink);
     white-space: nowrap;
   }
