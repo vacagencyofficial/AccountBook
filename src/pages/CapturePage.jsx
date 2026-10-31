@@ -274,6 +274,13 @@ export default function CapturePage() {
             >
               다음 상품 입력
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/capture/many', { state: { shopId: form.shopId ?? undefined } })}
+              className="btn btn-soft w-full"
+            >
+              여러 개 한 번에 적기
+            </button>
             <button type="button" onClick={() => navigate('/history')} className="btn btn-outline w-full">
               장부 보기
             </button>
@@ -353,6 +360,13 @@ export default function CapturePage() {
               className="mt-5 min-h-[3rem] w-full text-center text-[16px] font-bold text-ink-soft underline underline-offset-4"
             >
               {stepMode ? '한 화면에 다 보면서 적기' : '한 질문씩 넘기며 적기'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/capture/many', { state: { shopId: form.shopId ?? undefined } })}
+              className="btn btn-outline mt-1 w-full"
+            >
+              여러 개 한 번에 적기
             </button>
           </>
         )}
