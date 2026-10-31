@@ -114,9 +114,11 @@ export default function HomePage() {
   return (
     <div>
       {/* 처음 쓰는 분(기록이 하나도 없을 때)만 안내 */}
-      {showOnboarding && !isLoading && (items ?? []).length === 0 && (
-        <Onboarding onDone={() => setShowOnboarding(false)} />
-      )}
+      {/* 상품도 가계부도 하나도 없을 때만 (가계부만 쓰는 분께 다시 뜨지 않게) */}
+      {showOnboarding &&
+        !isLoading &&
+        entries !== undefined &&
+        (items ?? []).length + entries.length === 0 && <Onboarding onDone={() => setShowOnboarding(false)} />}
       <PageHeader brand subtitle={formatHomeDate()} />
 
       <section className="px-4 pt-2">
@@ -206,7 +208,7 @@ export default function HomePage() {
 
         {!isLoading && <CategoryBudgetAlert byCategory={monthLedger.byCategory} />}
         <StorageWarning />
-        {!isLoading && <BackupReminder items={items ?? []} />}
+        {!isLoading && <BackupReminder items={items ?? []} entries={entries ?? []} />}
 
         <div className="card mt-4 px-4 pb-3 pt-3.5">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
