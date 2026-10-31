@@ -1,42 +1,19 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import SubPage from '../components/SubPage'
 import EmptyState from '../components/EmptyState'
+import StatsMonthHero from '../components/stats/StatsMonthHero'
+import StatsBudget from '../components/stats/StatsBudget'
+import StatsCompare from '../components/stats/StatsCompare'
+import StatsYear from '../components/stats/StatsYear'
+import StatsCategoryChange from '../components/stats/StatsCategoryChange'
+import StatsTrend from '../components/stats/StatsTrend'
+import StatsTopCategories from '../components/stats/StatsTopCategories'
+import { monthLabel, sameMonthLastYear } from '../components/stats/statsHelpers'
 import { db } from '../db'
-import { categoryBudgetStatus } from '../lib/budget'
+import { useLedgerStats } from '../hooks/useLedgerStats'
 import { useLiveQuery } from '../hooks/useLiveQuery'
-import { formatCurrency } from '../utils/format'
-import { formatManwon, formatWonShort } from '../utils/labels'
-import {
-  compareByCategory,
-  ledgerByMonth,
-  ledgerDate,
-  monthKeyOf,
-  previousMonthKey,
-  recentMonthKeys,
-  summarizeLedger,
-} from '../utils/ledger'
-
-function monthLabel(key, withYear = false) {
-  const [y, m] = key.split('-').map(Number)
-  return withYear ? `${y}년 ${m}월` : `${m}월`
-}
-
-function sameMonthLastYear(key) {
-  const [y, m] = key.split('-')
-  return `${Number(y) - 1}-${m}`
-}
-
-function Signed({ value, good = 'down' }) {
-  if (!value) return <span className="text-ink-soft">같아요</span>
-  const up = value > 0
-  const isGood = good === 'down' ? !up : up
-  return (
-    <b className={isGood ? 'text-good' : 'text-accent-dark'}>
-      {up ? '▲' : '▼'} {formatWonShort(Math.abs(value))}
-    </b>
-  )
-}
+import { compareByCategory, previousMonthKey, recentMonthKeys } from '../utils/ledger'
 
 /** 가계부 비교·통계: 달마다 들어온 돈·나간 돈, 지난달·작년과 비교, 많이 쓴 곳 */
 export default function StatsPage() {
@@ -56,38 +33,7 @@ export default function StatsPage() {
   const prevKey = previousMonthKey(baseKey)
   const lastYearKey = sameMonthLastYear(baseKey)
 
-  const stats = useMemo(() => {
-    if (!data) return null
-    const months = ledgerByMonth(data.items, data.entries, [...new Set([...keys, prevKey, lastYearKey])])
-    const inSpan = (date) => keys.includes(monthKeyOf(date))
-    const spanSummary = summarizeLedger(
-      data.items.filter((item) => inSpan(ledgerDate(item))),
-      data.entries.filter((entry) => inSpan(entry.date)),
-    )
-    // 한 해: 이 해 1월부터 보고 있는 달까지, 작년은 같은 기간
-    const year = Number(baseKey.slice(0, 4))
-    const upTo = baseKey.slice(5)
-    const inYear = (date, y) => date?.slice(0, 4) === String(y) && date.slice(5, 7) <= upTo
-    const yearOf = (y) =>
-      summarizeLedger(
-        data.items.filter((item) => inYear(ledgerDate(item), y)),
-        data.entries.filter((entry) => inYear(entry.date, y)),
-      )
-    // 평균은 이 해에 기록이 처음 있는 달부터 (쓰기 시작한 해에 빈 달까지 나누지 않게)
-    const firstMonth = [...data.items.map(ledgerDate), ...data.entries.map((entry) => entry.date)]
-      .filter((date) => inYear(date, year))
-      .sort()[0]
-    const activeMonths = firstMonth ? Number(upTo) - Number(firstMonth.slice(5, 7)) + 1 : 1
-    return {
-      months,
-      spanSummary,
-      yearSummary: yearOf(year),
-      lastYearSummary: yearOf(year - 1),
-      activeMonths,
-    }
-    // keys는 base·span으로 정해짐
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, baseKey, span])
+  const stats = useLedgerStats({ data, keys, prevKey, lastYearKey })
 
   function moveMonth(diff) {
     const d = new Date(base.year, base.month + diff, 1)
@@ -146,299 +92,41 @@ export default function StatsPage() {
         />
       ) : (
         <div className="space-y-4">
-          {/* 이 달 결산 */}
-          <section className="hero px-5 pb-4 pt-4">
-            <p className="text-[17px] font-semibold opacity-85">{monthLabel(baseKey)} 남은 돈</p>
-            <p
-              className={`text-[clamp(28px,9vw,36px)] font-extrabold leading-tight tracking-[-0.03em] tabular ${
-                thisMonth.balance < 0 ? 'text-[#fdba74]' : ''
-              }`}
-            >
-              {thisMonth.balance < 0 ? '−' : ''}
-              {formatCurrency(Math.abs(thisMonth.balance))}
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2 border-t border-white/15 pt-2 text-[16px] font-semibold">
-              <p>
-                <span className="block opacity-80">들어온 돈</span>
-                <b className="text-[18px] font-extrabold tabular">{formatCurrency(thisMonth.income)}</b>
-              </p>
-              <p className="text-right">
-                <span className="block opacity-80">나간 돈</span>
-                <b className="text-[18px] font-extrabold tabular">{formatCurrency(thisMonth.expense)}</b>
-              </p>
-            </div>
-            <p className="mt-1 text-[16px] font-semibold opacity-80">
-              사입 {formatWonShort(thisMonth.purchase)} · 그 밖에 {formatWonShort(thisMonth.otherExpense)}
-            </p>
-          </section>
+          <StatsMonthHero thisMonth={thisMonth} baseKey={baseKey} />
 
-          {/* 분류별 예산 */}
-          {categoryBudgetStatus(thisMonth.byCategory).length > 0 && (
-            <section className="card p-4">
-              <h2 className="mb-3 text-[19px] font-extrabold">{monthLabel(baseKey)} 분류별 예산</h2>
-              <ul className="space-y-3">
-                {categoryBudgetStatus(thisMonth.byCategory).map((row) => (
-                  <li
-                    key={row.name}
-                    aria-label={`${row.name} 예산 ${formatCurrency(row.budget)} 중 ${formatCurrency(row.spent)}`}
-                  >
-                    <div className="mb-1 flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[17px] font-bold">{row.name}</span>
-                      <span className="shrink-0 text-[16px] font-semibold text-ink-soft tabular">
-                        {formatManwon(row.spent)} / {formatManwon(row.budget)}{' '}
-                        <b className={row.over > 0 ? 'text-red-700' : 'text-ink'}>
-                          {row.over > 0
-                            ? `${formatWonShort(row.over)} 넘었어요`
-                            : `${Math.round(row.ratio * 100)}%`}
-                        </b>
-                      </span>
-                    </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-line-soft" aria-hidden>
-                      <div
-                        className={`h-3 rounded-full ${row.over > 0 ? 'bg-red-600' : row.ratio >= 0.8 ? 'bg-warn' : 'bg-brand'}`}
-                        style={{ width: `${Math.min(100, Math.max(2, row.ratio * 100))}%` }}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <Link to="/settings" className="mt-3 block text-[16px] font-bold text-brand">
-                예산 바꾸기 ›
-              </Link>
-            </section>
-          )}
+          <StatsBudget thisMonth={thisMonth} baseKey={baseKey} />
 
-          {/* 지난달·작년과 비교 */}
-          <section className="card p-4">
-            <h2 className="mb-2 text-[19px] font-extrabold">나간 돈 비교</h2>
-            <ul className="divide-y divide-line-soft text-[17px] font-semibold">
-              <li className="flex items-center justify-between gap-2 py-2.5">
-                <span className="text-ink-muted">
-                  지난달({monthLabel(prevKey)}) {formatWonShort(lastMonth.expense)}보다
-                </span>
-                <Signed value={thisMonth.expense - lastMonth.expense} />
-              </li>
-              {lastYearHas && (
-                <li className="flex items-center justify-between gap-2 py-2.5">
-                  <span className="text-ink-muted">
-                    작년 {monthLabel(lastYearKey)} {formatWonShort(lastYear.expense)}보다
-                  </span>
-                  <Signed value={thisMonth.expense - lastYear.expense} />
-                </li>
-              )}
-              <li className="flex items-center justify-between gap-2 py-2.5">
-                <span className="text-ink-muted">들어온 돈은 지난달보다</span>
-                <Signed value={thisMonth.income - lastMonth.income} good="up" />
-              </li>
-            </ul>
-          </section>
+          <StatsCompare
+            thisMonth={thisMonth}
+            lastMonth={lastMonth}
+            lastYear={lastYear}
+            lastYearKey={lastYearKey}
+            prevKey={prevKey}
+            lastYearHas={lastYearHas}
+          />
 
-          {/* 한 해 결산 */}
-          <section className="card p-4">
-            <h2 className="text-[19px] font-extrabold">{baseYear}년 한 해</h2>
-            <p className="mb-2 text-[16px] font-semibold text-ink-soft">
-              1월부터 {monthsInYear}월까지{lastYearHasAny ? ' · 작년 같은 기간과 비교' : ''}
-            </p>
-            <ul className="divide-y divide-line-soft text-[17px] font-semibold">
-              {[
-                ['들어온 돈', yearSummary.income, lastYearSummary.income, 'up'],
-                ['나간 돈', yearSummary.expense, lastYearSummary.expense, 'down'],
-                ['남은 돈', yearSummary.balance, lastYearSummary.balance, 'up'],
-              ].map(([label, value, before, good]) => (
-                <li key={label} className="flex items-center justify-between gap-2 py-2.5">
-                  <span className="text-ink-muted">{label}</span>
-                  <span className="text-right tabular">
-                    <b
-                      className={`text-[19px] ${label === '남은 돈' && value < 0 ? 'text-accent-dark' : 'text-ink'}`}
-                    >
-                      {value < 0 ? '−' : ''}
-                      {formatCurrency(Math.abs(value))}
-                    </b>
-                    {lastYearHasAny && (
-                      <span className="block text-[16px]">
-                        <Signed value={value - before} good={good} />
-                      </span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 border-t border-line-soft pt-3 text-[16px] font-semibold text-ink-muted">
-              한 달에 평균{' '}
-              <b className="text-ink tabular">
-                {formatWonShort(Math.round(yearSummary.expense / activeMonths))}
-              </b>{' '}
-              나갔어요
-              {yearSummary.byCategory.length > 0 && (
-                <>
-                  {' '}
-                  · 가장 많이 쓴 곳{' '}
-                  <b className="text-ink">
-                    {yearSummary.byCategory
-                      .slice(0, 3)
-                      .map((row) => row.name)
-                      .join(', ')}
-                  </b>
-                </>
-              )}
-            </p>
-          </section>
+          <StatsYear
+            yearSummary={yearSummary}
+            lastYearSummary={lastYearSummary}
+            lastYearHasAny={lastYearHasAny}
+            baseYear={baseYear}
+            monthsInYear={monthsInYear}
+            activeMonths={activeMonths}
+          />
 
-          {/* 분류별 지난달 비교 */}
-          {compare.length > 0 && (
-            <section className="card p-4">
-              <h2 className="text-[19px] font-extrabold">어디서 늘고 줄었나요?</h2>
-              <p className="mb-2 text-[16px] font-semibold text-ink-soft">
-                {monthLabel(baseKey)}과 {monthLabel(prevKey)}의 나간 돈
-              </p>
-              <ul className="divide-y divide-line-soft">
-                {compare.map((row) => (
-                  <li key={row.name} className="flex items-center justify-between gap-3 py-2.5">
-                    <div className="min-w-0">
-                      <p className="truncate text-[18px] font-bold">{row.name}</p>
-                      <p className="text-[16px] font-semibold text-ink-soft tabular">
-                        {formatManwon(row.before)} → {formatManwon(row.now)}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-right text-[17px] tabular">
-                      <Signed value={row.diff} />
-                      {row.rate != null && row.diff !== 0 && (
-                        <span className="block text-[16px] font-semibold text-ink-soft">
-                          {row.rate > 0 ? '+' : ''}
-                          {row.rate}%
-                        </span>
-                      )}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <StatsCategoryChange prevKey={prevKey} baseKey={baseKey} compare={compare} />
 
-          {/* 달마다 흐름 */}
-          <section className="card p-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-[19px] font-extrabold">달마다 흐름</h2>
-              <div className="flex gap-1 rounded-[10px] bg-line-soft p-1" role="radiogroup" aria-label="기간">
-                {[6, 12].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    role="radio"
-                    aria-checked={span === n}
-                    onClick={() => setSpan(n)}
-                    className={`min-h-[2.6rem] rounded-[8px] px-3 text-[16px] font-bold ${
-                      span === n ? 'bg-paper text-brand shadow-[var(--shadow-card)]' : 'text-ink-soft'
-                    }`}
-                  >
-                    {n}달
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[16px] font-semibold text-ink-muted">
-              <span className="flex items-center gap-1.5">
-                <i className="h-3 w-3 rounded-[3px] bg-brand" aria-hidden /> 사입
-              </span>
-              <span className="flex items-center gap-1.5">
-                <i className="h-3 w-3 rounded-[3px] bg-accent" aria-hidden /> 그 밖에 나간 돈
-              </span>
-              <span className="flex items-center gap-1.5">
-                <i className="h-3 w-3 rounded-[3px] bg-good" aria-hidden /> 들어온 돈
-              </span>
-            </div>
-            <ul className="space-y-3.5">
-              {[...keys].reverse().map((key) => {
-                const m = months[key]
-                return (
-                  <li key={key}>
-                    <Link
-                      to="/history"
-                      state={{ month: key }}
-                      className="-mx-2 block rounded-[10px] px-2 py-1 active:bg-wash"
-                      aria-label={`${monthLabel(key, true)} 나간 돈 ${formatCurrency(m.expense)}, 들어온 돈 ${formatCurrency(m.income)}. 눌러서 장부 보기`}
-                    >
-                      <div className="mb-1 flex items-baseline justify-between gap-2">
-                        <span
-                          className={`text-[17px] font-bold ${key === baseKey ? 'text-brand' : 'text-ink'}`}
-                        >
-                          {monthLabel(key, key.slice(0, 4) !== baseKey.slice(0, 4))}{' '}
-                          <span className="text-ink-soft" aria-hidden>
-                            ›
-                          </span>
-                        </span>
-                        <span className="text-[16px] font-semibold text-ink-soft tabular">
-                          나간 <b className="text-ink">{formatManwon(m.expense)}</b>
-                          {m.income > 0 && (
-                            <>
-                              {' '}
-                              · 남은{' '}
-                              <b className={m.balance < 0 ? 'text-accent-dark' : 'text-good'}>
-                                {m.balance < 0 ? '−' : ''}
-                                {formatManwon(Math.abs(m.balance))}
-                              </b>
-                            </>
-                          )}
-                        </span>
-                      </div>
-                      <div className="flex h-3 overflow-hidden rounded-full bg-line-soft" aria-hidden>
-                        <div
-                          className="h-3 bg-brand"
-                          style={{ width: `${(m.purchase / maxMonth) * 100}%` }}
-                        />
-                        <div
-                          className="h-3 bg-accent"
-                          style={{ width: `${(m.otherExpense / maxMonth) * 100}%` }}
-                        />
-                      </div>
-                      {m.income > 0 && (
-                        <div className="mt-1 h-3 rounded-full bg-line-soft" aria-hidden>
-                          <div
-                            className="h-3 rounded-full bg-good"
-                            style={{ width: `${(m.income / maxMonth) * 100}%` }}
-                          />
-                        </div>
-                      )}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-            <p className="mt-4 border-t border-line-soft pt-3 text-[16px] font-semibold text-ink-muted">
-              {span}달 동안 한 달에 평균{' '}
-              <b className="text-ink tabular">{formatWonShort(Math.round(spanSummary.expense / span))}</b>{' '}
-              나갔어요 · 달을 누르면 그달 장부가 열려요
-            </p>
-          </section>
+          <StatsTrend
+            baseKey={baseKey}
+            keys={keys}
+            months={months}
+            maxMonth={maxMonth}
+            span={span}
+            setSpan={setSpan}
+            spanSummary={spanSummary}
+          />
 
-          {/* 많이 쓴 곳 */}
-          {spanSummary.byCategory.length > 0 && (
-            <section className="card p-4">
-              <h2 className="mb-3 text-[19px] font-extrabold">{span}달 동안 많이 쓴 곳</h2>
-              <ul className="space-y-3">
-                {spanSummary.byCategory.slice(0, 6).map((row) => {
-                  const share = spanSummary.expense ? Math.round((row.amount / spanSummary.expense) * 100) : 0
-                  return (
-                    <li key={row.name} aria-label={`${row.name} ${formatCurrency(row.amount)}, ${share}%`}>
-                      <div className="mb-1 flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[17px] font-bold">{row.name}</span>
-                        <span className="shrink-0 text-[17px] font-bold tabular">
-                          {formatManwon(row.amount)}
-                          <span className="ml-1.5 text-[16px] font-semibold text-ink-soft">{share}%</span>
-                        </span>
-                      </div>
-                      <div className="h-3 rounded-full bg-line-soft" aria-hidden>
-                        <div
-                          className="h-3 rounded-full bg-brand"
-                          style={{ width: `${Math.max(2, share)}%` }}
-                        />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          )}
+          <StatsTopCategories span={span} spanSummary={spanSummary} />
 
           <div className="grid grid-cols-2 gap-2.5">
             <Link to="/money/new?type=expense" className="btn btn-outline text-[18px]">
