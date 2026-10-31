@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { backupReminder, snoozeBackupReminder } from '../lib/backupStatus'
 import { getWorkspaceCode } from '../lib/workspace'
 
-/** 홈: 같이 쓰기를 안 하는데 오래 백업하지 않았으면 알려 줌 */
-export default function BackupReminder({ items }) {
+/** 홈: 같이 쓰기를 안 하는데 오래 백업하지 않았으면 알려 줌 (상품·가계부 중 가장 오래된 기록 기준) */
+export default function BackupReminder({ items, entries = [] }) {
   const [hidden, setHidden] = useState(false)
   const [busy, setBusy] = useState(false)
-  const oldestItemAt = items.reduce((min, item) => Math.min(min, item.createdAt || Infinity), Infinity)
+  const oldestItemAt = [...items, ...entries].reduce(
+    (min, item) => Math.min(min, item.createdAt || Infinity),
+    Infinity,
+  )
   const reminder = backupReminder({
     oldestItemAt: Number.isFinite(oldestItemAt) ? oldestItemAt : 0,
     cloudConnected: Boolean(getWorkspaceCode()),

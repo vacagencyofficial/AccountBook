@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import CameraInput from '../components/CameraInput'
 import ConfirmDialog from '../components/ConfirmDialog'
 import SettleDialog from '../components/SettleDialog'
+import SoldDialog from '../components/SoldDialog'
 import EmptyState from '../components/EmptyState'
 import SubPage from '../components/SubPage'
 import PhotoThumbnail from '../components/PhotoThumbnail'
@@ -20,6 +21,8 @@ import {
   restoreItem,
   setItemSettled,
   updateItem,
+  createEntry,
+  deleteEntry,
 } from '../db/mutations'
 import { isUnpaidCredit, itemProfit, profitRate } from '../utils/analytics'
 import { useToast } from '../components/toastContext'
@@ -57,9 +60,25 @@ export default function ItemDetailPage() {
   const [isAddingPhoto, setIsAddingPhoto] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
   const [showSettle, setShowSettle] = useState(false)
+  const [showSold, setShowSold] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const toast = useToast()
   const [error, setError] = useState(null)
+
+  async function recordSale(count, amount) {
+    setShowSold(false)
+    const entryId = await createEntry({
+      type: 'income',
+      date: getToday(),
+      amount,
+      category: '판매',
+      memo: `${saleTag(item)} ${count}개 판매`,
+    })
+    toast(`들어온 돈 ${formatCurrency(amount)}을 가계부에 적었어요`, {
+      actionLabel: '되돌리기',
+      onAction: () => deleteEntry(entryId),
+    })
+  }
 
   function settle(settledDate) {
     setShowSettle(false)
@@ -69,6 +88,17 @@ export default function ItemDetailPage() {
       onAction: () => setItemSettled(item.id, false),
     })
   }
+
+  // 이 상품으로 적은 판매 (메모의 「상품 이름」으로 찾음)
+  const { data: sales } = useLiveQuery(
+    () =>
+      db.entries
+        .where('type')
+        .equals('income')
+        .filter((entry) => entry.memo?.startsWith(`「`))
+        .toArray(),
+    [],
+  )
 
   const { data: item, isLoading } = useLiveQuery(async () => {
     if (!Number.isFinite(id)) return null
@@ -344,6 +374,10 @@ export default function ItemDetailPage() {
             </dl>
           </section>
 
+          {item.salePrice > 0 && (item.status || '구매') === '구매' && (
+            <SaleBox item={item} sales={sales ?? []} onSold={() => setShowSold(true)} />
+          )}
+
           {isUnpaidCredit(item) && (
             <div className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-card)] bg-warn-soft px-4 py-3">
               <div>
@@ -375,6 +409,8 @@ export default function ItemDetailPage() {
           </div>
         </>
       )}
+
+      {showSold && <SoldDialog item={item} onSave={recordSale} onCancel={() => setShowSold(false)} />}
 
       {showSettle && (
         <SettleDialog
@@ -424,6 +460,36 @@ function InfoRow({ label, children }) {
       <dd className="min-w-0 whitespace-pre-wrap break-keep text-[17px] font-semibold text-ink">
         {children}
       </dd>
+    </div>
+  )
+}
+
+/** 판매 메모에 붙이는 상품 표시: 「오버핏 니트」 */
+function saleTag(item) {
+  return `「${item.name || '이름 없는 상품'}」`
+}
+
+/** 판매가가 있는 상품: 판 것을 가계부 들어온 돈으로 적기 + 지금까지 적은 판매 */
+function SaleBox({ item, sales, onSold }) {
+  const mine = sales.filter((entry) => entry.memo.startsWith(`${saleTag(item)} `))
+  const soldCount = mine.reduce(
+    (sum, entry) => sum + (Number(entry.memo.match(/ (\d+)개 판매$/)?.[1]) || 0),
+    0,
+  )
+  const soldAmount = mine.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-card)] bg-good-soft px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-[18px] font-extrabold text-good">팔았나요?</p>
+        <p className="text-[16px] font-semibold text-ink-muted tabular">
+          {mine.length
+            ? `지금까지 ${soldCount}개 · ${formatCurrency(soldAmount)} 적었어요`
+            : '판 돈을 가계부 들어온 돈으로 적어요'}
+        </p>
+      </div>
+      <button type="button" onClick={onSold} className="btn shrink-0 bg-good text-[17px] text-white">
+        팔았어요
+      </button>
     </div>
   )
 }
