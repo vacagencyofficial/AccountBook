@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import ShopChipSelector from './ShopChipSelector'
 import { useToday } from '../hooks/useToday'
 import { CATEGORIES, PAYMENTS, STATUSES } from '../db'
+import InstallmentPicker from './InstallmentPicker'
+import { paymentText } from '../utils/installment'
 import { formatCurrency, formatDateLabel } from '../utils/format'
 import { formatDateString } from '../utils/dateRange'
 import { statusLabel } from '../utils/labels'
@@ -129,7 +131,7 @@ export default function RegisterForm({
   const moreSummary = [
     date === today ? '오늘' : formatDateLabel(date),
     statusLabel(form.status),
-    form.payment || null,
+    paymentText(form.payment, form.installment) || null,
     form.salePrice ? `판매 ${Number(form.salePrice).toLocaleString('ko-KR')}원` : null,
     form.category !== '기타' ? form.category : null,
     form.color,
@@ -342,6 +344,13 @@ export default function RegisterForm({
                     </Chip>
                   ))}
                 </div>
+                {form.payment === '카드' && (
+                  <InstallmentPicker
+                    value={form.installment}
+                    onChange={(months) => updateField('installment', months)}
+                    total={priceNumber * qtyNumber}
+                  />
+                )}
                 {form.payment === '외상' && (
                   <p className="mt-2 text-[16px] font-semibold text-warn">
                     외상은 가게 화면에 「남은 돈」으로 모여요. 갚으면 기록에서 「갚았어요」를 눌러 주세요

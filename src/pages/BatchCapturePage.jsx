@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import InstallmentPicker from '../components/InstallmentPicker'
 import { useLocation, useNavigate } from 'react-router-dom'
 import ShopChipSelector from '../components/ShopChipSelector'
 import CameraInput from '../components/CameraInput'
@@ -59,6 +60,7 @@ function loadDraft(presetShopId) {
     shopId: presetShopId ?? getLastShopId() ?? null,
     date: getToday(),
     payment: '',
+    installment: 0,
     rows: [newRow(), newRow(), newRow()],
   }
 }
@@ -195,6 +197,7 @@ export default function BatchCapturePage() {
           qty: row.qty,
           status: '구매',
           payment: draft.payment,
+          installment: draft.installment,
           photoBlobs: (photos[row.key] ?? []).map((photo) => photo.blob),
         })
       }
@@ -338,6 +341,13 @@ export default function BatchCapturePage() {
                   </Chip>
                 ))}
               </div>
+              {draft.payment === '카드' && (
+                <InstallmentPicker
+                  value={draft.installment}
+                  onChange={(months) => update('installment', months)}
+                  total={total}
+                />
+              )}
             </section>
 
             <section>

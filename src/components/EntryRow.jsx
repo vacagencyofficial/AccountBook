@@ -1,10 +1,13 @@
+import { paymentText } from '../utils/installment'
 import { Link } from 'react-router-dom'
 import { formatCurrency, formatDateLabel } from '../utils/format'
 
 /** 가계부 한 줄: 사입 말고 다른 지출·수입 */
 export default function EntryRow({ entry, showDate = false }) {
   const income = entry.type === 'income'
-  const sub = [showDate && formatDateLabel(entry.date), entry.payment].filter(Boolean).join(' · ')
+  const sub = [showDate && formatDateLabel(entry.date), paymentText(entry.payment, entry.installment)]
+    .filter(Boolean)
+    .join(' · ')
   return (
     <li>
       <Link to={`/money/${entry.id}`} className="card flex items-center gap-3.5 px-3.5 py-3 active:bg-wash">

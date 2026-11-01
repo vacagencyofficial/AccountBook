@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import { db, CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, STATUSES } from '../db'
 import { rememberReplacedRecords } from '../db/mutations'
 import { getToday } from './format'
+import { parseInstallment } from './installment'
 
 const HEADER_ALIASES = {
   date: ['날짜', '일자', 'date'],
@@ -16,6 +17,7 @@ const HEADER_ALIASES = {
   status: ['상태', 'status'],
   starred: ['별표', '즐겨찾기', 'star', 'starred'],
   payment: ['결제', '결제방법', '결제 방법', 'payment'],
+  installment: ['할부', '할부개월', '할부 개월', 'installment'],
   settled: ['외상갚음', '외상 갚음', '갚음', 'settled'],
   salePrice: ['판매가', '파는 가격', '판매 가격', 'sale price', 'saleprice'],
   memo: ['메모', '비고', 'memo'],
@@ -150,6 +152,7 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
         status: record.status,
         starred: record.starred ? 1 : 0,
         payment: record.payment,
+        installment: record.payment === '카드' ? record.installment : 0,
         settled: record.settled ? 1 : 0,
         salePrice: record.salePrice,
         createdAt: Date.now(),
@@ -167,7 +170,7 @@ export async function importHistoryFromExcel(file, mode = 'merge') {
   return { shops: shopCount, items: itemCount, entries: entryCount, skipped }
 }
 
-/** 「가계부」 시트: 날짜·구분·분류·금액·결제·메모 */
+/** 「가계부」 시트: 날짜·구분·분류·금액·결제·메모·할부 */
 function readLedgerSheet(sheet) {
   const rows = []
   if (!sheet) return rows
@@ -187,6 +190,7 @@ function readLedgerSheet(sheet) {
       category: rawCategory.slice(0, 10) || categories[categories.length - 1],
       payment: payment === '외상' ? '' : payment,
       memo: cellToString(row.getCell(6).value).trim(),
+      installment: payment === '카드' ? parseInstallment(cellToString(row.getCell(7).value)) : 0,
     })
   })
   return rows
@@ -244,6 +248,8 @@ function parseDataRow(values, headerMap) {
     qty,
     status,
     payment: parsePayment(cellToString(values[headerMap.payment])),
+    installment:
+      headerMap.installment == null ? 0 : parseInstallment(cellToString(values[headerMap.installment])),
     salePrice: headerMap.salePrice == null ? 0 : parseNumber(values[headerMap.salePrice]),
     settled: /^(o|y|yes|1|true|예|v|✓|✔|갚음)$/i.test(cellToString(values[headerMap.settled]).trim()),
     // ★·O·1·Y·예처럼 무엇이든 적혀 있으면 별표

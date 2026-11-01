@@ -50,6 +50,12 @@ export async function exportHistoryToExcel(
     { header: '별표', width: 6, center: true, value: (item) => (item.starred ? '★' : '') },
     { header: '결제', width: 9, value: (item) => item.payment || '' },
     {
+      header: '할부',
+      width: 9,
+      center: true,
+      value: (item) => (item.payment === '카드' && item.installment >= 2 ? `${item.installment}개월` : ''),
+    },
+    {
       header: '외상갚음',
       width: 9,
       center: true,
@@ -185,7 +191,7 @@ export async function exportHistoryToExcel(
   // 가계부: 사입 말고 다른 지출·수입 (다시 넣을 때 그대로 되살림)
   if (entries) {
     const ledgerSheet = workbook.addWorksheet('가계부', { views: [{ state: 'frozen', ySplit: 1 }] })
-    ledgerSheet.addRow(['날짜', '구분', '분류', '금액', '결제', '메모'])
+    ledgerSheet.addRow(['날짜', '구분', '분류', '금액', '결제', '메모', '할부'])
     ledgerSheet.getRow(1).font = { bold: true }
     ledgerSheet.columns = [
       { width: 12 },
@@ -194,6 +200,7 @@ export async function exportHistoryToExcel(
       { width: 12 },
       { width: 9 },
       { width: 24 },
+      { width: 9 },
     ]
     const sorted = [...entries].sort(
       (a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0),
@@ -206,6 +213,7 @@ export async function exportHistoryToExcel(
         Number(entry.amount) || 0,
         entry.payment || '',
         entry.memo || '',
+        entry.payment === '카드' && entry.installment >= 2 ? `${entry.installment}개월` : '',
       ])
       row.getCell(4).numFmt = '#,##0'
     }

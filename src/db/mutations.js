@@ -1,4 +1,5 @@
 import { db } from './index'
+import { normalizeInstallment } from '../utils/installment'
 import { syncAfterWrite } from './cloudSync'
 
 function normalizeShopData(data) {
@@ -101,6 +102,7 @@ export async function saveItemWithPhotos({
   memo,
   status,
   payment,
+  installment,
   salePrice,
   photoBlobs,
 }) {
@@ -118,6 +120,7 @@ export async function saveItemWithPhotos({
     memo: memo?.trim() ?? '',
     status: status ?? '구매',
     payment: payment ?? '',
+    installment: normalizeInstallment(payment, installment),
     settled: 0,
     salePrice: parseInt(String(salePrice ?? '').replace(/,/g, ''), 10) || 0,
     createdAt: now,
@@ -149,6 +152,7 @@ export async function updateItem(itemId, data) {
   if (data.salePrice != null) patch.salePrice = parseInt(String(data.salePrice).replace(/,/g, ''), 10) || 0
   if (data.payment != null) {
     patch.payment = data.payment
+    patch.installment = normalizeInstallment(data.payment, data.installment)
     // 외상이 아니게 바꾸면 「갚음」 표시도 지움
     if (data.payment !== '외상') {
       patch.settled = 0
@@ -245,6 +249,7 @@ function normalizeEntry(data) {
     category: data.category || (type === 'income' ? '판매' : '기타'),
     memo: data.memo?.trim() ?? '',
     payment: type === 'expense' ? (data.payment ?? '') : '',
+    installment: type === 'expense' ? normalizeInstallment(data.payment, data.installment) : 0,
   }
 }
 

@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState'
 import SubPage from '../components/SubPage'
 import PhotoThumbnail from '../components/PhotoThumbnail'
 import RegisterForm from '../components/RegisterForm'
+import { monthlyInstallment, paymentText } from '../utils/installment'
 import StatusBadge from '../components/StatusBadge'
 import StarButton from '../components/StarButton'
 import PhotoViewer from '../components/PhotoViewer'
@@ -40,6 +41,7 @@ function itemToForm(item) {
     memo: item.memo ?? '',
     status: item.status || '구매',
     payment: item.payment || '',
+    installment: item.installment || 0,
     salePrice: item.salePrice ? String(item.salePrice) : '',
     date: item.date,
   }
@@ -331,7 +333,12 @@ export default function ItemDetailPage() {
               )}
               {item.payment && (
                 <InfoRow label="결제">
-                  {item.payment}
+                  {paymentText(item.payment, item.installment)}
+                  {item.payment === '카드' && item.installment >= 2 && (
+                    <span className="block text-[16px] font-bold text-ink-soft">
+                      한 달 약 {formatCurrency(monthlyInstallment(item.price * item.qty, item.installment))}
+                    </span>
+                  )}
                   {item.payment === '외상' &&
                     (item.settled
                       ? ` · 갚았어요${item.settledDate ? ` (${formatDateLabel(item.settledDate)})` : ''}`

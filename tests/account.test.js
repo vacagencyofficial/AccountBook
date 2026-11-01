@@ -152,6 +152,27 @@ describe('간편 로그인 ↔ 장부 연결', () => {
     expect(memos).toEqual(expect.arrayContaining(['게스트 점심', '다른 폰 기록']))
   })
 
+  it('카드 할부 개월 수가 클라우드에 올라갔다가 그대로 내려옴', async () => {
+    const id = await db.entries.add({
+      type: 'expense',
+      date: '2026-11-01',
+      amount: 120000,
+      category: '임대료',
+      memo: '할부 테스트',
+      payment: '카드',
+      installment: 6,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      dirty: 1,
+    })
+    await sync.syncBidirectional()
+    const remote = await fake.rpc('sailp_pull', { p_code: firstCode })
+    expect(remote.data.entries.find((e) => e.memo === '할부 테스트').installment).toBe(6)
+    await db.entries.delete(id)
+    await sync.pullCloudToLocal({ replaceLocal: true })
+    expect((await db.entries.toArray()).find((e) => e.memo === '할부 테스트').installment).toBe(6)
+  })
+
   it('회원 탈퇴하면 장부와 계정이 지워지고 이 폰도 비워짐', async () => {
     await account.deleteAccount()
     expect(await db.entries.count()).toBe(0)

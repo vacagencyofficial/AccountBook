@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import SubPage from '../components/SubPage'
 import ConfirmDialog from '../components/ConfirmDialog'
+import InstallmentPicker from '../components/InstallmentPicker'
 import { useToast } from '../components/toastContext'
 import { db } from '../db'
 import { createEntry, deleteEntry, restoreEntry, updateEntry } from '../db/mutations'
@@ -68,6 +69,7 @@ function EntryForm({ entry }) {
     category: entry?.category ?? '',
     date: entry?.date ?? today,
     payment: entry?.payment ?? '',
+    installment: entry?.installment ?? 0,
     memo: entry?.memo ?? '',
   }))
   const [busy, setBusy] = useState(false)
@@ -105,6 +107,7 @@ function EntryForm({ entry }) {
       category: row.category,
       memo: row.memo,
       payment: row.payment || '',
+      installment: row.installment || 0,
     }))
   }
 
@@ -339,6 +342,13 @@ function EntryForm({ entry }) {
                 </Chip>
               ))}
             </div>
+            {form.payment === '카드' && (
+              <InstallmentPicker
+                value={form.installment}
+                onChange={(months) => update('installment', months)}
+                total={amount}
+              />
+            )}
           </section>
         )}
 
