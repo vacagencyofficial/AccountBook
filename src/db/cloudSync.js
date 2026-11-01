@@ -1,5 +1,11 @@
 import { supabase, isCloudConfigured } from '../lib/supabase'
-import { getWorkspaceCode, getWorkspaceId, normalizeWorkspaceCode, setWorkspaceLocal } from '../lib/workspace'
+import {
+  clearWorkspaceLocal,
+  getWorkspaceCode,
+  getWorkspaceId,
+  normalizeWorkspaceCode,
+  setWorkspaceLocal,
+} from '../lib/workspace'
 import { markSyncFailed, markSyncSucceeded } from '../lib/syncStatus'
 import { db } from './index'
 
@@ -7,13 +13,14 @@ const NOT_FOUND_MESSAGE =
   '이 번호의 장부를 찾을 수 없어요. 번호가 바뀌었다면 같이 쓰는 분께 새 초대 주소를 받아 주세요.'
 
 /** 서버 함수 호출 (표 직접 접근은 secure.sql로 막혀 있음) */
-async function rpc(fn, args) {
+export async function rpc(fn, args) {
   const { data, error } = await supabase.rpc(fn, args)
   if (error) {
     if (error.message?.includes('workspace_not_found')) throw new Error(NOT_FOUND_MESSAGE)
     if (/failed to fetch|network|load failed/i.test(error.message ?? '')) {
       throw new Error('인터넷에 연결되지 않았어요. 연결을 확인한 뒤 다시 눌러 주세요.')
     }
+    if (error.message?.includes('login_required')) throw new Error('로그인이 풀렸어요. 다시 로그인해 주세요.')
     if (error.code === 'PGRST202') {
       throw new Error('클라우드 보안 설정(secure.sql)이 아직 적용되지 않았어요.')
     }
@@ -489,4 +496,12 @@ export async function syncAfterWrite() {
     markSyncFailed()
     console.warn('[cloud sync]', err)
   }
+}
+
+/** 로그아웃·탈퇴 후: 이 폰의 기록과 장부 연결을 지움 (클라우드 장부는 그대로) */
+export function forgetThisDevice() {
+  return serialized(async () => {
+    await clearLocal()
+    clearWorkspaceLocal()
+  })
 }

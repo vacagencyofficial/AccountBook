@@ -8,8 +8,11 @@ export const isCloudConfigured = Boolean(url && anonKey)
 export const supabase = isCloudConfigured
   ? createClient(url, anonKey, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+        // 간편 로그인: 로그인 상태를 이 기기에 기억하고, 돌아온 주소(?code=)로 자동 로그인 처리
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
       },
     })
   : null

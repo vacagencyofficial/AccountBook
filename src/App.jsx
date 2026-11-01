@@ -15,12 +15,16 @@ import ItemDetailPage from './pages/ItemDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 import EntryPage from './pages/EntryPage'
 import StatsPage from './pages/StatsPage'
+import LoginPage from './pages/LoginPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/join/:code" element={<JoinPage />} />
       <Route path="/join" element={<JoinPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/capture" element={<CapturePage />} />
       <Route path="/capture/many" element={<BatchCapturePage />} />
       <Route path="/shops/new" element={<ShopNewPage />} />

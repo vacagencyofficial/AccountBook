@@ -22,6 +22,7 @@ https://github.com/vacagencyofficial/AccountBook
 - 엑셀 받기/넣기(월별 결산 시트 포함) · 사진 포함 백업
 - 사진 모아 보기 · 별표 · 판매가·남는 돈
 - 초대 링크·QR로 다른 폰과 같이 쓰기
+- 간편 로그인(카카오·Google·Apple) · 로그아웃 · 회원 탈퇴 → [docs/AUTH_SETUP.md](./docs/AUTH_SETUP.md)
 - 글씨 크기 · 홈 화면 추가
 
 ## 로컬 실행

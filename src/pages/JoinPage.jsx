@@ -24,6 +24,13 @@ export default function JoinPage() {
         setJoinedCode(ws.code)
         setDetail('클라우드에서 불러오는 중…')
         await syncBidirectional()
+        // 로그인한 상태면 초대받은 장부를 계정에도 연결 (실패해도 연결 자체는 유지)
+        try {
+          const { linkCurrentWorkspaceToAccount } = await import('../db/account')
+          await linkCurrentWorkspaceToAccount()
+        } catch (err) {
+          console.warn('[account link]', err)
+        }
         setStatus('done')
         setDetail('연결했어요. 같은 장부를 이 폰에서도 쓸 수 있어요.')
         window.setTimeout(() => navigate('/settings?joined=1', { replace: true }), 1200)

@@ -35,6 +35,10 @@ alter table storage.objects enable row level security;
 grant all on storage.objects to anon, authenticated;
 create function storage.foldername(name text) returns text[] language sql as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name,'/'),1)-1] $$;
 grant execute on function storage.foldername(text) to anon, authenticated;
+create schema auth; grant usage on schema auth to anon, authenticated;
+create table auth.users (id uuid primary key);
+create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+grant execute on function auth.uid() to anon, authenticated;
 `)
 await db.exec(fs.readFileSync(R + 'schema.sql', 'utf8'))
 console.log('schema.sql 적용 (기존 상태)')
@@ -301,6 +305,85 @@ await expectErr(
 )
 await expectErr('select sailp_new_code()', [], '번호 만드는 내부 함수는 직접 호출 불가', 'permission denied')
 await db.exec('reset role')
+
+console.log('\n[9] 간편 로그인 계정 ↔ 장부 (auth.sql)')
+await db.exec(fs.readFileSync(R + 'auth.sql', 'utf8'))
+await db.exec(fs.readFileSync(R + 'auth.sql', 'utf8'))
+ok(true, 'auth.sql 적용 (2번 실행해도 오류 없음)')
+const U1 = '11111111-1111-1111-1111-111111111111'
+const U2 = '22222222-2222-2222-2222-222222222222'
+await db.query('insert into auth.users(id) values ($1), ($2)', [U1, U2])
+const asUser = async (uid) => {
+  await db.exec('reset role')
+  await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [uid ?? ''])
+  await db.exec(uid ? 'set role authenticated' : 'set role anon')
+}
+await asUser(null)
+await expectErr(
+  'select sailp_my_workspace()',
+  [],
+  '로그인 안 한(anon) 사람은 계정 함수 못 부름',
+  'permission denied',
+)
+await asUser(U1)
+ok((await db.query('select sailp_my_workspace() as w')).rows[0].w === null, '처음 로그인: 계정 장부 없음')
+const mine = (await db.query('select sailp_create_my_workspace() as w')).rows[0].w
+ok(/^SAILP-[A-Z2-9]{10}$/.test(mine.code), `계정에 새 장부 만들기: ${mine.code}`)
+ok(
+  (await db.query('select sailp_my_workspace() as w')).rows[0].w.id === mine.id,
+  '다시 로그인하면 같은 장부가 열림',
+)
+await expectErr('select * from workspace_members', [], '계정 연결 표는 직접 못 봄', 'permission denied')
+await db.query('select sailp_upsert_entry($1,$2,$3)', [
+  mine.code,
+  null,
+  JSON.stringify({
+    type: 'expense',
+    date: '2026-11-01',
+    amount: 5000,
+    category: '식비',
+    memo: '',
+    payment: '',
+    createdAt: 1,
+    clientUpdatedAt: 1,
+  }),
+])
+await asUser(U2)
+ok(
+  (await db.query('select sailp_my_workspace() as w')).rows[0].w === null,
+  '다른 계정에는 남의 장부가 안 보임',
+)
+const linked = (await db.query('select sailp_link_workspace($1) as w', [mine.code])).rows[0].w
+ok(linked.id === mine.id, '초대 번호로 같은 장부를 내 계정에 연결')
+ok((await db.query('select sailp_my_workspace() as w')).rows[0].w.id === mine.id, '연결 후 내 장부로 열림')
+await expectErr(
+  'select sailp_link_workspace($1)',
+  ['SAILP-NOPE99NOPE'],
+  '없는 번호는 연결 못 함',
+  'workspace_not_found',
+)
+await asUser(U1)
+await db.query('select sailp_delete_account_prepare()')
+await db.query('select sailp_delete_account()')
+await db.exec('reset role')
+ok(
+  (await db.query('select count(*)::int as n from workspaces where id = $1', [mine.id])).rows[0].n === 1,
+  '같이 쓰는 사람이 있으면 탈퇴해도 장부는 남음',
+)
+ok(
+  (await db.query('select count(*)::int as n from auth.users where id = $1', [U1])).rows[0].n === 0,
+  '탈퇴한 계정은 지워짐',
+)
+await asUser(U2)
+await db.query('select sailp_delete_account_prepare()')
+await db.query('select sailp_delete_account()')
+await db.exec('reset role')
+ok(
+  (await db.query('select count(*)::int as n from workspaces where id = $1', [mine.id])).rows[0].n === 0 &&
+    (await db.query('select count(*)::int as n from entries where workspace_id = $1', [mine.id])).rows[0]
+      .n === 0,
+  '혼자 남은 사람이 탈퇴하면 장부와 기록도 지워짐',
+)
 
 console.log(`\n결과: ${pass}개 통과 / ${fail}개 실패`)
 process.exit(fail ? 1 : 0)

@@ -8,6 +8,7 @@ import RecurringSetting from '../components/RecurringSetting'
 import EntryCategorySetting from '../components/EntryCategorySetting'
 import TextSizePicker from '../components/settings/TextSizePicker'
 import CloudSyncSetting from '../components/settings/CloudSyncSetting'
+import AccountSetting from '../components/settings/AccountSetting'
 import BackupSetting from '../components/settings/BackupSetting'
 import StorageSetting from '../components/settings/StorageSetting'
 import { SettingsRow, SettingsSection } from '../components/settings/SettingsParts'
@@ -19,7 +20,11 @@ export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const storage = useStorageInfo()
   const [message, setMessage] = useState(() =>
-    searchParams.get('joined') === '1' ? '초대받은 장부와 연결했어요' : null,
+    searchParams.get('joined') === '1'
+      ? '초대받은 장부와 연결했어요'
+      : searchParams.get('login') === '1'
+        ? '로그인했어요. 이제 폰을 바꿔도 장부가 그대로예요'
+        : null,
   )
   const [error, setError] = useState(null)
   const [workspaceCode, setWorkspaceCode] = useState(getWorkspaceCode())
@@ -27,9 +32,10 @@ export default function SettingsPage() {
   // 초대 주소로 연결하고 넘어오면(?joined=1) 안내만 남기고 주소에서는 지움
   // (장부 번호는 연결할 때 이미 저장돼 처음 값으로 읽힘)
   useEffect(() => {
-    if (searchParams.get('joined') === '1') {
+    if (searchParams.get('joined') === '1' || searchParams.get('login') === '1') {
       const next = new URLSearchParams(searchParams)
       next.delete('joined')
+      next.delete('login')
       setSearchParams(next, { replace: true })
     }
   }, [searchParams, setSearchParams])
@@ -52,6 +58,17 @@ export default function SettingsPage() {
             {error}
           </div>
         )}
+
+        <SettingsSection title="계정">
+          <AccountSetting
+            onMessage={setMessage}
+            onError={setError}
+            onSignedOut={async () => {
+              setWorkspaceCode(getWorkspaceCode())
+              await storage.reload()
+            }}
+          />
+        </SettingsSection>
 
         <SettingsSection title="글씨 크기">
           <TextSizePicker />
