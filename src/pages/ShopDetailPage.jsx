@@ -134,6 +134,13 @@ export default function ShopDetailPage() {
           >
             <IconCamera className="h-6 w-6" />이 가게 상품 입력
           </button>
+          <button
+            type="button"
+            onClick={() => navigate('/capture/many', { state: { shopId: id } })}
+            className="btn btn-outline"
+          >
+            이 가게에서 여러 개 한 번에 적기
+          </button>
           {shop.phone && (
             <a href={`tel:${shop.phone.replace(/[^\d+]/g, '')}`} className="btn bg-good-soft text-good">
               📞 전화 걸기 ({shop.phone})

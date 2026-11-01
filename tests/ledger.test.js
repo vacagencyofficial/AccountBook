@@ -130,7 +130,8 @@ describe('반복 더 보기', () => {
   })
 
   it('동시에 두 번 불려도 한 번만 적음', async () => {
-    addRecurringRule({ type: 'expense', amount: 1000, category: '식비', memo: '우유', day: 1 })
+    // 9월 1일에 적은 것으로 시작 (실제 오늘 날짜와 상관없이 10월 1일 한 번이 남음)
+    addRecurringRule({ type: 'expense', amount: 1000, category: '식비', memo: '우유' }, '2026-09-01')
     const [a, b] = await Promise.all([
       applyRecurringRules(new Date(2026, 9, 2)),
       applyRecurringRules(new Date(2026, 9, 2)),

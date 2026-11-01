@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 43123",
     "build": "vite build",
+    "build:demo": "VITE_DEMO_SEED=true vite build",
     "lint": "oxlint",
     "preview": "vite preview --host 0.0.0.0 --port 43123",
     "start": "vite preview --host 0.0.0.0 --port 43123",
     "test": "vitest run && node tests/sql-check.mjs",
     "test:sync": "vitest run",
     "test:sql": "node tests/sql-check.mjs",
+    "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.13",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
