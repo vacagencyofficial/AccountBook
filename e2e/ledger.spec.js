@@ -10,7 +10,8 @@ test('가계부: 돈 쓴 것(매달 반복) → 장부 결산 → 분류로 찾�
   await page.getByRole('button', { name: '매달' }).click()
   await expect(page.getByText(/앞으로 매달 15일에 저절로 적어요/)).toBeVisible()
   await page.getByRole('button', { name: '55,000원 저장하기' }).click()
-  await expect(page.getByText(/매달 15일에 저절로 적어요/)).toBeVisible()
+  // 저장 알림 (화면이 넘어가기 직전에는 입력 화면 안내와 같이 보일 수 있어 알림 문구만 찾음)
+  await expect(page.getByText('나간 돈 55,000원을 적었어요. 매달 15일에 저절로 적어요')).toBeVisible()
 
   const entry = (await readStore(page, 'entries')).find((row) => row.memo === '통신비 (매달)')
   expect(entry).toMatchObject({ type: 'expense', amount: 55000, category: '공과금·통신', date: '2026-10-15' })
