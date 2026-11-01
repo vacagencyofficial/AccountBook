@@ -16,6 +16,7 @@ https://github.com/vacagencyofficial/AccountBook
 ## 되는 것 (요약)
 
 - 상품 입력 (사진 · 가게 · 가격 · 개수)
+- 여러 개 한 번에 적기 (가게·날짜는 한 번, 상품은 한 줄씩 · 줄마다 사진·색·크기·판매가)
 - 돈 쓴 것 / 돈 들어온 것 (분류 · 반복 매달·매주)
 - 한 달 결산 · 이번 주 비교 · 통계(지난달·작년·한 해)
 - 예산 · 분류별 예산 · 외상 갚기
@@ -34,8 +35,14 @@ npm run dev
 
 `http://localhost:43123`
 
+```bash
+npm test          # 동기화·계산·서버 SQL 시험
+npm run test:e2e  # 화면 점검 (처음 한 번: npx playwright install chromium)
+```
+
+개발 안내: **[DEVELOPER.md](./DEVELOPER.md)**  
 클라우드: **[CLOUD_SETUP.md](./CLOUD_SETUP.md)** (`schema.sql` 후 `secure.sql` 필수)
 
 ## 기술
 
-Vite · React · Tailwind · Dexie · Supabase · vite-plugin-pwa
+Vite · React · Tailwind · Dexie · Supabase · vite-plugin-pwa · vitest · Playwright
