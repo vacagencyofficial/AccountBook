@@ -28,3 +28,7 @@ dist-ssr
 .public-url
 .vercel
 .env.production
+
+# 화면 자동 점검(Playwright) 결과
+playwright-report
+test-results

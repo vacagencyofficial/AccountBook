@@ -18,7 +18,17 @@ const MAX_PRICE = 99_999_999
 let rowSeq = 0
 function newRow() {
   rowSeq += 1
-  return { key: `${Date.now()}-${rowSeq}`, name: '', price: '', qty: '1', category: '기타' }
+  return {
+    key: `${Date.now()}-${rowSeq}`,
+    name: '',
+    price: '',
+    qty: '1',
+    category: '기타',
+    color: '',
+    size: '',
+    salePrice: '',
+    moreOpen: false,
+  }
 }
 
 function yesterday() {
@@ -178,6 +188,9 @@ export default function BatchCapturePage() {
           date: draft.date,
           name: row.name,
           category: row.category,
+          color: row.color ?? '',
+          size: row.size ?? '',
+          salePrice: row.salePrice ?? '',
           price: row.price,
           qty: row.qty,
           status: '구매',
@@ -435,6 +448,12 @@ export default function BatchCapturePage() {
                           </button>
                         ))}
                       </div>
+                      <RowMore
+                        row={row}
+                        label={`${index + 1}번 상품`}
+                        onToggle={() => updateRow(row.key, 'moreOpen', !row.moreOpen)}
+                        onChange={(field, value) => updateRow(row.key, field, value)}
+                      />
                       {rowPhotos.length > 0 && (
                         <ul
                           className="mt-3 flex gap-3 overflow-x-auto pb-1 pt-2"
@@ -488,8 +507,8 @@ export default function BatchCapturePage() {
                 + 상품 한 줄 더하기
               </button>
               <p className="mt-2 text-[16px] font-semibold leading-snug text-ink-soft">
-                사진은 줄마다 넣을 수 있어요(없어도 돼요). 색·크기·판매가는 저장한 뒤 장부에서 그 상품을 눌러
-                더 적을 수 있어요. 빈 줄은 저장하지 않아요.
+                사진은 줄마다 넣을 수 있어요(없어도 돼요). 색·크기·판매가는 줄의 「더 적기」에서 적어요. 빈
+                줄은 저장하지 않아요.
               </p>
             </section>
           </div>
@@ -552,6 +571,82 @@ export default function BatchCapturePage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** 줄의 「더 적기」: 색·크기·판매가 (닫혀 있을 때는 적은 것만 한 줄로) */
+function RowMore({ row, label, onToggle, onChange }) {
+  const sale = Number(row.salePrice) || 0
+  const price = Number(row.price) || 0
+  const summary = [row.color, row.size, sale > 0 && `판매 ${formatCurrency(sale)}`]
+    .filter(Boolean)
+    .join(' · ')
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={Boolean(row.moreOpen)}
+        className="flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-[10px] bg-wash px-3 text-left"
+        aria-label={`${label} 더 적기 (색·크기·판매가)`}
+      >
+        <span className="shrink-0 text-[16px] font-bold text-ink-muted">
+          더 적기 <span className="font-semibold text-ink-soft">(색·크기·판매가)</span>
+        </span>
+        <span className="min-w-0 truncate text-[16px] font-bold text-brand">
+          {summary}
+          <span className="ml-1 text-ink-soft" aria-hidden>
+            {row.moreOpen ? '▴' : '▾'}
+          </span>
+        </span>
+      </button>
+      {row.moreOpen && (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            value={row.color ?? ''}
+            onChange={(e) => onChange('color', e.target.value)}
+            placeholder="색 (예: 베이지)"
+            autoComplete="off"
+            className="field"
+            aria-label={`${label} 색`}
+          />
+          <input
+            type="text"
+            value={row.size ?? ''}
+            onChange={(e) => onChange('size', e.target.value)}
+            placeholder="크기 (예: FREE)"
+            autoComplete="off"
+            className="field"
+            aria-label={`${label} 크기`}
+          />
+          <div className="field col-span-2 flex items-center gap-1">
+            <span className="shrink-0 text-[16px] font-bold text-ink-muted">팔 가격</span>
+            <input
+              inputMode="numeric"
+              value={sale ? sale.toLocaleString('ko-KR') : ''}
+              onChange={(e) =>
+                onChange(
+                  'salePrice',
+                  String(Math.min(MAX_PRICE, Number(e.target.value.replace(/\D/g, '')) || 0) || ''),
+                )
+              }
+              placeholder="없어도 돼요"
+              className="min-w-0 flex-1 bg-transparent text-right text-[18px] font-bold outline-none tabular"
+              aria-label={`${label} 판매가`}
+            />
+            <span className="shrink-0 text-[17px] font-bold text-ink-muted">원</span>
+          </div>
+          {sale > 0 && price > 0 && (
+            <p className={`col-span-2 text-[16px] font-bold ${sale >= price ? 'text-good' : 'text-red-700'}`}>
+              {sale >= price
+                ? `한 개에 ${formatCurrency(sale - price)} 남아요`
+                : `한 개에 ${formatCurrency(price - sale)} 손해예요`}
+            </p>
+          )}
         </div>
       )}
     </div>

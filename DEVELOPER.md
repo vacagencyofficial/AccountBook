@@ -51,11 +51,20 @@ npm run format:check # 모양만 검사 (CI에서도 확인)
 ```bash
 npm test          # 아래 둘을 한 번에
 npm run test:sync # 동기화(폰 두 대 흉내)·계산·백업 알림·예산 — vitest
-npm run test:sql  # supabase/secure.sql 보안·동기화 함수 36가지 — PGlite
+npm run test:sql  # supabase/secure.sql 보안·동기화 함수 — PGlite
+npm run test:e2e  # 화면 점검: 예시 데이터 앱을 띄워 실제로 눌러 봄 — Playwright (e2e/)
 ```
 
 - 브라우저 없이 돌아갑니다. 폰 DB는 `fake-indexeddb`, Supabase 서버는 `@electric-sql/pglite`로 흉내 냅니다.
 - GitHub에 올리거나 PR을 만들면 `.github/workflows/ci.yml`이 코드 검사 → 빌드 → 시험을 자동으로 돌립니다.
+
+### 화면 점검 (e2e)
+
+- `e2e/` 폴더: 상품 입력, 여러 개 한 번에 적기(사진·색·크기·판매가), 가계부·반복·장부·찾기·통계, 외상 갚은 날 결산, 엑셀 받기·넣기, 설정(분류별 예산·반복 고치기)
+- `npm run test:e2e`가 `build:demo`(예시 데이터)로 빌드한 앱을 43124 포트에 띄워 점검합니다. 「오늘」은 2026-10-15로 고정됩니다(`e2e/helpers.js`).
+- 처음 한 번은 브라우저 설치가 필요합니다: `npx playwright install chromium`
+- GitHub에서는 CI의 `e2e` 작업이 PR마다 자동으로 돌고, 실패하면 화면 사진·기록(`playwright-report`)을 내려받을 수 있습니다.
+- 화면 문구나 버튼 이름을 바꾸면 e2e도 같이 고쳐야 합니다.
 
 ## 배포
 
